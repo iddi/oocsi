@@ -10,7 +10,7 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Map;
 
-import nl.tue.id.oocsi.client.Handler;
+import nl.tue.id.oocsi.client.protocol.Handler;
 
 public class SocketClient {
 
