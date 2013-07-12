@@ -6,6 +6,8 @@ import nl.tue.id.oocsi.server.socket.SocketServer;
 
 public class OOCSIServer {
 
+	private static boolean isLogging = true;
+
 	public static void main(String[] args) {
 
 		// get port from arguments
@@ -23,6 +25,8 @@ public class OOCSIServer {
 	}
 
 	public static void log(String message) {
-		System.out.println(message);
+		if (isLogging) {
+			System.out.println(message);
+		}
 	}
 }
