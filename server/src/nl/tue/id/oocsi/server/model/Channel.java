@@ -4,6 +4,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import nl.tue.id.oocsi.server.OOCSIServer;
 import nl.tue.id.oocsi.server.protocol.Message;
 
 /**
@@ -34,7 +35,7 @@ public class Channel {
 	 * @param message
 	 */
 	public void send(Message message) {
-		System.out.println("Channel " + token + " received " + message);
+		OOCSIServer.log("Channel " + token + " received " + message);
 		for (Channel subChannel : subChannels.values()) {
 			if (!message.sender.equals(subChannel.getName())) {
 				subChannel.send(message);
@@ -74,13 +75,17 @@ public class Channel {
 	}
 
 	/**
-	 * adds a channel
+	 * adds a channel if not existing
 	 * 
 	 * @param channel
 	 */
 	public void addChannel(Channel channel) {
-		subChannels.put(channel.getName(), channel);
-		System.out.println("added channel " + channel.getName());
+		if (!token.equals(channel.getName())
+				&& !subChannels.containsKey(channel.getName())) {
+			subChannels.put(channel.getName(), channel);
+			OOCSIServer.log("added channel " + channel.getName() + " to "
+					+ token);
+		}
 	}
 
 	/**
@@ -93,19 +98,21 @@ public class Channel {
 	}
 
 	/**
-	 * removes a channel (recursive)
+	 * removes a channel (recursively) if existing
 	 * 
 	 * @param channel
 	 * @param recursive
 	 */
 	public void removeChannel(Channel channel, boolean recursive) {
-		subChannels.remove(channel.getName());
+		if (subChannels.remove(channel.getName()) != null) {
+			OOCSIServer.log("removed channel " + channel.getName() + " from "
+					+ token);
+		}
 
 		if (recursive) {
 			for (Channel subChannel : subChannels.values()) {
-				subChannel.removeChannel(subChannel, recursive);
+				subChannel.removeChannel(channel, recursive);
 			}
 		}
-		System.out.println("removed channel " + channel.getName());
 	}
 }

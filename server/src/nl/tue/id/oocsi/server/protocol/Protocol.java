@@ -7,6 +7,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import nl.tue.id.oocsi.server.OOCSIServer;
 import nl.tue.id.oocsi.server.model.Channel;
 import nl.tue.id.oocsi.server.model.Client;
 import nl.tue.id.oocsi.server.model.Server;
@@ -87,7 +88,7 @@ public class Protocol {
 		}
 		// client unsubscribes from channel
 		else if (inputLine.startsWith("unsubscribe")) {
-			System.out.println("unsubscribe");
+			OOCSIServer.log("unsubscribe");
 			String channel = inputLine.split(" ")[1];
 			Channel c = server.getChannel(channel);
 			if (c != null) {
@@ -96,7 +97,7 @@ public class Protocol {
 		}
 		// create new message
 		else if (inputLine.startsWith("sendraw")) {
-			System.out.println("sendraw");
+			OOCSIServer.log("sendraw");
 			String[] tokens = inputLine.split(" ", 3);
 			if (tokens.length == 3) {
 				String recipient = tokens[1];
@@ -113,7 +114,7 @@ public class Protocol {
 		}
 		// create new message
 		else if (inputLine.startsWith("send")) {
-			System.out.println("send");
+			OOCSIServer.log("send");
 			String[] tokens = inputLine.split(" ", 3);
 			if (tokens.length == 3) {
 				String recipient = tokens[1];

@@ -5,6 +5,7 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.UnknownHostException;
 
+import nl.tue.id.oocsi.server.OOCSIServer;
 import nl.tue.id.oocsi.server.model.Server;
 
 public class SocketServer extends Server {
@@ -22,7 +23,7 @@ public class SocketServer extends Server {
 		try {
 			serverSocket = new ServerSocket(port);
 		} catch (IOException e) {
-			System.err.println("Could not listen on port: " + port);
+			OOCSIServer.log("Could not listen on port: " + port);
 			System.exit(-1);
 		}
 
@@ -30,7 +31,7 @@ public class SocketServer extends Server {
 		try {
 			addr = InetAddress.getLocalHost();
 			String hostname = addr.getHostName();
-			System.out.println("Local IP address is " + hostname);
+			OOCSIServer.log("Local IP address is " + hostname);
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}

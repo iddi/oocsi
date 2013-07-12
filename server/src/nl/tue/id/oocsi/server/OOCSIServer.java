@@ -10,7 +10,7 @@ public class OOCSIServer {
 
 		// get port from arguments
 		String port = "4444";
-		System.out.println("Starting OOCSI server on port " + port);
+		OOCSIServer.log("Starting OOCSI server on port " + port);
 
 		// start socket server
 		try {
@@ -20,5 +20,9 @@ public class OOCSIServer {
 		} finally {
 			// done
 		}
+	}
+
+	public static void log(String message) {
+		System.out.println(message);
 	}
 }
