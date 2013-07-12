@@ -66,11 +66,18 @@ public class SocketClient {
 							}
 						}
 
-						output.close();
-						input.close();
-						socket.close();
 					} catch (IOException e) {
 						// e.printStackTrace();
+					} finally {
+						output.close();
+						try {
+							input.close();
+							socket.close();
+						} catch (IOException e) {
+							// e.printStackTrace();
+						}
+
+						System.out.println(" - OOCSI disconnected");
 					}
 				}
 			}).start();
