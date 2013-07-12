@@ -30,9 +30,10 @@ public class Protocol {
 	 * add a client to the client list in the server
 	 * 
 	 * @param client
+	 * @return
 	 */
-	public void register(Client client) {
-		server.addClient(client);
+	public boolean register(Client client) {
+		return server.addClient(client);
 	}
 
 	/**

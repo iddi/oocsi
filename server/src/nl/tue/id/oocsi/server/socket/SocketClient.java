@@ -9,6 +9,7 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.Map;
 
+import nl.tue.id.oocsi.server.OOCSIServer;
 import nl.tue.id.oocsi.server.model.Client;
 import nl.tue.id.oocsi.server.protocol.Message;
 import nl.tue.id.oocsi.server.protocol.Protocol;
@@ -43,6 +44,8 @@ public class SocketClient extends Client {
 	public void send(Message message) {
 		send("send " + message.recipient + " " + serialize(message.data) + " "
 				+ message.timestamp.getTime() + " " + message.sender);
+		OOCSIServer.log("sent message to " + socket.getInetAddress() + ":"
+				+ socket.getPort());
 	}
 
 	/**
@@ -73,40 +76,47 @@ public class SocketClient extends Client {
 	 */
 	public void start() {
 		new Thread(new Runnable() {
+			private BufferedReader input;
+
 			public void run() {
 				try {
 					output = new PrintWriter(socket.getOutputStream(), true);
-					BufferedReader in = new BufferedReader(
-							new InputStreamReader(socket.getInputStream()));
+					input = new BufferedReader(new InputStreamReader(
+							socket.getInputStream()));
 
 					String inputLine, outputLine;
-					if ((inputLine = in.readLine()) != null) {
+					if ((inputLine = input.readLine()) != null) {
 						token = inputLine;
-						protocol.register(SocketClient.this);
-					}
-
-					while ((inputLine = in.readLine()) != null) {
-						outputLine = protocol.processInput(SocketClient.this,
-								inputLine);
-						if (outputLine == null) {
-							break;
-						} else if (outputLine.length() > 0) {
-							synchronized (output) {
-								output.println(outputLine);
+						if (protocol.register(SocketClient.this)) {
+							while ((inputLine = input.readLine()) != null) {
+								outputLine = protocol.processInput(
+										SocketClient.this, inputLine);
+								if (outputLine == null) {
+									break;
+								} else if (outputLine.length() > 0) {
+									synchronized (output) {
+										output.println(outputLine);
+									}
+								}
 							}
 						}
 					}
 
+				} catch (IOException e) {
+					e.printStackTrace();
+				} finally {
+
 					// close socket connection to client
 					output.close();
-					in.close();
-					socket.close();
+					try {
+						input.close();
+						socket.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
 
 					// remove this client
 					protocol.unregister(SocketClient.this);
-
-				} catch (IOException e) {
-					e.printStackTrace();
 				}
 			}
 		}).start();

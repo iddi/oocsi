@@ -112,6 +112,11 @@ public class Channel {
 		if (recursive) {
 			for (Channel subChannel : subChannels.values()) {
 				subChannel.removeChannel(channel, recursive);
+
+				// it is empty now, remove sub channel
+				if (subChannel.subChannels.size() == 0) {
+					subChannels.remove(subChannel);
+				}
 			}
 		}
 	}
