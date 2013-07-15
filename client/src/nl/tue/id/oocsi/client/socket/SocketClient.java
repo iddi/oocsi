@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
+import java.net.ConnectException;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Map;
@@ -83,15 +84,21 @@ public class SocketClient {
 			}).start();
 
 		} catch (UnknownHostException e) {
-			e.printStackTrace();
+			System.out.println(" - OOCSI failed to connect (unknown host)");
+			return false;
+		} catch (ConnectException e) {
+			System.out
+					.println(" - OOCSI failed to connect (connection refused)");
+			return false;
 		} catch (IOException e) {
-			e.printStackTrace();
+			System.out.println(" - OOCSI connection error");
+			return false;
 		}
 		return true;
 	}
 
 	public boolean isConnected() {
-		return !socket.isClosed() && socket.isConnected();
+		return socket != null && !socket.isClosed() && socket.isConnected();
 	}
 
 	public void disconnect() {
