@@ -22,11 +22,24 @@ public class SocketClient {
 	private BufferedReader input;
 	private PrintWriter output;
 
+	/**
+	 * create a new socket client with the given name
+	 * 
+	 * @param name
+	 * @param channels
+	 */
 	public SocketClient(String name, Map<String, Handler> channels) {
 		this.name = name;
 		this.channels = channels;
 	}
 
+	/**
+	 * connect to OOCSI at address hostname:port
+	 * 
+	 * @param hostname
+	 * @param port
+	 * @return
+	 */
 	public boolean connect(String hostname, int port) {
 
 		// connect
@@ -97,10 +110,19 @@ public class SocketClient {
 		return true;
 	}
 
+	/**
+	 * check if still connected to OOCSI
+	 * 
+	 * @return
+	 */
 	public boolean isConnected() {
 		return socket != null && !socket.isClosed() && socket.isConnected();
 	}
 
+	/**
+	 * disconnect from OOCSI
+	 * 
+	 */
 	public void disconnect() {
 		// disconnect from server
 		output.println("quit");
@@ -114,6 +136,12 @@ public class SocketClient {
 		}
 	}
 
+	/**
+	 * subscribe to channel given by channelName
+	 * 
+	 * @param channelName
+	 * @param handler
+	 */
 	public void subscribe(String channelName, Handler handler) {
 
 		// register at server
@@ -123,6 +151,11 @@ public class SocketClient {
 		channels.put(channelName, handler);
 	}
 
+	/**
+	 * subscribe to channel my own channel
+	 * 
+	 * @param handler
+	 */
 	public void subscribe(Handler handler) {
 
 		// register at server
@@ -132,6 +165,11 @@ public class SocketClient {
 		channels.put("SELF", handler);
 	}
 
+	/**
+	 * unsubscribe from channel given by channelName
+	 * 
+	 * @param channelName
+	 */
 	public void unsubscribe(String channelName) {
 
 		// unregister at server
@@ -141,20 +179,59 @@ public class SocketClient {
 		channels.remove(channelName);
 	}
 
+	/**
+	 * unsubscribe from my channel
+	 * 
+	 */
+	public void unsubscribe() {
+
+		// unregister at server
+		send("unsubscribe " + name);
+
+		// remove handler
+		channels.remove("SELF");
+	}
+
+	/**
+	 * send raw message (no serialization)
+	 * 
+	 * @param channelName
+	 * @param message
+	 */
 	public void send(String channelName, String message) {
 		// send message
 		send("sendraw " + channelName + " " + message);
 	}
 
+	/**
+	 * send message with data payload (map of key value pairs which will be
+	 * serialized before sending)
+	 * 
+	 * @param channelName
+	 * @param data
+	 */
 	public void send(String channelName, Map<String, Object> data) {
 		// send message with raw data
 		send("send " + channelName + " " + serialize(data));
 	}
 
-	private void send(String string) {
-		output.println(string);
+	/**
+	 * send the message to the socket
+	 * 
+	 * @param rawMessage
+	 */
+	private void send(String rawMessage) {
+		if (isConnected() && output != null) {
+			output.println(rawMessage);
+		}
 	}
 
+	/**
+	 * serialize a map of key value pairs
+	 * 
+	 * @param data
+	 * @return
+	 */
 	private String serialize(Map<String, Object> data) {
 		ByteArrayOutputStream baos = new ByteArrayOutputStream(1024);
 		try {
