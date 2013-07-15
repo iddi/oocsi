@@ -8,6 +8,8 @@ import nl.tue.id.oocsi.server.OOCSIServer;
 import nl.tue.id.oocsi.server.protocol.Message;
 
 /**
+ * data structure for channel
+ * 
  * @author mfunk
  * 
  */
@@ -26,6 +28,16 @@ public class Channel {
 	 * @return
 	 */
 	public String getName() {
+		return token;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
 		return token;
 	}
 
@@ -52,7 +64,8 @@ public class Channel {
 	public Channel getChannel(String channelName) {
 		Channel result = subChannels.get(channelName);
 		if (result == null) {
-			result = subChannels.put(channelName, new Channel(channelName));
+			result = new Channel(channelName);
+			subChannels.put(channelName, result);
 		}
 
 		return result;
@@ -112,11 +125,24 @@ public class Channel {
 		if (recursive) {
 			for (Channel subChannel : subChannels.values()) {
 				subChannel.removeChannel(channel, recursive);
+			}
+		}
+	}
 
-				// it is empty now, remove sub channel
-				if (subChannel.subChannels.size() == 0) {
-					subChannels.remove(subChannel);
-				}
+	/**
+	 * close unused channels recursively
+	 * 
+	 */
+	protected void closeEmptyChannels() {
+		for (Channel subChannel : subChannels.values()) {
+			subChannel.closeEmptyChannels();
+
+			// it is empty now, remove sub channel
+			if (!(subChannel instanceof Client)
+					&& subChannel.subChannels.size() == 0) {
+				subChannels.remove(subChannel.getName());
+				OOCSIServer.log("closed empty channel " + subChannel.getName()
+						+ " from " + token);
 			}
 		}
 	}

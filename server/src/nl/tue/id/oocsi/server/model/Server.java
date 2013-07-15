@@ -6,6 +6,13 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import nl.tue.id.oocsi.server.protocol.Protocol;
 
+/**
+ * data structure for server
+ * 
+ * 
+ * @author mfunk
+ * 
+ */
 public class Server extends Channel {
 
 	protected Map<String, Client> clients = new ConcurrentHashMap<String, Client>();
@@ -21,6 +28,12 @@ public class Server extends Channel {
 		protocol = new Protocol(this);
 	}
 
+	/**
+	 * retrieve client from client list
+	 * 
+	 * @param clientName
+	 * @return
+	 */
 	public Client getClient(String clientName) {
 		return clients.get(clientName);
 	}
@@ -41,6 +54,13 @@ public class Server extends Channel {
 		return result;
 	}
 
+	/**
+	 * add a client to the server, under the condition that the client's name is
+	 * not an existing channel
+	 * 
+	 * @param client
+	 * @return
+	 */
 	public boolean addClient(Client client) {
 		String clientName = client.getName();
 
@@ -56,11 +76,19 @@ public class Server extends Channel {
 		return false;
 	}
 
+	/**
+	 * remove a connected client from the server
+	 * 
+	 * @param client
+	 */
 	public void removeClient(Client client) {
 		String clientName = client.getName();
 
 		// remove client from client list and sub channels (recursively)
 		removeChannel(client, true);
 		clients.remove(clientName);
+
+		// close empty channels
+		closeEmptyChannels();
 	}
 }
