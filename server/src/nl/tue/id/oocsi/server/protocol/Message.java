@@ -5,6 +5,12 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * general message for the OOCSI protocol
+ * 
+ * @author mfunk
+ * 
+ */
 public class Message implements Serializable {
 
 	/**

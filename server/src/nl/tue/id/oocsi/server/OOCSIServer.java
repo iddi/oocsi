@@ -4,6 +4,12 @@ import java.io.IOException;
 
 import nl.tue.id.oocsi.server.socket.SocketServer;
 
+/**
+ * main server component for running OOCSI
+ * 
+ * @author mfunk
+ * 
+ */
 public class OOCSIServer {
 
 	private static boolean isLogging = true;

@@ -14,6 +14,12 @@ import nl.tue.id.oocsi.server.model.Client;
 import nl.tue.id.oocsi.server.protocol.Message;
 import nl.tue.id.oocsi.server.protocol.Protocol;
 
+/**
+ * socket implementation for OOCSI client
+ * 
+ * @author mfunk
+ * 
+ */
 public class SocketClient extends Client {
 
 	private Protocol protocol;
