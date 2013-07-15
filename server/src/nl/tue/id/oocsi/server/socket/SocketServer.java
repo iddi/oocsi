@@ -10,12 +10,30 @@ import nl.tue.id.oocsi.server.model.Server;
 
 public class SocketServer extends Server {
 
+	/**
+	 * maximum of open connections
+	 */
+	private static final int MAX_CONNECTIONS = 25;
+
+	/**
+	 * port to listen for client connections
+	 */
 	private int port;
 
+	/**
+	 * server component for OOCSI implementing the socket protocol
+	 * 
+	 * @param port
+	 */
 	public SocketServer(int port) {
 		this.port = port;
 	}
 
+	/**
+	 * initialize the server and listen for client connects
+	 * 
+	 * @throws IOException
+	 */
 	public void init() throws IOException {
 		ServerSocket serverSocket = null;
 		boolean listening = true;
@@ -39,9 +57,13 @@ public class SocketServer extends Server {
 		// // add default management channel
 		// os.getChannel("MANAGEMENT");
 		//
-
 		while (listening) {
-			new SocketClient(protocol, serverSocket.accept()).start();
+
+			if (subChannels.size() < MAX_CONNECTIONS) {
+				new SocketClient(protocol, serverSocket.accept()).start();
+			} else {
+				serverSocket.accept().close();
+			}
 		}
 
 		serverSocket.close();
