@@ -13,6 +13,13 @@ import nl.tue.id.oocsi.server.model.Client;
 import nl.tue.id.oocsi.server.model.Server;
 import nl.tue.id.oocsi.server.socket.Base64Coder;
 
+/**
+ * implements the OOCSI communication protocol, registers and unregisters
+ * clients, and parses and dispatches input received from clients
+ * 
+ * @author mfunk
+ * 
+ */
 public class Protocol {
 
 	Server server;
@@ -131,6 +138,7 @@ public class Protocol {
 					String channel = inputLine.split(" ")[1];
 					Channel c = server.getChannel(channel);
 					if (c != null) {
+						@SuppressWarnings("unchecked")
 						Map<String, Object> map = (Map<String, Object>) outputObject;
 						c.send(new Message(sender.getName(), recipient,
 								new Date(), map));
