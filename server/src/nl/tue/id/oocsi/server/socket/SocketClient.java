@@ -109,7 +109,8 @@ public class SocketClient extends Client {
 					}
 
 				} catch (IOException e) {
-					e.printStackTrace();
+					// this is kinda normal behavior when a client quits
+					// e.printStackTrace();
 				} finally {
 
 					// close socket connection to client
