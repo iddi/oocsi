@@ -17,12 +17,12 @@ public class OOCSIServer {
 	public static void main(String[] args) {
 
 		// get port from arguments
-		String port = "4444";
+		int port = 4444;
 		OOCSIServer.log("Starting OOCSI server on port " + port);
 
 		// start socket server
 		try {
-			new SocketServer(4444).init();
+			new SocketServer(port).init();
 		} catch (IOException e) {
 			e.printStackTrace();
 		} finally {
