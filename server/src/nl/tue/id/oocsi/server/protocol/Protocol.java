@@ -92,6 +92,10 @@ public class Protocol {
 			Channel c = server.getChannel(channel);
 			if (c != null) {
 				c.addChannel(sender);
+			} else {
+				Channel newChannel = new Channel(channel);
+				server.addChannel(newChannel);
+				newChannel.addChannel(sender);
 			}
 		}
 		// client unsubscribes from channel
@@ -135,8 +139,7 @@ public class Protocol {
 					ObjectInputStream ois = new ObjectInputStream(bais);
 					Object outputObject = ois.readObject();
 
-					String channel = inputLine.split(" ")[1];
-					Channel c = server.getChannel(channel);
+					Channel c = server.getChannel(recipient);
 					if (c != null) {
 						@SuppressWarnings("unchecked")
 						Map<String, Object> map = (Map<String, Object>) outputObject;
