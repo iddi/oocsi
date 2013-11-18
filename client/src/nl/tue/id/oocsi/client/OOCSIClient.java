@@ -75,16 +75,62 @@ public class OOCSIClient {
 		sc.subscribe(handler);
 	}
 
+	/**
+	 * unsubscribe from the channel with the given name
+	 * 
+	 * @param channelName
+	 */
 	public void unsubscribe(String channelName) {
 		sc.unsubscribe(channelName);
 	}
 
+	/**
+	 * send a string message to the channel with the given name
+	 * 
+	 * @param channelName
+	 * @param message
+	 */
 	public void send(String channelName, String message) {
 		sc.send(channelName, message);
 	}
 
+	/**
+	 * send a composite message (map) to the channel with the given name
+	 * 
+	 * @param channelName
+	 * @param data
+	 */
 	public void send(String channelName, Map<String, Object> data) {
 		sc.send(channelName, data);
+	}
+
+	/**
+	 * retrieve the list of clients on the server
+	 * 
+	 * @return
+	 */
+	public String clients() {
+		return sc.clients();
+	}
+
+	/**
+	 * retrieve the list of channels on the server
+	 * 
+	 * @return
+	 */
+	public String channels() {
+		return sc.channels();
+	}
+
+	/**
+	 * retrieve the list of sub-channel of the channel with the given name on
+	 * the server
+	 * 
+	 * @param channelName
+	 * @return
+	 */
+	public String channels(String channelName) {
+		return sc.channels(channelName);
 	}
 
 }

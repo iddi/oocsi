@@ -10,6 +10,8 @@ import java.net.ConnectException;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Map;
+import java.util.Queue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import nl.tue.id.oocsi.client.protocol.Handler;
 
@@ -17,6 +19,8 @@ public class SocketClient {
 
 	private String name;
 	private Map<String, Handler> channels;
+	private Queue<String> tempIncomingMessages = new LinkedBlockingQueue<String>(
+			1);
 
 	private Socket socket;
 	private BufferedReader input;
@@ -77,6 +81,8 @@ public class SocketClient {
 										}
 									}
 								}
+							} else {
+								tempIncomingMessages.offer(fromServer);
 							}
 						}
 
@@ -213,6 +219,67 @@ public class SocketClient {
 	public void send(String channelName, Map<String, Object> data) {
 		// send message with raw data
 		send("send " + channelName + " " + serialize(data));
+	}
+
+	/**
+	 * retrieve the current channels on server
+	 * 
+	 * @return
+	 */
+	public String clients() {
+
+		synchronized (tempIncomingMessages) {
+			tempIncomingMessages.clear();
+			send("clients");
+			try {
+				while (tempIncomingMessages.size() == 0) {
+					Thread.sleep(50);
+				}
+			} catch (InterruptedException e) {
+			}
+			return tempIncomingMessages.poll();
+		}
+	}
+
+	/**
+	 * retrieve the current channels on server
+	 * 
+	 * @return
+	 */
+	public String channels() {
+
+		synchronized (tempIncomingMessages) {
+			tempIncomingMessages.clear();
+			send("channels");
+			try {
+				while (tempIncomingMessages.size() == 0) {
+					Thread.sleep(50);
+				}
+			} catch (InterruptedException e) {
+			}
+			return tempIncomingMessages.poll();
+		}
+	}
+
+	/**
+	 * retrieve the current sub-channels of the given channel on server
+	 * 
+	 * @param channelName
+	 * @return
+	 */
+	public String channels(String channelName) {
+
+		synchronized (tempIncomingMessages) {
+			tempIncomingMessages.clear();
+			send("channels " + channelName);
+			try {
+				while (tempIncomingMessages.size() == 0) {
+					Thread.sleep(50);
+				}
+			} catch (InterruptedException e) {
+			}
+			return tempIncomingMessages.poll();
+		}
 	}
 
 	/**
