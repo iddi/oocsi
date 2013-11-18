@@ -56,19 +56,13 @@ public class Channel {
 	}
 
 	/**
-	 * retrieve channel or create it if not existing
+	 * retrieve channel if existing
 	 * 
 	 * @param channelName
 	 * @return
 	 */
 	public Channel getChannel(String channelName) {
-		Channel result = subChannels.get(channelName);
-		if (result == null) {
-			result = new Channel(channelName);
-			subChannels.put(channelName, result);
-		}
-
-		return result;
+		return subChannels.get(channelName);
 	}
 
 	/**
