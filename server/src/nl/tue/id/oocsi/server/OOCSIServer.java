@@ -12,13 +12,17 @@ import nl.tue.id.oocsi.server.socket.SocketServer;
  */
 public class OOCSIServer {
 
+	public static final String VERSION = "0.2";
+
 	private static boolean isLogging = true;
 
 	public static void main(String[] args) {
 
 		// get port from arguments
+		// TODO
+
+		// for now, set the port fixed
 		int port = 4444;
-		OOCSIServer.log("Starting OOCSI server on port " + port);
 
 		// start socket server
 		try {

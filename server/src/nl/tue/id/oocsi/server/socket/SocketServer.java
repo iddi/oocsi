@@ -55,7 +55,8 @@ public class SocketServer extends Server {
 		try {
 			addr = InetAddress.getLocalHost();
 			String hostname = addr.getHostName();
-			OOCSIServer.log("Local IP address is " + hostname);
+			OOCSIServer.log("Started OOCSI server v" + OOCSIServer.VERSION
+					+ " with local address '" + hostname + "' on port " + port);
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
