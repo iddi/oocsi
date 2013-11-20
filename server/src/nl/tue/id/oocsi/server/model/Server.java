@@ -65,7 +65,8 @@ public class Server extends Channel {
 		String clientName = client.getName();
 
 		// add client to client list and sub channels
-		if (!subChannels.containsKey(clientName)
+		if (!clients.containsKey(clientName)
+				&& !subChannels.containsKey(clientName)
 				&& getClient(clientName) == null) {
 			addChannel(client);
 			clients.put(clientName, client);
@@ -84,11 +85,14 @@ public class Server extends Channel {
 	public void removeClient(Client client) {
 		String clientName = client.getName();
 
-		// remove client from client list and sub channels (recursively)
-		removeChannel(client, true);
-		clients.remove(clientName);
+		// check first if this is really the client to remove
+		if (getChannel(clientName) == client) {
+			// remove client from client list and sub channels (recursively)
+			removeChannel(client, true);
+			clients.remove(clientName);
 
-		// close empty channels
-		closeEmptyChannels();
+			// close empty channels
+			closeEmptyChannels();
+		}
 	}
 }

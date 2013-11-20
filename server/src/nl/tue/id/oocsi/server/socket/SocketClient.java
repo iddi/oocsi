@@ -87,13 +87,19 @@ public class SocketClient extends Client {
 			public void run() {
 				try {
 					output = new PrintWriter(socket.getOutputStream(), true);
-					input = new BufferedReader(new InputStreamReader(
-							socket.getInputStream()));
+					input = new BufferedReader(new InputStreamReader(socket
+							.getInputStream()));
 
 					String inputLine, outputLine;
 					if ((inputLine = input.readLine()) != null) {
 						token = inputLine;
 						if (protocol.register(SocketClient.this)) {
+
+							// say hi to new client
+							synchronized (output) {
+								output.println("welcome " + token);
+							}
+
 							while ((inputLine = input.readLine()) != null) {
 								outputLine = protocol.processInput(
 										SocketClient.this, inputLine);
@@ -104,6 +110,12 @@ public class SocketClient extends Client {
 										output.println(outputLine);
 									}
 								}
+							}
+						} else {
+							// say goodbye to new client
+							synchronized (output) {
+								output.println("error (name already registered: "
+										+ token + ")");
 							}
 						}
 					}

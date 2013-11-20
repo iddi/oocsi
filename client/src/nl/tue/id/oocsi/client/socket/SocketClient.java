@@ -25,6 +25,7 @@ public class SocketClient {
 	private Socket socket;
 	private BufferedReader input;
 	private PrintWriter output;
+	private boolean connectionEstablished = false;
 
 	/**
 	 * create a new socket client with the given name
@@ -54,8 +55,25 @@ public class SocketClient {
 			// send name
 			output.println(name);
 
+			// acquire input channel from server
 			input = new BufferedReader(new InputStreamReader(
 					socket.getInputStream()));
+
+			// check if we are ok to connect
+			String serverWelcomeMessage;
+			if (!socket.isClosed()
+					&& (serverWelcomeMessage = input.readLine()) != null) {
+				if (!serverWelcomeMessage.startsWith("welcome")) {
+					System.out
+							.println(" - OOCSI disconnected (client name not accepted)");
+					return false;
+				}
+
+				// first data has arrived = connection is ok
+				connectionEstablished = true;
+			}
+
+			// if ok, run the communication in a different thread
 			new Thread(new Runnable() {
 				public void run() {
 					try {
@@ -97,7 +115,10 @@ public class SocketClient {
 							// e.printStackTrace();
 						}
 
-						System.out.println(" - OOCSI disconnected");
+						System.out
+								.println(" - OOCSI disconnected "
+										+ (!connectionEstablished ? "(client name not accepted)"
+												: "(server unavailable)"));
 					}
 				}
 			}).start();
