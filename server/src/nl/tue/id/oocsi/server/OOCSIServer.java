@@ -34,6 +34,11 @@ public class OOCSIServer {
 		}
 	}
 
+	/**
+	 * logging of message on console (can be switched off)
+	 * 
+	 * @param message
+	 */
 	public static void log(String message) {
 		if (isLogging) {
 			System.out.println(message);

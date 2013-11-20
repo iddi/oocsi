@@ -8,6 +8,10 @@ import nl.tue.id.oocsi.client.socket.SocketClient;
 
 public class OOCSIClient {
 
+	public static final String VERSION = "0.3";
+
+	private static boolean isLogging = true;
+
 	private Map<String, Handler> channels = new HashMap<String, Handler>();
 
 	private SocketClient sc;
@@ -26,6 +30,7 @@ public class OOCSIClient {
 		}
 
 		sc = new SocketClient(name, channels);
+		log("OOCSI client v" + VERSION + " started");
 	}
 
 	/**
@@ -133,4 +138,14 @@ public class OOCSIClient {
 		return sc.channels(channelName);
 	}
 
+	/**
+	 * logging of message on console (can be switched off)
+	 * 
+	 * @param message
+	 */
+	public static void log(String message) {
+		if (isLogging) {
+			System.out.println(message);
+		}
+	}
 }
