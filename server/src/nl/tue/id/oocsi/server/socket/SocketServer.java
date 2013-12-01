@@ -17,22 +17,23 @@ import nl.tue.id.oocsi.server.model.Server;
 public class SocketServer extends Server {
 
 	/**
-	 * maximum of open connections
-	 */
-	private static final int MAX_CONNECTIONS = 25;
-
-	/**
 	 * port to listen for client connections
 	 */
 	private int port;
+
+	/**
+	 * maximum of open connections
+	 */
+	private int maxClients;
 
 	/**
 	 * server component for OOCSI implementing the socket protocol
 	 * 
 	 * @param port
 	 */
-	public SocketServer(int port) {
+	public SocketServer(int port, int maxClients) {
 		this.port = port;
+		this.maxClients = maxClients;
 	}
 
 	/**
@@ -66,7 +67,7 @@ public class SocketServer extends Server {
 		//
 		while (listening) {
 
-			if (subChannels.size() < MAX_CONNECTIONS) {
+			if (subChannels.size() < maxClients) {
 				new SocketClient(protocol, serverSocket.accept()).start();
 			} else {
 				serverSocket.accept().close();
