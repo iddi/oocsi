@@ -27,6 +27,8 @@ public class SocketClient extends Client {
 	private Socket socket = null;
 	private PrintWriter output;
 
+	private ClientType type = ClientType.OOCSI;
+
 	/**
 	 * create a new client for the socket protocol
 	 * 
@@ -48,10 +50,18 @@ public class SocketClient extends Client {
 	 */
 	@Override
 	public void send(Message message) {
-		send("send " + message.recipient + " " + serialize(message.data) + " "
-				+ message.timestamp.getTime() + " " + message.sender);
-		OOCSIServer.log("sent message to " + socket.getInetAddress() + ":"
-				+ socket.getPort());
+		if (type == ClientType.OOCSI) {
+			send("send " + message.recipient + " "
+					+ serializeOOCSI(message.data) + " "
+					+ message.timestamp.getTime() + " " + message.sender);
+			OOCSIServer.log("sent message to " + socket.getInetAddress() + ":"
+					+ socket.getPort());
+		} else if (type == ClientType.PD) {
+			send(message.recipient + " " + serializePD(message.data) + " "
+					+ "timestamp=" + message.timestamp.getTime() + " sender=" + message.sender);
+			OOCSIServer.log("sent message to " + socket.getInetAddress()
+					+ ":4445");
+		}
 	}
 
 	/**
@@ -60,12 +70,18 @@ public class SocketClient extends Client {
 	 * @param outputLine
 	 */
 	private void send(String outputLine) {
-		synchronized (output) {
-			output.println(outputLine);
+		if (output != null) {
+			synchronized (output) {
+				if (type == ClientType.OOCSI) {
+					output.println(outputLine);
+				} else if (type == ClientType.PD) {
+					output.println(outputLine + ";");
+				}
+			}
 		}
 	}
 
-	private String serialize(Map<String, Object> data) {
+	private String serializeOOCSI(Map<String, Object> data) {
 		ByteArrayOutputStream baos = new ByteArrayOutputStream(1024);
 		try {
 			ObjectOutputStream oos = new ObjectOutputStream(baos);
@@ -77,6 +93,14 @@ public class SocketClient extends Client {
 		}
 	}
 
+	private String serializePD(Map<String, Object> data) {
+		StringBuilder sb = new StringBuilder();
+		for (String key : data.keySet()) {
+			sb.append(key + "=" + data.get(key) + " ");
+		}
+		return sb.toString();
+	}
+
 	/**
 	 * start the new client in a thread
 	 */
@@ -86,29 +110,47 @@ public class SocketClient extends Client {
 
 			public void run() {
 				try {
-					output = new PrintWriter(socket.getOutputStream(), true);
 					input = new BufferedReader(new InputStreamReader(socket
 							.getInputStream()));
 
 					String inputLine, outputLine;
 					if ((inputLine = input.readLine()) != null) {
-						token = inputLine;
+
+						// check for PD/raw-only socket client
+						if (inputLine.contains(";")) {
+							token = inputLine.replace(";", "");
+							type = ClientType.PD;
+							output = new PrintWriter(new Socket(socket
+									.getInetAddress(), 4445).getOutputStream(),
+									true);
+						} else {
+							token = inputLine;
+							type = ClientType.OOCSI;
+							output = new PrintWriter(socket.getOutputStream(),
+									true);
+						}
+
 						if (protocol.register(SocketClient.this)) {
 
 							// say hi to new client
-							synchronized (output) {
-								output.println("welcome " + token);
-							}
+							send("welcome " + token);
 
 							while ((inputLine = input.readLine()) != null) {
+
+								// clean input
+								if (type == ClientType.OOCSI) {
+									// inputLine = inputLine;
+								} else {
+									inputLine = inputLine.replace(";", "");
+								}
+
+								// process input and write output if necessary
 								outputLine = protocol.processInput(
 										SocketClient.this, inputLine);
 								if (outputLine == null) {
 									break;
 								} else if (outputLine.length() > 0) {
-									synchronized (output) {
-										output.println(outputLine);
-									}
+									send(outputLine);
 								}
 							}
 						} else {
@@ -123,11 +165,14 @@ public class SocketClient extends Client {
 				} catch (IOException e) {
 					// this is kinda normal behavior when a client quits
 					// e.printStackTrace();
+				} catch (IllegalArgumentException e) {
+					// someone used probably send instead of sendraw with some
+					// non-encoded data
+					// e.printStackTrace();
 				} finally {
-
 					// close socket connection to client
-					output.close();
 					try {
+						output.close();
 						input.close();
 						socket.close();
 					} catch (IOException e) {
