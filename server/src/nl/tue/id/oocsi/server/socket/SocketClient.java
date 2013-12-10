@@ -58,7 +58,8 @@ public class SocketClient extends Client {
 					+ socket.getPort());
 		} else if (type == ClientType.PD) {
 			send(message.recipient + " " + serializePD(message.data) + " "
-					+ "timestamp=" + message.timestamp.getTime() + " sender=" + message.sender);
+					+ "timestamp=" + message.timestamp.getTime() + " sender="
+					+ message.sender);
 			OOCSIServer.log("sent message to " + socket.getInetAddress()
 					+ ":4445");
 		}
@@ -120,9 +121,13 @@ public class SocketClient extends Client {
 						if (inputLine.contains(";")) {
 							token = inputLine.replace(";", "");
 							type = ClientType.PD;
-							output = new PrintWriter(new Socket(socket
-									.getInetAddress(), 4445).getOutputStream(),
-									true);
+							try {
+								output = new PrintWriter(new Socket(socket
+										.getInetAddress(), 4445)
+										.getOutputStream(), true);
+							} catch (Exception e) {
+								// do nothing
+							}
 						} else {
 							token = inputLine;
 							type = ClientType.OOCSI;
@@ -172,7 +177,9 @@ public class SocketClient extends Client {
 				} finally {
 					// close socket connection to client
 					try {
-						output.close();
+						if (output != null) {
+							output.close();
+						}
 						input.close();
 						socket.close();
 					} catch (IOException e) {
