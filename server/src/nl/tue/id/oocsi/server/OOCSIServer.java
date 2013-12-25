@@ -12,7 +12,7 @@ import nl.tue.id.oocsi.server.socket.SocketServer;
  */
 public class OOCSIServer {
 
-	public static final String VERSION = "0.4";
+	public static final String VERSION = "0.5";
 
 	// defaults
 	public static int port = 4444;
