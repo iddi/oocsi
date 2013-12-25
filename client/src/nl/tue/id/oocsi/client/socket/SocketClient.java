@@ -7,7 +7,9 @@ import java.io.InputStreamReader;
 import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.net.ConnectException;
+import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.Queue;
@@ -46,10 +48,17 @@ public class SocketClient {
 	 * @return
 	 */
 	public boolean connect(String hostname, int port) {
-
-		// connect
 		try {
-			socket = new Socket(hostname, port);
+			// configure socket
+			socket = new Socket();
+			socket.setTcpNoDelay(true);
+			socket.setTrafficClass(0x10);
+			socket.setPerformancePreferences(0, 1, 0);
+
+			// connect
+			SocketAddress sockaddr = new InetSocketAddress(hostname, port);
+			socket.connect(sockaddr);
+
 			output = new PrintWriter(socket.getOutputStream(), true);
 
 			// send name

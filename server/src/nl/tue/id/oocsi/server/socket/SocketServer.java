@@ -2,7 +2,9 @@ package nl.tue.id.oocsi.server.socket;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
+import java.net.SocketAddress;
 import java.net.UnknownHostException;
 
 import nl.tue.id.oocsi.server.OOCSIServer;
@@ -46,7 +48,14 @@ public class SocketServer extends Server {
 		boolean listening = true;
 
 		try {
-			serverSocket = new ServerSocket(port);
+			// configure server socket
+			serverSocket = new ServerSocket();
+			serverSocket.setPerformancePreferences(0, 1, 0);
+			serverSocket.setReuseAddress(true);
+
+			// bind to localhost at port <port>
+			SocketAddress sockaddr = new InetSocketAddress(port);
+			serverSocket.bind(sockaddr);
 		} catch (IOException e) {
 			OOCSIServer.log("Could not listen on port: " + port);
 			System.exit(-1);
