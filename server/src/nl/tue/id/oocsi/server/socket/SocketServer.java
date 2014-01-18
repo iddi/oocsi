@@ -2,13 +2,13 @@ package nl.tue.id.oocsi.server.socket;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.ServerSocket;
-import java.net.SocketAddress;
 import java.net.UnknownHostException;
 
 import nl.tue.id.oocsi.server.OOCSIServer;
+import nl.tue.id.oocsi.server.discovery.OOCSIServiceProvider;
 import nl.tue.id.oocsi.server.model.Server;
+import nl.tue.id.oocsi.server.discovery.ServiceConstants;
 
 /**
  * socket implementation of OOCSI server
@@ -17,6 +17,8 @@ import nl.tue.id.oocsi.server.model.Server;
  * 
  */
 public class SocketServer extends Server {
+	
+	private String serverName = ServiceConstants.SERVICE_NAME;
 
 	/**
 	 * port to listen for client connections
@@ -37,7 +39,13 @@ public class SocketServer extends Server {
 		this.port = port;
 		this.maxClients = maxClients;
 	}
-
+	
+	public SocketServer(String serverName, int port, int maxClients) {
+		this.serverName = serverName;
+		this.port = port;
+		this.maxClients = maxClients;
+	}
+	
 	/**
 	 * initialize the server and listen for client connects
 	 * 
@@ -46,8 +54,10 @@ public class SocketServer extends Server {
 	public void init() throws IOException {
 		ServerSocket serverSocket = null;
 		boolean listening = true;
+		OOCSIServiceProvider provider = new OOCSIServiceProvider();
 
 		try {
+			/*
 			// configure server socket
 			serverSocket = new ServerSocket();
 			serverSocket.setPerformancePreferences(0, 1, 0);
@@ -56,6 +66,8 @@ public class SocketServer extends Server {
 			// bind to localhost at port <port>
 			SocketAddress sockaddr = new InetSocketAddress(port);
 			serverSocket.bind(sockaddr);
+			*/
+			serverSocket = provider.getServerSocket(serverName, port);
 		} catch (IOException e) {
 			OOCSIServer.log("Could not listen on port: " + port);
 			System.exit(-1);

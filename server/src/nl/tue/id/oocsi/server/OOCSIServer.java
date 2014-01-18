@@ -2,6 +2,7 @@ package nl.tue.id.oocsi.server;
 
 import java.io.IOException;
 
+import nl.tue.id.oocsi.server.discovery.ServiceConstants;
 import nl.tue.id.oocsi.server.socket.SocketServer;
 
 /**
@@ -19,21 +20,25 @@ public class OOCSIServer {
 	public static int maxClients = 25;
 	public static boolean isLogging = false;
 
-	public static void main(String[] args) {
+	private static String serviceName = null;
 
+	public static void main(String[] args) {
 		// get port from arguments
 		parseCommandlineArgs(args);
 
 		// start socket server
 		try {
-			new SocketServer(port, maxClients).init();
+			if (serviceName == null)
+				new SocketServer(port, maxClients).init();
+			else
+				new SocketServer(serviceName, port, maxClients).init();
 		} catch (IOException e) {
 			e.printStackTrace();
 		} finally {
 			// done
 		}
 	}
-
+	
 	/**
 	 * logging of message on console (can be switched off)
 	 * 
@@ -58,6 +63,8 @@ public class OOCSIServer {
 				maxClients = Integer.parseInt(args[i + 1]);
 			} else if (argument.equals("-logging")) {
 				isLogging = true;
+			} else if (argument.equals("-service")) {
+				serviceName = args[i + 1];
 			}
 		}
 	}
