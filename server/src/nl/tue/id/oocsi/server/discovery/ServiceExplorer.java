@@ -20,7 +20,16 @@ import nl.tue.id.oocsi.server.OOCSIServer;
  */
 public final class ServiceExplorer implements Runnable {
 
+	private class QueryTimerTask extends TimerTask {
+		public void run() {
+			DatagramPacket packet = getQueryPacket();
+			if (packet != null) {
+				queuedPacket = packet;
+			}
+		}
+	}
 	protected static InetAddress multicastAddressGroup;
+
 	protected static int multicastPort;
 
 	static {
@@ -34,7 +43,6 @@ public final class ServiceExplorer implements Runnable {
 			System.exit(1);
 		}
 	}
-
 	protected String serviceName;
 	protected boolean shouldRun = true;
 	protected MulticastSocket socket;
@@ -42,8 +50,9 @@ public final class ServiceExplorer implements Runnable {
 	protected DatagramPacket receivedPacket;
 	protected Vector<ServiceExplorerListener> listeners;
 	protected Thread myThread;
-	protected Timer myTimer;
 	
+	
+	protected Timer myTimer;
 	
 	public ServiceExplorer() {
 		
@@ -63,10 +72,12 @@ public final class ServiceExplorer implements Runnable {
 		listeners = new Vector<ServiceExplorerListener>();
 	}
 	
-	public String getServiceName() {
-		return serviceName;
+	public void addServiceBrowserListener(ServiceExplorerListener l) {
+		if (! listeners.contains(l)) {
+			listeners.add(l);
+		}
 	}
-	
+
 	protected String getEncodedServiceName() {
 		try {
 			return URLEncoder.encode(getServiceName(),"UTF-8");
@@ -76,40 +87,56 @@ public final class ServiceExplorer implements Runnable {
 		}
 	}
 
-	public void setServiceName(String serviceName) {
-		this.serviceName = serviceName;
-	}
-
-	public void addServiceBrowserListener(ServiceExplorerListener l) {
-		if (! listeners.contains(l)) {
-			listeners.add(l);
-		}
-	}
-	
-	public void removeServiceBrowserListener(ServiceExplorerListener l) {
-		listeners.remove(l);
-	}
-
-	public void startLookup() {
-		if (myTimer==null) {
-			myTimer = new Timer("QueryTimer");
-			myTimer.scheduleAtFixedRate(new QueryTimerTask(),0L,ServiceConstants.EXPLORER_QUERY_INTERVAL);
-		}
-	}
-
-	public void startSingleLookup() {
-		if (myTimer==null) {
-			myTimer = new Timer("QueryTimer");
-			myTimer.schedule(new QueryTimerTask(), 0L);
-			myTimer=null;
-		}
+	protected DatagramPacket getQueryPacket() {
+		StringBuffer buf = new StringBuffer();
+		buf.append("SERVICE QUERY "+getEncodedServiceName());
+		
+		byte[] bytes = buf.toString().getBytes();
+		DatagramPacket packet = new DatagramPacket(bytes,bytes.length);
+		packet.setAddress(multicastAddressGroup);
+		packet.setPort(multicastPort);
+		
+		return packet;
 	}
 	
-	public void stopLookup() {
-		if (myTimer != null) {
-			myTimer.cancel();
-			myTimer=null;
+	protected ServiceDescription getReplyDescriptor() {
+		String dataStr = new String(receivedPacket.getData());
+		int pos = dataStr.indexOf((char)0);
+		if (pos>-1) {
+			dataStr = dataStr.substring(0,pos);
 		}
+		
+		StringTokenizer tokens = new StringTokenizer(dataStr.substring(15+getEncodedServiceName().length()));
+		if (tokens.countTokens()==3) {
+			return ServiceDescription.parse(tokens.nextToken(),
+					tokens.nextToken(), tokens.nextToken());
+		}
+		else {
+			return null;
+		}
+	}
+
+	public String getServiceName() {
+		return serviceName;
+	}
+
+	protected boolean isReplyPacket(){ 
+		if (receivedPacket==null) {
+			return false;
+		}
+		
+		String dataStr = new String(receivedPacket.getData());
+		int pos = dataStr.indexOf((char)0);
+		if (pos>-1) {
+			dataStr = dataStr.substring(0,pos);
+		}
+		
+		/* REQUIRED TOKEN TO START */
+		if (dataStr.startsWith("SERVICE REPLY "+getEncodedServiceName())) {
+			return true;
+		}
+
+		return false;
 	}
 	
 	protected void notifyReply(ServiceDescription descriptor) {
@@ -117,21 +144,9 @@ public final class ServiceExplorer implements Runnable {
 			l.serviceReply(descriptor);
 		}
 	}
-
-	public void startListener() {
-		if (myThread == null) {
-			shouldRun = true;
-			myThread = new Thread(this,"ServiceBrowser");
-			myThread.start();
-		}
-	}
 	
-	public void stopListener() {
-		if (myThread != null) {
-			shouldRun = false;
-			myThread.interrupt();
-			myThread = null;
-		}
+	public void removeServiceBrowserListener(ServiceExplorerListener l) {
+		listeners.remove(l);
 	}
 
 	public void run() {
@@ -183,7 +198,7 @@ public final class ServiceExplorer implements Runnable {
 			
 		}
 	}
-
+	
 	protected void sendQueuedPacket() {
 		if (queuedPacket==null) { return; }
 		try {
@@ -197,61 +212,46 @@ public final class ServiceExplorer implements Runnable {
 		}
 	}
 
-	protected boolean isReplyPacket(){ 
-		if (receivedPacket==null) {
-			return false;
-		}
-		
-		String dataStr = new String(receivedPacket.getData());
-		int pos = dataStr.indexOf((char)0);
-		if (pos>-1) {
-			dataStr = dataStr.substring(0,pos);
-		}
-		
-		/* REQUIRED TOKEN TO START */
-		if (dataStr.startsWith("SERVICE REPLY "+getEncodedServiceName())) {
-			return true;
-		}
+	public void setServiceName(String serviceName) {
+		this.serviceName = serviceName;
+	}
 
-		return false;
+	public void startListener() {
+		if (myThread == null) {
+			shouldRun = true;
+			myThread = new Thread(this,"ServiceBrowser");
+			myThread.start();
+		}
 	}
-	
-	protected ServiceDescription getReplyDescriptor() {
-		String dataStr = new String(receivedPacket.getData());
-		int pos = dataStr.indexOf((char)0);
-		if (pos>-1) {
-			dataStr = dataStr.substring(0,pos);
-		}
-		
-		StringTokenizer tokens = new StringTokenizer(dataStr.substring(15+getEncodedServiceName().length()));
-		if (tokens.countTokens()==3) {
-			return ServiceDescription.parse(tokens.nextToken(),
-					tokens.nextToken(), tokens.nextToken());
-		}
-		else {
-			return null;
+
+	public void startLookup() {
+		if (myTimer==null) {
+			myTimer = new Timer("QueryTimer");
+			myTimer.scheduleAtFixedRate(new QueryTimerTask(),0L,ServiceConstants.EXPLORER_QUERY_INTERVAL);
 		}
 	}
 	
-	protected DatagramPacket getQueryPacket() {
-		StringBuffer buf = new StringBuffer();
-		buf.append("SERVICE QUERY "+getEncodedServiceName());
-		
-		byte[] bytes = buf.toString().getBytes();
-		DatagramPacket packet = new DatagramPacket(bytes,bytes.length);
-		packet.setAddress(multicastAddressGroup);
-		packet.setPort(multicastPort);
-		
-		return packet;
+	public void startSingleLookup() {
+		if (myTimer==null) {
+			myTimer = new Timer("QueryTimer");
+			myTimer.schedule(new QueryTimerTask(), 0L);
+			myTimer=null;
+		}
+	}
+	
+	public void stopListener() {
+		if (myThread != null) {
+			shouldRun = false;
+			myThread.interrupt();
+			myThread = null;
+		}
 	}
 
 	
-	private class QueryTimerTask extends TimerTask {
-		public void run() {
-			DatagramPacket packet = getQueryPacket();
-			if (packet != null) {
-				queuedPacket = packet;
-			}
+	public void stopLookup() {
+		if (myTimer != null) {
+			myTimer.cancel();
+			myTimer=null;
 		}
 	}
 }
