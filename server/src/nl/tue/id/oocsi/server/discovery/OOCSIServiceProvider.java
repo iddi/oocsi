@@ -17,6 +17,7 @@ public class OOCSIServiceProvider {
 	private String instanceName = ServiceConstants.INSTANCE_NAME;
 	private String serviceName = ServiceConstants.SERVICE_NAME;
 
+
 	public ServerSocket getServerSocket(String name) throws IOException {
 		this.serviceName = name;
 		return this.getServerSocket(name, 0);
@@ -30,12 +31,13 @@ public class OOCSIServiceProvider {
 
 		try {
 			serverSocket = new ServerSocket();
-			
-			serverSocket.setPerformancePreferences(ServiceConstants.SOCKET_PERFORMANCE_CONNECTIONTIME, 
-					ServiceConstants.SOCKET_PERFORMANCE_LATENCY, 
+
+			serverSocket.setPerformancePreferences(
+					ServiceConstants.SOCKET_PERFORMANCE_CONNECTIONTIME,
+					ServiceConstants.SOCKET_PERFORMANCE_LATENCY,
 					ServiceConstants.SOCKET_PERFORMANCE_BANDWIDTH);
 			serverSocket.setReuseAddress(ServiceConstants.SOCKET_REUSEADDR);
-			
+
 			serverSocket.bind(new InetSocketAddress(InetAddress.getLocalHost(),
 					port));
 		} catch (IOException ioe) {
@@ -44,21 +46,19 @@ public class OOCSIServiceProvider {
 			throw ioe;
 		}
 
+
+		String 	uniqueInstanceName = instanceName + "@"
+						+ serverSocket.getInetAddress().getHostAddress() + ":"
+						+ serverSocket.getLocalPort();
+
 		/*
 		 * Create a descriptor for the service you are providing.
 		 */
 		ServiceDescription descriptor = new ServiceDescription();
 		descriptor.setAddress(serverSocket.getInetAddress());
 		descriptor.setPort(serverSocket.getLocalPort());
-		descriptor.setInstanceName(instanceName);
+		descriptor.setInstanceName(uniqueInstanceName);
 		OOCSIServer.log("Service details: " + descriptor.toString());
-
-		/*
-		 * To improve: 'query' at this point to see if the service instance name
-		 * already exists on the local network. If it does, or retry with a
-		 * modified service instance name, possibly by using a suffix such as
-		 * "(2)" on the end.
-		 */
 
 		/*
 		 * Set up an attendant and give it the descriptor to publish. Also to
@@ -74,4 +74,5 @@ public class OOCSIServiceProvider {
 		return serverSocket;
 
 	}
+
 }

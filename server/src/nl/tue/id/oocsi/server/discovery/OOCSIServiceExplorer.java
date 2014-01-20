@@ -14,11 +14,11 @@ public class OOCSIServiceExplorer implements ServiceExplorerListener {
 	Vector<ServiceDescription> descriptors;
 
 	private String serviceName = ServiceConstants.SERVICE_NAME;
-
-	public String[] list() {
+	
+	public Vector<ServiceDescription> lookupServiceDescriptors(){
 		descriptors = new Vector<ServiceDescription>();
 		explorer = new ServiceExplorer();
-		explorer.addServiceBrowserListener(this);
+		explorer.addServiceExplorerListener(this);
 		explorer.setServiceName(serviceName);
 		explorer.startListener();
 		explorer.startLookup();
@@ -30,6 +30,19 @@ public class OOCSIServiceExplorer implements ServiceExplorerListener {
 		}
 		explorer.stopLookup();
 		explorer.stopListener();
+		
+		return descriptors;
+		
+	}
+	
+	public Vector<ServiceDescription> lookupServiceDescriptors(String name){
+		this.serviceName = name;
+		return lookupServiceDescriptors();
+	}
+
+
+	public String[] list() {
+		lookupServiceDescriptors();
 
 		String[] services = new String[descriptors.size()];
 

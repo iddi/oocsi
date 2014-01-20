@@ -23,7 +23,7 @@ public class ServiceConstants {
 	 * The multicase datagram may also include a human user friendly label for
 	 * the service instance itself.
 	 */
-	public static final String INSTANCE_NAME = "oocsiServer";
+	public static final String INSTANCE_NAME = "OOCSI Server";
 
 	/**
 	 * "A multicast group is specified by a class D IP address and by a standard

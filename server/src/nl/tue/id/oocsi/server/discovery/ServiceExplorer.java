@@ -72,7 +72,7 @@ public final class ServiceExplorer implements Runnable {
 		listeners = new Vector<ServiceExplorerListener>();
 	}
 	
-	public void addServiceBrowserListener(ServiceExplorerListener l) {
+	public void addServiceExplorerListener(ServiceExplorerListener l) {
 		if (! listeners.contains(l)) {
 			listeners.add(l);
 		}
@@ -219,7 +219,7 @@ public final class ServiceExplorer implements Runnable {
 	public void startListener() {
 		if (myThread == null) {
 			shouldRun = true;
-			myThread = new Thread(this,"ServiceBrowser");
+			myThread = new Thread(this,"ServiceExplorer");
 			myThread.start();
 		}
 	}
