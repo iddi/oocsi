@@ -2,7 +2,6 @@ package nl.tue.id.oocsi.server;
 
 import java.io.IOException;
 
-import nl.tue.id.oocsi.server.discovery.ServiceConstants;
 import nl.tue.id.oocsi.server.socket.SocketServer;
 
 /**

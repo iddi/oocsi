@@ -46,8 +46,9 @@ public class ServiceConstants {
 	 * 
 	 */
 	public static final int DATAGRAM_LENGTH = 1024;
+	
 
-	/*
+	/**
 	 * Enable/disable socket timeout with, in milliseconds. With this option set
 	 * to a non-zero timeout, a call to receive() for the MulticastSocket will
 	 * block for only this amount of time. If the timeout expires, a
@@ -69,5 +70,27 @@ public class ServiceConstants {
 	 * execution
 	 */
 	public static final int EXPLORER_QUERY_INTERVAL = 500;
+
+	/**
+	 * 
+	 * connectionTime - An int expressing the relative importance of a short
+	 * connection time latency - An int expressing the relative importance of
+	 * low latency bandwidth - An int expressing the relative importance of high
+	 * bandwidth
+	 */
+	public static final int SOCKET_PERFORMANCE_CONNECTIONTIME = 0;
+	public static final int SOCKET_PERFORMANCE_LATENCY = 1;
+	public static final int SOCKET_PERFORMANCE_BANDWIDTH = 0;
+
+	/**
+	 * Enable/disable the SO_REUSEADDR socket option. When a TCP connection is
+	 * closed the connection may remain in a timeout state for a period of time
+	 * after the connection is closed (typically known as the TIME_WAIT state or
+	 * 2MSL wait state). For applications using a well known socket address or
+	 * port it may not be possible to bind a socket to the required
+	 * SocketAddress if there is a connection in the timeout state involving the
+	 * socket address or port.
+	 */
+	public static final boolean SOCKET_REUSEADDR = true;
 
 }

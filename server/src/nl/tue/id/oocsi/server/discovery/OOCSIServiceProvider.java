@@ -30,6 +30,12 @@ public class OOCSIServiceProvider {
 
 		try {
 			serverSocket = new ServerSocket();
+			
+			serverSocket.setPerformancePreferences(ServiceConstants.SOCKET_PERFORMANCE_CONNECTIONTIME, 
+					ServiceConstants.SOCKET_PERFORMANCE_LATENCY, 
+					ServiceConstants.SOCKET_PERFORMANCE_BANDWIDTH);
+			serverSocket.setReuseAddress(ServiceConstants.SOCKET_REUSEADDR);
+			
 			serverSocket.bind(new InetSocketAddress(InetAddress.getLocalHost(),
 					port));
 		} catch (IOException ioe) {
