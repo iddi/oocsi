@@ -7,12 +7,12 @@ import nl.tue.id.oocsi.server.socket.SocketServer;
 /**
  * main server component for running OOCSI
  * 
- * @author mfunk
+ * @author matsfunk
  * 
  */
 public class OOCSIServer {
 
-	public static final String VERSION = "0.5";
+	public static final String VERSION = "0.6";
 
 	// defaults
 	public static int port = 4444;
@@ -27,17 +27,18 @@ public class OOCSIServer {
 
 		// start socket server
 		try {
-			if (serviceName == null)
+			if (serviceName == null) {
 				new SocketServer(port, maxClients).init();
-			else
+			} else {
 				new SocketServer(serviceName, port, maxClients).init();
+			}
 		} catch (IOException e) {
-			e.printStackTrace();
+			// e.printStackTrace();
 		} finally {
 			// done
 		}
 	}
-	
+
 	/**
 	 * logging of message on console (can be switched off)
 	 * 
@@ -60,10 +61,10 @@ public class OOCSIServer {
 				port = Integer.parseInt(args[i + 1]);
 			} else if (argument.equals("-clients") && args.length >= i + 2) {
 				maxClients = Integer.parseInt(args[i + 1]);
+			} else if (argument.equals("-service") && args.length >= i + 2) {
+				serviceName = args[i + 1];
 			} else if (argument.equals("-logging")) {
 				isLogging = true;
-			} else if (argument.equals("-service")) {
-				serviceName = args[i + 1];
 			}
 		}
 	}
