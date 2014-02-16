@@ -11,7 +11,7 @@ import nl.tue.id.oocsi.server.protocol.Message;
 public class Client extends Channel {
 
 	protected enum ClientType {
-		OOCSI, PD, OSC
+		OOCSI, PD, JSON, OSC
 	}
 
 	public Client(String token) {

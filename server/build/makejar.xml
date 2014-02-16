@@ -8,10 +8,13 @@
                 <attribute name="Main-Class" value="org.eclipse.jdt.internal.jarinjarloader.JarRsrcLoader"/>
                 <attribute name="Rsrc-Main-Class" value="nl.tue.id.oocsi.server.OOCSIServer"/>
                 <attribute name="Class-Path" value="."/>
-                <attribute name="Rsrc-Class-Path" value="./"/>
+                <attribute name="Rsrc-Class-Path" value="./ gson-2.2.4.jar"/>
             </manifest>
             <zipfileset src="jar-in-jar-loader.zip"/>
-            <fileset dir="../bin"/>
+            <fileset dir="../bin">
+                <exclude name="**/*ServerCommandLineParsing*"/>
+          	</fileset>
+            <fileset dir="../libs"/>
         </jar>
     </target>
 </project>

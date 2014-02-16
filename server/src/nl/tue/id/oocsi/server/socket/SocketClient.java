@@ -14,6 +14,9 @@ import nl.tue.id.oocsi.server.model.Client;
 import nl.tue.id.oocsi.server.protocol.Message;
 import nl.tue.id.oocsi.server.protocol.Protocol;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+
 /**
  * socket implementation for OOCSI client
  * 
@@ -21,6 +24,8 @@ import nl.tue.id.oocsi.server.protocol.Protocol;
  * 
  */
 public class SocketClient extends Client {
+
+	private static final Gson JSON_SERIALIZER = new Gson();
 
 	private Protocol protocol;
 
@@ -62,6 +67,11 @@ public class SocketClient extends Client {
 					+ message.sender);
 			OOCSIServer.log("sent message to " + socket.getInetAddress()
 					+ ":4445");
+		} else if (type == ClientType.JSON) {
+			send(serializeJSON(message.data, message.recipient,
+					message.timestamp.getTime(), message.sender));
+			OOCSIServer.log("sent JSON message to " + socket.getInetAddress()
+					+ ":" + socket.getPort());
 		}
 	}
 
@@ -77,12 +87,21 @@ public class SocketClient extends Client {
 					output.println(outputLine);
 				} else if (type == ClientType.PD) {
 					output.println(outputLine + ";");
+				} else if (type == ClientType.JSON) {
+					output.println(outputLine);
 				}
 			}
 		}
 	}
 
+	/**
+	 * serialize data for OOCSI clients
+	 * 
+	 * @param data
+	 * @return
+	 */
 	private String serializeOOCSI(Map<String, Object> data) {
+		// map to serialized java object
 		ByteArrayOutputStream baos = new ByteArrayOutputStream(1024);
 		try {
 			ObjectOutputStream oos = new ObjectOutputStream(baos);
@@ -94,12 +113,42 @@ public class SocketClient extends Client {
 		}
 	}
 
+	/**
+	 * serialize data for PD clients
+	 * 
+	 * @param data
+	 * @return
+	 */
 	private String serializePD(Map<String, Object> data) {
+		// map to blank separated list
 		StringBuilder sb = new StringBuilder();
 		for (String key : data.keySet()) {
 			sb.append(key + "=" + data.get(key) + " ");
 		}
 		return sb.toString();
+	}
+
+	/**
+	 * serialize data for JSON clients
+	 * 
+	 * @param data
+	 * @param recipient
+	 * @param timestamp
+	 * @param sender
+	 * @return
+	 */
+	private String serializeJSON(Map<String, Object> data, String recipient,
+			long timestamp, String sender) {
+
+		// map to json
+		JsonObject je = (JsonObject) JSON_SERIALIZER.toJsonTree(data);
+
+		// add OOCSI properties
+		je.addProperty("timestamp", timestamp);
+		je.addProperty("sender", sender);
+
+		// serialize
+		return je.toString();
 	}
 
 	/**
@@ -128,6 +177,11 @@ public class SocketClient extends Client {
 							} catch (Exception e) {
 								// do nothing
 							}
+						} else if (inputLine.contains("(JSON)")) {
+							token = inputLine.replace("(JSON)", "").trim();
+							type = ClientType.JSON;
+							output = new PrintWriter(socket.getOutputStream(),
+									true);
 						} else {
 							token = inputLine;
 							type = ClientType.OOCSI;
@@ -138,14 +192,16 @@ public class SocketClient extends Client {
 						if (protocol.register(SocketClient.this)) {
 
 							// say hi to new client
-							send("welcome " + token);
+							if (type == ClientType.JSON) {
+								send("{'message' : \"welcome " + token + "\"}");
+							} else {
+								send("welcome " + token);
+							}
 
 							while ((inputLine = input.readLine()) != null) {
 
-								// clean input
-								if (type == ClientType.OOCSI) {
-									// inputLine = inputLine;
-								} else {
+								// clean input from PD clients
+								if (type == ClientType.PD) {
 									inputLine = inputLine.replace(";", "");
 								}
 

@@ -4,6 +4,8 @@ import java.io.IOException;
 
 import nl.tue.id.oocsi.server.socket.SocketServer;
 
+import com.google.gson.Gson;
+
 /**
  * main server component for running OOCSI
  * 
@@ -12,7 +14,7 @@ import nl.tue.id.oocsi.server.socket.SocketServer;
  */
 public class OOCSIServer {
 
-	public static final String VERSION = "0.5";
+	public static final String VERSION = "0.6";
 
 	// defaults
 	public static int port = 4444;
@@ -20,6 +22,9 @@ public class OOCSIServer {
 	public static boolean isLogging = false;
 
 	public static void main(String[] args) {
+
+		// check dependencies
+		new Gson();
 
 		// get port from arguments
 		parseCommandlineArgs(args);
