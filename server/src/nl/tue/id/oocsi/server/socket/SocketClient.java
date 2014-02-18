@@ -7,6 +7,7 @@ import java.io.InputStreamReader;
 import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.Date;
 import java.util.Map;
 
 import nl.tue.id.oocsi.server.OOCSIServer;
@@ -56,23 +57,24 @@ public class SocketClient extends Client {
 	@Override
 	public void send(Message message) {
 		if (type == ClientType.OOCSI) {
-			send("send " + message.recipient + " "
-					+ serializeOOCSI(message.data) + " "
-					+ message.timestamp.getTime() + " " + message.sender);
-			OOCSIServer.log("sent message to " + socket.getInetAddress() + ":"
-					+ socket.getPort());
+			send("send " + message.recipient + " " + serializeOOCSI(message.data) + " " + message.timestamp.getTime()
+					+ " " + message.sender);
+
+			// this is ok after serialization
+			message.addData("method", "OOCSI");
 		} else if (type == ClientType.PD) {
-			send(message.recipient + " " + serializePD(message.data) + " "
-					+ "timestamp=" + message.timestamp.getTime() + " sender="
-					+ message.sender);
-			OOCSIServer.log("sent message to " + socket.getInetAddress()
-					+ ":4445");
+			send(message.recipient + " " + serializePD(message.data) + " " + "timestamp=" + message.timestamp.getTime()
+					+ " sender=" + message.sender);
+
+			// this is ok after serialization
+			message.addData("method", "PD");
 		} else if (type == ClientType.JSON) {
-			send(serializeJSON(message.data, message.recipient,
-					message.timestamp.getTime(), message.sender));
-			OOCSIServer.log("sent JSON message to " + socket.getInetAddress()
-					+ ":" + socket.getPort());
+			send(serializeJSON(message.data, message.recipient, message.timestamp.getTime(), message.sender));
+
+			// this is ok after serialization
+			message.addData("method", "JSON");
 		}
+		OOCSIServer.logEvent(message.sender, message.recipient, message.data, message.timestamp);
 	}
 
 	/**
@@ -137,8 +139,7 @@ public class SocketClient extends Client {
 	 * @param sender
 	 * @return
 	 */
-	private String serializeJSON(Map<String, Object> data, String recipient,
-			long timestamp, String sender) {
+	private String serializeJSON(Map<String, Object> data, String recipient, long timestamp, String sender) {
 
 		// map to json
 		JsonObject je = (JsonObject) JSON_SERIALIZER.toJsonTree(data);
@@ -160,8 +161,7 @@ public class SocketClient extends Client {
 
 			public void run() {
 				try {
-					input = new BufferedReader(new InputStreamReader(socket
-							.getInputStream()));
+					input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
 					String inputLine, outputLine;
 					if ((inputLine = input.readLine()) != null) {
@@ -171,22 +171,19 @@ public class SocketClient extends Client {
 							token = inputLine.replace(";", "");
 							type = ClientType.PD;
 							try {
-								output = new PrintWriter(new Socket(socket
-										.getInetAddress(), 4445)
-										.getOutputStream(), true);
+								output = new PrintWriter(new Socket(socket.getInetAddress(), 4445).getOutputStream(),
+										true);
 							} catch (Exception e) {
 								// do nothing
 							}
 						} else if (inputLine.contains("(JSON)")) {
 							token = inputLine.replace("(JSON)", "").trim();
 							type = ClientType.JSON;
-							output = new PrintWriter(socket.getOutputStream(),
-									true);
+							output = new PrintWriter(socket.getOutputStream(), true);
 						} else {
 							token = inputLine;
 							type = ClientType.OOCSI;
-							output = new PrintWriter(socket.getOutputStream(),
-									true);
+							output = new PrintWriter(socket.getOutputStream(), true);
 						}
 
 						if (protocol.register(SocketClient.this)) {
@@ -198,6 +195,9 @@ public class SocketClient extends Client {
 								send("welcome " + token);
 							}
 
+							// log connection creation
+							OOCSIServer.logConnection(token, "OOCSI", "client connected", new Date());
+
 							while ((inputLine = input.readLine()) != null) {
 
 								// clean input from PD clients
@@ -206,8 +206,7 @@ public class SocketClient extends Client {
 								}
 
 								// process input and write output if necessary
-								outputLine = protocol.processInput(
-										SocketClient.this, inputLine);
+								outputLine = protocol.processInput(SocketClient.this, inputLine);
 								if (outputLine == null) {
 									break;
 								} else if (outputLine.length() > 0) {
@@ -217,8 +216,7 @@ public class SocketClient extends Client {
 						} else {
 							// say goodbye to new client
 							synchronized (output) {
-								output.println("error (name already registered: "
-										+ token + ")");
+								output.println("error (name already registered: " + token + ")");
 							}
 						}
 					}
@@ -241,6 +239,9 @@ public class SocketClient extends Client {
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
+
+					// log connection close
+					OOCSIServer.logConnection(token, "OOCSI", "client disconnected", new Date());
 
 					// remove this client
 					protocol.unregister(SocketClient.this);

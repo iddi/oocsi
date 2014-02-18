@@ -1,7 +1,11 @@
 package nl.tue.id.oocsi.server;
 
 import java.io.IOException;
+import java.util.Date;
+import java.util.Map;
 
+import nl.tue.id.oocsi.server.model.Channel;
+import nl.tue.id.oocsi.server.protocol.Message;
 import nl.tue.id.oocsi.server.socket.SocketServer;
 
 import com.google.gson.Gson;
@@ -14,12 +18,19 @@ import com.google.gson.Gson;
  */
 public class OOCSIServer {
 
-	public static final String VERSION = "0.6";
+	public static final String VERSION = "0.7";
 
 	// defaults
 	public static int port = 4444;
-	public static int maxClients = 25;
+	public static int maxClients = 30;
 	public static boolean isLogging = false;
+
+	// default channels
+	public static final String OOCSI_EVENTS = "OOCSI_events";
+	public static final String OOCSI_CONNECTIONS = "OOCSI_connections";
+	public static final String OOCSI_CHANNELS = "OOCSI_channels";
+
+	public static SocketServer server;
 
 	public static void main(String[] args) {
 
@@ -31,7 +42,8 @@ public class OOCSIServer {
 
 		// start socket server
 		try {
-			new SocketServer(port, maxClients).init();
+			server = new SocketServer(port, maxClients);
+			server.init();
 		} catch (IOException e) {
 			// e.printStackTrace();
 		} finally {
@@ -40,13 +52,53 @@ public class OOCSIServer {
 	}
 
 	/**
-	 * logging of message on console (can be switched off)
+	 * logging of a general server event (can be switched off with startup
+	 * parameter '-logging')
 	 * 
 	 * @param message
 	 */
 	public static void log(String message) {
 		if (isLogging) {
 			System.out.println(message);
+		}
+	}
+
+	/**
+	 * logging of event (can be switched off with startup parameter '-logging')
+	 * 
+	 * @param sender
+	 * @param recipient
+	 * @param data
+	 * @param timestamp
+	 */
+	public static void logEvent(String sender, String recipient, Map<String, Object> data, Date timestamp) {
+		if (isLogging) {
+			System.out.println(OOCSI_EVENTS + " " + sender + "->" + recipient);
+
+			Message message = new Message(sender, OOCSI_EVENTS, timestamp, data);
+			message.addData("sender", sender);
+			message.addData("recipient", recipient);
+			server.getChannel(OOCSI_EVENTS).send(message);
+		}
+	}
+
+	/**
+	 * logging of connection/channel update (can be switched off with startup
+	 * parameter '-logging')
+	 * 
+	 * @param message
+	 */
+	public static void logConnection(String client, String channel, String operation, Date timestamp) {
+		if (isLogging) {
+			System.out.println(OOCSI_CONNECTIONS + " " + client + "->" + channel + " (" + operation + ")");
+
+			Message message = new Message(client, OOCSI_CONNECTIONS, timestamp);
+			message.addData("client", client);
+			message.addData("channel", channel);
+			Channel logChannel = server.getChannel(OOCSI_CONNECTIONS);
+			if (logChannel != null) {
+				logChannel.send(message);
+			}
 		}
 	}
 

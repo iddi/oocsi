@@ -1,5 +1,6 @@
 package nl.tue.id.oocsi.server.model;
 
+import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -47,7 +48,7 @@ public class Channel {
 	 * @param message
 	 */
 	public void send(Message message) {
-		OOCSIServer.log("Channel " + token + " received " + message);
+		// OOCSIServer.logEvent("Channel " + token + " received " + message);
 		for (Channel subChannel : subChannels.values()) {
 			if (!message.sender.equals(subChannel.getName())) {
 				subChannel.send(message);
@@ -72,8 +73,7 @@ public class Channel {
 	 */
 	public String getChannels() {
 		String result = "";
-		for (Iterator<String> keys = subChannels.keySet().iterator(); keys
-				.hasNext();) {
+		for (Iterator<String> keys = subChannels.keySet().iterator(); keys.hasNext();) {
 			String key = keys.next();
 			result += key + (keys.hasNext() ? "," : "");
 		}
@@ -87,11 +87,9 @@ public class Channel {
 	 * @param channel
 	 */
 	public void addChannel(Channel channel) {
-		if (!token.equals(channel.getName())
-				&& !subChannels.containsKey(channel.getName())) {
+		if (!token.equals(channel.getName()) && !subChannels.containsKey(channel.getName())) {
 			subChannels.put(channel.getName(), channel);
-			OOCSIServer.log("added channel " + channel.getName() + " to "
-					+ token);
+			OOCSIServer.logConnection(token, channel.getName(), "added channel", new Date());
 		}
 	}
 
@@ -112,8 +110,7 @@ public class Channel {
 	 */
 	public void removeChannel(Channel channel, boolean recursive) {
 		if (subChannels.remove(channel.getName()) != null) {
-			OOCSIServer.log("removed channel " + channel.getName() + " from "
-					+ token);
+			OOCSIServer.logConnection(token, channel.getName(), "removed channel", new Date());
 		}
 
 		if (recursive) {
@@ -132,11 +129,9 @@ public class Channel {
 			subChannel.closeEmptyChannels();
 
 			// it is empty now, remove sub channel
-			if (!(subChannel instanceof Client)
-					&& subChannel.subChannels.size() == 0) {
+			if (!(subChannel instanceof Client) && subChannel.subChannels.size() == 0) {
 				subChannels.remove(subChannel.getName());
-				OOCSIServer.log("closed empty channel " + subChannel.getName()
-						+ " from " + token);
+				OOCSIServer.logConnection(token, subChannel.getName(), "closed empty channel", new Date());
 			}
 		}
 	}

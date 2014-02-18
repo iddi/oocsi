@@ -8,6 +8,7 @@ import java.net.SocketAddress;
 import java.net.UnknownHostException;
 
 import nl.tue.id.oocsi.server.OOCSIServer;
+import nl.tue.id.oocsi.server.model.Channel;
 import nl.tue.id.oocsi.server.model.Server;
 
 /**
@@ -65,16 +66,22 @@ public class SocketServer extends Server {
 		try {
 			addr = InetAddress.getLocalHost();
 			String hostname = addr.getHostName();
-			OOCSIServer.log("Started OOCSI server v" + OOCSIServer.VERSION
-					+ " (max. " + maxClients + " parallel clients)"
-					+ " @ local address '" + hostname + "' on port " + port);
+			OOCSIServer.log("Started OOCSI server v" + OOCSIServer.VERSION + " (max. " + maxClients
+					+ " parallel clients)" + " @ local address '" + hostname + "' on port " + port);
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
 
-		// // add default management channel
-		// os.getChannel("MANAGEMENT");
-		//
+		// add OOCSI channels that will deliver meta-data to potentially
+		// connected clients
+		Channel preventClosing = new Channel("---");
+		Channel channel = new Channel(OOCSIServer.OOCSI_CONNECTIONS);
+		addChannel(channel);
+		channel.addChannel(preventClosing);
+		channel = new Channel(OOCSIServer.OOCSI_EVENTS);
+		addChannel(channel);
+		channel.addChannel(preventClosing);
+
 		while (listening) {
 
 			if (subChannels.size() < maxClients) {

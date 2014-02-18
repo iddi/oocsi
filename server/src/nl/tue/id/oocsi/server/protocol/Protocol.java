@@ -74,7 +74,7 @@ public class Protocol {
 			return server.getChannels();
 		}
 		// get channel subscribers
-		else if (inputLine.startsWith("channels")) {
+		else if (inputLine.startsWith("channels") && inputLine.contains(" ")) {
 			String channel = inputLine.split(" ")[1];
 			Channel c = server.getChannel(channel);
 			if (c != null) {
@@ -86,7 +86,7 @@ public class Protocol {
 			return server.getClients();
 		}
 		// client subscribes to channel
-		else if (inputLine.startsWith("subscribe")) {
+		else if (inputLine.startsWith("subscribe") && inputLine.contains(" ")) {
 
 			String channel = inputLine.split(" ")[1];
 			Channel c = server.getChannel(channel);
@@ -97,19 +97,19 @@ public class Protocol {
 				server.addChannel(newChannel);
 				newChannel.addChannel(sender);
 			}
+			OOCSIServer.logConnection(sender.getName(), channel, "subscribed", new Date());
 		}
 		// client unsubscribes from channel
-		else if (inputLine.startsWith("unsubscribe")) {
-			OOCSIServer.log("unsubscribe");
+		else if (inputLine.startsWith("unsubscribe") && inputLine.contains(" ")) {
 			String channel = inputLine.split(" ")[1];
 			Channel c = server.getChannel(channel);
 			if (c != null) {
 				c.removeChannel(sender);
 			}
+			OOCSIServer.logConnection(sender.getName(), channel, "unsubscribed", new Date());
 		}
 		// create new message
 		else if (inputLine.startsWith("sendraw")) {
-			OOCSIServer.log("sendraw");
 			String[] tokens = inputLine.split(" ", 3);
 			if (tokens.length == 3) {
 				String recipient = tokens[1];
@@ -119,23 +119,20 @@ public class Protocol {
 				if (c != null) {
 					Map<String, Object> map = new HashMap<String, Object>();
 					map.put("data", message);
-					c.send(new Message(sender.getName(), recipient, new Date(),
-							map));
+					c.send(new Message(sender.getName(), recipient, new Date(), map));
 				}
 			}
 		}
 		// create new message
 		else if (inputLine.startsWith("send")) {
-			OOCSIServer.log("send");
 			String[] tokens = inputLine.split(" ", 3);
 			if (tokens.length == 3) {
 				String recipient = tokens[1];
 				String data = tokens[2];
 
 				try {
-
-					ByteArrayInputStream bais = new ByteArrayInputStream(
-							Base64Coder.decode(data));
+					// serialized object parsing
+					ByteArrayInputStream bais = new ByteArrayInputStream(Base64Coder.decode(data));
 					ObjectInputStream ois = new ObjectInputStream(bais);
 					Object outputObject = ois.readObject();
 
@@ -143,8 +140,7 @@ public class Protocol {
 					if (c != null) {
 						@SuppressWarnings("unchecked")
 						Map<String, Object> map = (Map<String, Object>) outputObject;
-						c.send(new Message(sender.getName(), recipient,
-								new Date(), map));
+						c.send(new Message(sender.getName(), recipient, new Date(), map));
 					}
 				} catch (IOException e) {
 					e.printStackTrace();

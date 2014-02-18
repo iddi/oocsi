@@ -38,37 +38,48 @@ public class Message implements Serializable {
 	/**
 	 * create message from sender and recipient
 	 * 
-	 * @param s
-	 * @param r
+	 * @param sender
+	 * @param recipient
 	 */
-	public Message(String s, String r) {
-		this(s, r, new Date());
+	public Message(String sender, String recipient) {
+		this(sender, recipient, new Date());
 	}
 
 	/**
 	 * create message from sender and recipient with custom timestamp
 	 * 
-	 * @param s
-	 * @param r
-	 * @param ts
+	 * @param sender
+	 * @param recipient
+	 * @param timestamp
 	 */
-	public Message(String s, String r, Date ts) {
-		this(s, r, ts, new HashMap<String, Object>());
+	public Message(String sender, String recipient, Date timestamp) {
+		this(sender, recipient, timestamp, new HashMap<String, Object>());
 	}
 
 	/**
 	 * create full message
 	 * 
-	 * @param s
-	 * @param r
-	 * @param ts
+	 * @param sender
+	 * @param recipient
+	 * @param timestamp
 	 * @param data
 	 */
-	public Message(String s, String r, Date ts, Map<String, Object> data) {
-		this.sender = s;
-		this.recipient = r;
-		this.timestamp = ts;
+	public Message(String sender, String recipient, Date timestamp, Map<String, Object> data) {
+		this.sender = sender;
+		this.recipient = recipient;
+		this.timestamp = timestamp;
 		this.data = data;
+	}
+
+	/**
+	 * convenience method to add data (as a key/value pair) to an existing
+	 * message
+	 * 
+	 * @param key
+	 * @param value
+	 */
+	public void addData(String key, Object value) {
+		this.data.put(key, value);
 	}
 
 	/*
@@ -77,8 +88,8 @@ public class Message implements Serializable {
 	 * @see java.lang.Object#toString()
 	 */
 	public String toString() {
-		return "{sender: " + sender + ", recipient: " + recipient
-				+ ", timestamp: " + timestamp + ", data: " + data + "}";
+		return "{sender: " + sender + ", recipient: " + recipient + ", timestamp: " + timestamp + ", data: " + data
+				+ "}";
 	}
 
 }
