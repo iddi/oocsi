@@ -74,13 +74,10 @@ public class SocketServer extends Server {
 
 		// add OOCSI channels that will deliver meta-data to potentially
 		// connected clients
-		Channel preventClosing = new Channel("---");
 		Channel channel = new Channel(OOCSIServer.OOCSI_CONNECTIONS);
 		addChannel(channel);
-		channel.addChannel(preventClosing);
 		channel = new Channel(OOCSIServer.OOCSI_EVENTS);
 		addChannel(channel);
-		channel.addChannel(preventClosing);
 
 		while (listening) {
 
