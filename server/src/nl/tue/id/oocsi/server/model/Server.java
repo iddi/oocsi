@@ -4,6 +4,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import nl.tue.id.oocsi.server.OOCSIServer;
 import nl.tue.id.oocsi.server.protocol.Protocol;
 
 /**
@@ -45,8 +46,7 @@ public class Server extends Channel {
 	 */
 	public String getClients() {
 		String result = "";
-		for (Iterator<String> keys = clients.keySet().iterator(); keys
-				.hasNext();) {
+		for (Iterator<String> keys = clients.keySet().iterator(); keys.hasNext();) {
 			String key = keys.next();
 			result += key + (keys.hasNext() ? "," : "");
 		}
@@ -65,9 +65,8 @@ public class Server extends Channel {
 		String clientName = client.getName();
 
 		// add client to client list and sub channels
-		if (!clients.containsKey(clientName)
-				&& !subChannels.containsKey(clientName)
-				&& getClient(clientName) == null) {
+		if (!clients.containsKey(clientName) && !subChannels.containsKey(clientName) && getClient(clientName) == null
+				&& clientName != OOCSIServer.OOCSI_CONNECTIONS && clientName != OOCSIServer.OOCSI_EVENTS) {
 			addChannel(client);
 			clients.put(clientName, client);
 

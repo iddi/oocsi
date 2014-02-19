@@ -28,7 +28,6 @@ public class OOCSIServer {
 	// default channels
 	public static final String OOCSI_EVENTS = "OOCSI_events";
 	public static final String OOCSI_CONNECTIONS = "OOCSI_connections";
-	public static final String OOCSI_CHANNELS = "OOCSI_channels";
 
 	public static SocketServer server;
 
@@ -72,13 +71,16 @@ public class OOCSIServer {
 	 * @param timestamp
 	 */
 	public static void logEvent(String sender, String recipient, Map<String, Object> data, Date timestamp) {
-		if (isLogging) {
+		if (isLogging && recipient != OOCSIServer.OOCSI_EVENTS && recipient != OOCSIServer.OOCSI_CONNECTIONS) {
 			System.out.println(OOCSI_EVENTS + " " + sender + "->" + recipient);
 
 			Message message = new Message(sender, OOCSI_EVENTS, timestamp, data);
 			message.addData("sender", sender);
 			message.addData("recipient", recipient);
-			server.getChannel(OOCSI_EVENTS).send(message);
+			Channel logChannel = server.getChannel(OOCSI_EVENTS);
+			if (logChannel != null) {
+				logChannel.send(message);
+			}
 		}
 	}
 
@@ -89,7 +91,7 @@ public class OOCSIServer {
 	 * @param message
 	 */
 	public static void logConnection(String client, String channel, String operation, Date timestamp) {
-		if (isLogging) {
+		if (isLogging && channel != OOCSIServer.OOCSI_EVENTS && channel != OOCSIServer.OOCSI_CONNECTIONS) {
 			System.out.println(OOCSI_CONNECTIONS + " " + client + "->" + channel + " (" + operation + ")");
 
 			Message message = new Message(client, OOCSI_CONNECTIONS, timestamp);
