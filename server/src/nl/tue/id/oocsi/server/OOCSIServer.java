@@ -97,6 +97,7 @@ public class OOCSIServer {
 			Message message = new Message(client, OOCSI_CONNECTIONS, timestamp);
 			message.addData("client", client);
 			message.addData("channel", channel);
+			message.addData("operation", operation);
 			Channel logChannel = server.getChannel(OOCSI_CONNECTIONS);
 			if (logChannel != null) {
 				logChannel.send(message);
