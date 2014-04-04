@@ -62,6 +62,15 @@ public class OOCSIClient {
 	}
 
 	/**
+	 * kills the connection to OOCSI server
+	 * 
+	 * this is for testing, do NOT use for normal operation
+	 */
+	public void kill() {
+		sc.kill();
+	}
+
+	/**
 	 * subscribe to the channel with the given name
 	 * 
 	 * @param channelName

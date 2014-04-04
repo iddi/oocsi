@@ -21,8 +21,7 @@ public class SocketClient {
 
 	private String name;
 	private Map<String, Handler> channels;
-	private Queue<String> tempIncomingMessages = new LinkedBlockingQueue<String>(
-			1);
+	private Queue<String> tempIncomingMessages = new LinkedBlockingQueue<String>(1);
 
 	private Socket socket;
 	private BufferedReader input;
@@ -65,16 +64,13 @@ public class SocketClient {
 			output.println(name);
 
 			// acquire input channel from server
-			input = new BufferedReader(new InputStreamReader(
-					socket.getInputStream()));
+			input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
 			// check if we are ok to connect
 			String serverWelcomeMessage;
-			if (!socket.isClosed()
-					&& (serverWelcomeMessage = input.readLine()) != null) {
+			if (!socket.isClosed() && (serverWelcomeMessage = input.readLine()) != null) {
 				if (!serverWelcomeMessage.startsWith("welcome")) {
-					System.out
-							.println(" - OOCSI disconnected (client name not accepted)");
+					System.out.println(" - OOCSI disconnected (client name not accepted)");
 					return false;
 				}
 
@@ -87,8 +83,7 @@ public class SocketClient {
 				public void run() {
 					try {
 						String fromServer;
-						while (!socket.isClosed()
-								&& (fromServer = input.readLine()) != null) {
+						while (!socket.isClosed() && (fromServer = input.readLine()) != null) {
 							if (fromServer.startsWith("send")) {
 								// parse server output
 								String[] tokens = fromServer.split(" ");
@@ -124,10 +119,8 @@ public class SocketClient {
 							// e.printStackTrace();
 						}
 
-						System.out
-								.println(" - OOCSI disconnected "
-										+ (!connectionEstablished ? "(client name not accepted)"
-												: "(server unavailable)"));
+						System.out.println(" - OOCSI disconnected "
+								+ (!connectionEstablished ? "(client name not accepted)" : "(server unavailable)"));
 					}
 				}
 			}).start();
@@ -136,8 +129,7 @@ public class SocketClient {
 			System.out.println(" - OOCSI failed to connect (unknown host)");
 			return false;
 		} catch (ConnectException e) {
-			System.out
-					.println(" - OOCSI failed to connect (connection refused)");
+			System.out.println(" - OOCSI failed to connect (connection refused)");
 			return false;
 		} catch (IOException e) {
 			System.out.println(" - OOCSI connection error");
@@ -161,13 +153,31 @@ public class SocketClient {
 	 */
 	public void disconnect() {
 		// disconnect from server
-		output.println("quit");
+		try {
+			output.println("quit");
+			output.close();
+			input.close();
+			socket.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (NullPointerException e) {
+			e.printStackTrace();
+		}
+	}
 
+	/**
+	 * kills this client connection from OOCSI
+	 * 
+	 */
+	public void kill() {
+		// disconnect from server without handshake
 		try {
 			output.close();
 			input.close();
 			socket.close();
 		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (NullPointerException e) {
 			e.printStackTrace();
 		}
 	}
