@@ -50,9 +50,7 @@ public class SocketClient extends Client {
 	/*
 	 * (non-Javadoc)
 	 * 
-	 * @see
-	 * nl.tue.id.oocsi.server.model.Client#send(nl.tue.id.oocsi.server.protocol
-	 * .Message)
+	 * @see nl.tue.id.oocsi.server.model.Client#send(nl.tue.id.oocsi.server.protocol .Message)
 	 */
 	@Override
 	public void send(Message message) {
@@ -224,10 +222,9 @@ public class SocketClient extends Client {
 				} catch (IOException e) {
 					// this is kinda normal behavior when a client quits
 					// e.printStackTrace();
-				} catch (IllegalArgumentException e) {
-					// someone used probably send instead of sendraw with some
-					// non-encoded data
-					// e.printStackTrace();
+				} catch (Exception e) {
+					// real problem
+					e.printStackTrace();
 				} finally {
 					// close socket connection to client
 					try {
