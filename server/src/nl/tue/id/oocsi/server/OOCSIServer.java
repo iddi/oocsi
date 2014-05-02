@@ -72,7 +72,7 @@ public class OOCSIServer {
 	 */
 	public static void logEvent(String sender, String recipient, Map<String, Object> data, Date timestamp) {
 		if (isLogging && recipient != OOCSIServer.OOCSI_EVENTS && recipient != OOCSIServer.OOCSI_CONNECTIONS) {
-			System.out.println(OOCSI_EVENTS + " " + sender + "->" + recipient);
+			log(new Date() + " " + OOCSI_EVENTS + " " + sender + "->" + recipient);
 
 			Message message = new Message(sender, OOCSI_EVENTS, timestamp, data);
 			message.addData("sender", sender);
@@ -92,7 +92,7 @@ public class OOCSIServer {
 	 */
 	public static void logConnection(String client, String channel, String operation, Date timestamp) {
 		if (isLogging && channel != OOCSIServer.OOCSI_EVENTS && channel != OOCSIServer.OOCSI_CONNECTIONS) {
-			System.out.println(OOCSI_CONNECTIONS + " " + client + "->" + channel + " (" + operation + ")");
+			log(new Date() + " " + OOCSI_CONNECTIONS + " " + client + "->" + channel + " (" + operation + ")");
 
 			Message message = new Message(client, OOCSI_CONNECTIONS, timestamp);
 			message.addData("client", client);
