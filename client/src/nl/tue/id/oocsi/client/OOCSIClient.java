@@ -8,16 +8,14 @@ import nl.tue.id.oocsi.client.socket.SocketClient;
 
 public class OOCSIClient {
 
-	public static final String VERSION = "0.3";
-
-	private static boolean isLogging = true;
+	public static final String VERSION = "0.4";
 
 	private Map<String, Handler> channels = new HashMap<String, Handler>();
 
 	private SocketClient sc;
 
 	/**
-	 * 
+	 * create OOCSI client with the given name as the system-wide handle
 	 * 
 	 * @param name
 	 */
@@ -25,11 +23,15 @@ public class OOCSIClient {
 
 		// check oocsi name
 		if (name.contains(" ")) {
-			System.err.println("OOCSI name should not contain spaces");
+			log("OOCSI name should not contain spaces");
 			System.exit(-1);
 		}
 
-		sc = new SocketClient(name, channels);
+		sc = new SocketClient(name, channels) {
+			public void log(String message) {
+				OOCSIClient.this.log(message);
+			}
+		};
 		log("OOCSI client v" + VERSION + " started");
 	}
 
@@ -137,8 +139,7 @@ public class OOCSIClient {
 	}
 
 	/**
-	 * retrieve the list of sub-channel of the channel with the given name on
-	 * the server
+	 * retrieve the list of sub-channel of the channel with the given name on the server
 	 * 
 	 * @param channelName
 	 * @return
@@ -148,13 +149,11 @@ public class OOCSIClient {
 	}
 
 	/**
-	 * logging of message on console (can be switched off)
+	 * logging of message on console (can be overridden by subclass)
 	 * 
 	 * @param message
 	 */
-	public static void log(String message) {
-		if (isLogging) {
-			System.out.println(message);
-		}
+	public void log(String message) {
+		// no logging by default
 	}
 }
