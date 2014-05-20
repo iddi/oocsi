@@ -18,7 +18,7 @@ import com.google.gson.Gson;
  */
 public class OOCSIServer {
 
-	public static final String VERSION = "0.7";
+	public static final String VERSION = "0.8";
 
 	// defaults
 	public static int port = 4444;
@@ -51,8 +51,7 @@ public class OOCSIServer {
 	}
 
 	/**
-	 * logging of a general server event (can be switched off with startup
-	 * parameter '-logging')
+	 * logging of a general server event (can be switched off with startup parameter '-logging')
 	 * 
 	 * @param message
 	 */
@@ -85,8 +84,7 @@ public class OOCSIServer {
 	}
 
 	/**
-	 * logging of connection/channel update (can be switched off with startup
-	 * parameter '-logging')
+	 * logging of connection/channel update (can be switched off with startup parameter '-logging')
 	 * 
 	 * @param message
 	 */

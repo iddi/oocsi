@@ -152,6 +152,7 @@ public class SocketClient extends Client {
 
 	/**
 	 * start the new client in a thread
+	 * 
 	 */
 	public void start() {
 		new Thread(new Runnable() {
@@ -163,6 +164,9 @@ public class SocketClient extends Client {
 
 					String inputLine, outputLine;
 					if ((inputLine = input.readLine()) != null) {
+
+						// update last action
+						lastAction = System.currentTimeMillis();
 
 						// check for PD/raw-only socket client
 						if (inputLine.contains(";")) {
@@ -226,24 +230,50 @@ public class SocketClient extends Client {
 					// real problem
 					e.printStackTrace();
 				} finally {
-					// close socket connection to client
+
+					// first close input
 					try {
-						if (output != null) {
-							output.close();
-						}
 						input.close();
-						socket.close();
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
 
-					// log connection close
-					OOCSIServer.logConnection(token, "OOCSI", "client disconnected", new Date());
-
-					// remove this client
-					protocol.unregister(SocketClient.this);
+					// close socket connection to client
+					SocketClient.this.disconnect();
 				}
 			}
 		}).start();
+	}
+
+	/**
+	 * disconnect this client from the server
+	 * 
+	 */
+	public void disconnect() {
+
+		// close sockets and writers
+		try {
+			if (output != null) {
+				output.close();
+			}
+			socket.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		// log connection close
+		OOCSIServer.logConnection(token, "OOCSI", "client disconnected", new Date());
+
+		// remove this client
+		protocol.unregister(SocketClient.this);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see nl.tue.id.oocsi.server.model.Client#isConnected()
+	 */
+	public boolean isConnected() {
+		return socket.isConnected() && !socket.isClosed();
 	}
 }

@@ -70,8 +70,11 @@ public class SocketClient {
 			String serverWelcomeMessage;
 			if (!socket.isClosed() && (serverWelcomeMessage = input.readLine()) != null) {
 				if (!serverWelcomeMessage.startsWith("welcome")) {
-					System.out.println(" - OOCSI disconnected (client name not accepted)");
+					disconnect();
+					log(" - disconnected (client name not accepted)");
 					return false;
+				} else {
+					log(" - connected successfully");
 				}
 
 				// first data has arrived = connection is ok
@@ -106,6 +109,8 @@ public class SocketClient {
 							} else {
 								tempIncomingMessages.offer(fromServer);
 							}
+
+							output.println(".");
 						}
 
 					} catch (IOException e) {
@@ -119,20 +124,20 @@ public class SocketClient {
 							// e.printStackTrace();
 						}
 
-						System.out.println(" - OOCSI disconnected "
+						log(" - OOCSI disconnected "
 								+ (!connectionEstablished ? "(client name not accepted)" : "(server unavailable)"));
 					}
 				}
 			}).start();
 
 		} catch (UnknownHostException e) {
-			System.out.println(" - OOCSI failed to connect (unknown host)");
+			log(" - OOCSI failed to connect (unknown host)");
 			return false;
 		} catch (ConnectException e) {
-			System.out.println(" - OOCSI failed to connect (connection refused)");
+			log(" - OOCSI failed to connect (connection refused)");
 			return false;
 		} catch (IOException e) {
-			System.out.println(" - OOCSI connection error");
+			log(" - OOCSI connection error");
 			return false;
 		}
 		return true;
@@ -180,6 +185,8 @@ public class SocketClient {
 		} catch (NullPointerException e) {
 			e.printStackTrace();
 		}
+
+		log(" - disconnected (by kill)");
 	}
 
 	/**
@@ -250,8 +257,7 @@ public class SocketClient {
 	}
 
 	/**
-	 * send message with data payload (map of key value pairs which will be
-	 * serialized before sending)
+	 * send message with data payload (map of key value pairs which will be serialized before sending)
 	 * 
 	 * @param channelName
 	 * @param data
@@ -349,6 +355,13 @@ public class SocketClient {
 		} catch (IOException e) {
 			return "";
 		}
+	}
+
+	/**
+	 * logging of message on console (can be overridden by subclass)
+	 */
+	public void log(String message) {
+		// no logging by default
 	}
 
 }

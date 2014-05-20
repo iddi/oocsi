@@ -55,14 +55,21 @@ public class Server extends Channel {
 	}
 
 	/**
-	 * add a client to the server, under the condition that the client's name is
-	 * not an existing channel
+	 * add a client to the server, under the condition that the client's name is not an existing channel
 	 * 
 	 * @param client
 	 * @return
 	 */
 	public boolean addClient(Client client) {
 		String clientName = client.getName();
+
+		// clean too old clients
+		long now = System.currentTimeMillis();
+		for (Client existingClient : clients.values()) {
+			if (now - existingClient.lastAction() > 120000 || !existingClient.isConnected()) {
+				removeClient(existingClient);
+			}
+		}
 
 		// add client to client list and sub channels
 		if (!clients.containsKey(clientName) && !subChannels.containsKey(clientName) && getClient(clientName) == null
