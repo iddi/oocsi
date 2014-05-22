@@ -1,4 +1,4 @@
-package nl.tue.id.oocsi.client.protocol;
+package nl.tue.id.oocsi;
 
 import java.util.Map;
 

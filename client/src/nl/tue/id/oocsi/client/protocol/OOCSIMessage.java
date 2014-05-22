@@ -2,6 +2,7 @@ package nl.tue.id.oocsi.client.protocol;
 
 import java.util.HashMap;
 
+import nl.tue.id.oocsi.OOCSIEvent;
 import nl.tue.id.oocsi.client.OOCSIClient;
 
 /**

@@ -1,11 +1,11 @@
-package nl.tue.id.oocsi.client;
+package nl.tue.id.oocsi;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Map;
 
+import nl.tue.id.oocsi.client.OOCSIClient;
 import nl.tue.id.oocsi.client.protocol.DataHandler;
-import nl.tue.id.oocsi.client.protocol.OOCSIEvent;
 import nl.tue.id.oocsi.client.protocol.OOCSIMessage;
 
 /**
