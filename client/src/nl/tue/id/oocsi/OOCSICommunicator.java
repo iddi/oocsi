@@ -77,7 +77,7 @@ public class OOCSICommunicator extends OOCSIClient {
 				@Override
 				public void receive(String sender, Map<String, Object> data, String timestamp) {
 					try {
-						handler.invoke(parent, new Object[] { new OOCSIEvent(sender, data, timestamp, channelName) });
+						handler.invoke(parent, new Object[] { new OOCSIEvent(sender, data, timestamp, channelName, name) });
 					} catch (IllegalAccessException e) {
 						e.printStackTrace();
 					} catch (IllegalArgumentException e) {
