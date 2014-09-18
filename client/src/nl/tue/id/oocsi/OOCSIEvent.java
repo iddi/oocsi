@@ -213,7 +213,7 @@ public class OOCSIEvent {
 	}
 
 	/**
-	 * get the name of the recipient (or channel) this event was sent to
+	 * get the name of the recipient that received this event
 	 * 
 	 * @return
 	 */
