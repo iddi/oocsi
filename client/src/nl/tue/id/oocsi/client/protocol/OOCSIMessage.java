@@ -23,7 +23,7 @@ public class OOCSIMessage extends OOCSIEvent {
 	 * @param channelName
 	 */
 	public OOCSIMessage(OOCSIClient oocsi, String channelName) {
-		super(channelName, new HashMap<String, Object>(), "");
+		super("", new HashMap<String, Object>(), "", channelName, "");
 		this.oocsi = oocsi;
 	}
 

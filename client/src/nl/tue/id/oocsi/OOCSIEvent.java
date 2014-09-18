@@ -11,7 +11,9 @@ import java.util.Map;
 public class OOCSIEvent {
 
 	protected String channelName;
+	protected String recipient;
 	protected String sender;
+	protected String timestamp;
 
 	protected Map<String, Object> data;
 
@@ -22,10 +24,12 @@ public class OOCSIEvent {
 	 * @param data
 	 * @param sender
 	 */
-	public OOCSIEvent(String channelName, Map<String, Object> data, String sender) {
+	public OOCSIEvent(String sender, Map<String, Object> data, String timestamp, String channelName, String recipient) {
 		this.channelName = channelName;
 		this.data = data;
+		this.recipient = recipient;
 		this.sender = sender;
+		this.timestamp = timestamp;
 	}
 
 	/**
@@ -209,12 +213,12 @@ public class OOCSIEvent {
 	}
 
 	/**
-	 * get the name of the recipient (or channel) this event was sent to
+	 * get the name of the recipient that received this event
 	 * 
 	 * @return
 	 */
 	public String getRecipient() {
-		return channelName;
+		return recipient;
 	}
 
 	/**
@@ -225,4 +229,11 @@ public class OOCSIEvent {
 	public String getChannel() {
 		return channelName;
 	}
+
+	/**
+	 * get the timestamp of the event
+	 *
+	 * @return
+	 */
+	public String getTimestamp() { return timestamp; }
 }
