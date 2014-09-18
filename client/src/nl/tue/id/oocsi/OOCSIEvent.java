@@ -12,6 +12,7 @@ public class OOCSIEvent {
 
 	protected String channelName;
 	protected String sender;
+	protected String timestamp;
 
 	protected Map<String, Object> data;
 
@@ -22,10 +23,11 @@ public class OOCSIEvent {
 	 * @param data
 	 * @param sender
 	 */
-	public OOCSIEvent(String channelName, Map<String, Object> data, String sender) {
+	public OOCSIEvent(String sender, Map<String, Object> data, String timestamp, String channelName) {
 		this.channelName = channelName;
 		this.data = data;
 		this.sender = sender;
+		this.timestamp = timestamp;
 	}
 
 	/**
@@ -225,4 +227,11 @@ public class OOCSIEvent {
 	public String getChannel() {
 		return channelName;
 	}
+
+	/**
+	 * get the timestamp of the event
+	 *
+	 * @return
+	 */
+	public String getTimestamp() { return timestamp; }
 }

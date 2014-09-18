@@ -69,15 +69,15 @@ public class OOCSICommunicator extends OOCSIClient {
 	 * @param handlerName
 	 * @return
 	 */
-	public boolean subscribe(String channelName, String handlerName) {
+	public boolean subscribe(final String channelName, String handlerName) {
 		try {
 			final Method handler = parent.getClass().getDeclaredMethod(handlerName, new Class[] { OOCSIEvent.class });
 			subscribe(channelName, new DataHandler() {
 
 				@Override
-				public void receive(String channelName, Map<String, Object> data, String sender) {
+				public void receive(String sender, Map<String, Object> data, String timestamp) {
 					try {
-						handler.invoke(parent, new Object[] { new OOCSIEvent(channelName, data, sender) });
+						handler.invoke(parent, new Object[] { new OOCSIEvent(sender, data, timestamp, channelName) });
 					} catch (IllegalAccessException e) {
 						e.printStackTrace();
 					} catch (IllegalArgumentException e) {
