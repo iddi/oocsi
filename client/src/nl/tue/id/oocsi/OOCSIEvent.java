@@ -1,5 +1,6 @@
 package nl.tue.id.oocsi;
 
+import java.util.Date;
 import java.util.Map;
 
 /**
@@ -14,18 +15,55 @@ public class OOCSIEvent {
 	protected String sender;
 
 	protected Map<String, Object> data;
+	protected Date timestamp;
+
+	/**
+	 * constructor (implicit timestamp upon creation)
+	 * 
+	 * @param channelName
+	 *            where to?
+	 * @param data
+	 *            what data?
+	 * @param sender
+	 *            who sends it?
+	 */
+	public OOCSIEvent(String channelName, Map<String, Object> data, String sender) {
+		this(channelName, data, sender, new Date());
+	}
 
 	/**
 	 * constructor
 	 * 
 	 * @param channelName
+	 *            where to?
 	 * @param data
+	 *            what data?
 	 * @param sender
+	 *            who sends it?
+	 * @param timestamp
+	 *            when? --> as long value
 	 */
-	public OOCSIEvent(String channelName, Map<String, Object> data, String sender) {
+	public OOCSIEvent(String channelName, Map<String, Object> data, String sender, long timestamp) {
+		this(channelName, data, sender, new Date(timestamp));
+	}
+
+	/**
+	 * constructor
+	 * 
+	 * @param channelName
+	 *            where to?
+	 * @param data
+	 *            what data?
+	 * @param sender
+	 *            who sends it?
+	 * @param timestamp
+	 *            when? --> as Date object
+	 */
+	public OOCSIEvent(String channelName, Map<String, Object> data, String sender, Date timestamp) {
 		this.channelName = channelName;
 		this.data = data;
 		this.sender = sender;
+		this.timestamp = timestamp;
 	}
 
 	/**
@@ -209,7 +247,7 @@ public class OOCSIEvent {
 	}
 
 	/**
-	 * get the name of the recipient (or channel) this event was sent to
+	 * get the name of the recipient or channel that this event was sent to
 	 * 
 	 * @return
 	 */
@@ -218,11 +256,29 @@ public class OOCSIEvent {
 	}
 
 	/**
-	 * get the name of the channel (or recipient) this event was sent to
+	 * get the name of the recipient or channel that this event was sent to
 	 * 
 	 * @return
 	 */
 	public String getChannel() {
 		return channelName;
+	}
+
+	/**
+	 * get timestamp of this event as Date object
+	 * 
+	 * @return
+	 */
+	public Date getTimestamp() {
+		return timestamp;
+	}
+
+	/**
+	 * get timestamp of this event as long value
+	 * 
+	 * @return
+	 */
+	public long getTime() {
+		return timestamp.getTime();
 	}
 }

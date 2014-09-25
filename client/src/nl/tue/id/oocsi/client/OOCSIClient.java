@@ -8,7 +8,7 @@ import nl.tue.id.oocsi.client.socket.SocketClient;
 
 public class OOCSIClient {
 
-	public static final String VERSION = "0.4";
+	public static final String VERSION = "0.5";
 
 	private Map<String, Handler> channels = new HashMap<String, Handler>();
 

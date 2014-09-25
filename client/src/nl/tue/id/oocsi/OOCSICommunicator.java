@@ -2,10 +2,9 @@ package nl.tue.id.oocsi;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Map;
 
 import nl.tue.id.oocsi.client.OOCSIClient;
-import nl.tue.id.oocsi.client.protocol.DataHandler;
+import nl.tue.id.oocsi.client.protocol.EventHandler;
 import nl.tue.id.oocsi.client.protocol.OOCSIMessage;
 
 /**
@@ -63,7 +62,8 @@ public class OOCSICommunicator extends OOCSIClient {
 	}
 
 	/**
-	 * subscribe to channel <name> for handler with the given name <handlerName>
+	 * subscribe to channel <name> for handler method in the parent class with the given name <handlerName>; the handler
+	 * method will be called with an OOCSIEvent object upon occurrence of an event
 	 * 
 	 * @param channelName
 	 * @param handlerName
@@ -72,12 +72,12 @@ public class OOCSICommunicator extends OOCSIClient {
 	public boolean subscribe(String channelName, String handlerName) {
 		try {
 			final Method handler = parent.getClass().getDeclaredMethod(handlerName, new Class[] { OOCSIEvent.class });
-			subscribe(channelName, new DataHandler() {
+			subscribe(channelName, new EventHandler() {
 
 				@Override
-				public void receive(String channelName, Map<String, Object> data, String sender) {
+				public void receive(OOCSIEvent event) {
 					try {
-						handler.invoke(parent, new Object[] { new OOCSIEvent(channelName, data, sender) });
+						handler.invoke(parent, new Object[] { event });
 					} catch (IllegalAccessException e) {
 						e.printStackTrace();
 					} catch (IllegalArgumentException e) {

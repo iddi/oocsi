@@ -47,8 +47,7 @@ public class ClientConnectionTest {
 		o1.connect("localhost", 4444);
 		assertTrue(o1.isConnected());
 		o1.subscribe(new DataHandler() {
-			public void receive(String sender, Map<String, Object> data,
-					String timestamp) {
+			public void receive(String sender, Map<String, Object> data, long timestamp) {
 				list.add((String) data.get("data"));
 			}
 		});
@@ -57,8 +56,7 @@ public class ClientConnectionTest {
 		o2.connect("localhost", 4444);
 		assertTrue(o2.isConnected());
 		o2.subscribe(new DataHandler() {
-			public void receive(String sender, Map<String, Object> data,
-					String timestamp) {
+			public void receive(String sender, Map<String, Object> data, long timestamp) {
 				list.add((String) data.get("data"));
 			}
 		});
@@ -87,8 +85,7 @@ public class ClientConnectionTest {
 		o1.connect("localhost", 4444);
 		assertTrue(o1.isConnected());
 		o1.subscribe(new DataHandler() {
-			public void receive(String sender, Map<String, Object> data,
-					String timestamp) {
+			public void receive(String sender, Map<String, Object> data, long timestamp) {
 				list.add((Long) data.get("data"));
 			}
 		});
@@ -99,8 +96,7 @@ public class ClientConnectionTest {
 		o2.connect("localhost", 4444);
 		assertTrue(o2.isConnected());
 		o2.subscribe(new DataHandler() {
-			public void receive(String sender, Map<String, Object> data,
-					String timestamp) {
+			public void receive(String sender, Map<String, Object> data, long timestamp) {
 				list.add((Long) data.get("data"));
 			}
 		});
