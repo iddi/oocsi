@@ -91,7 +91,7 @@ method "receive". In this example, the event's timestamp will be printed in the 
 An OOCSIEvent has built-in infrastructure-level data fields such as _sender_, _timestamp_, and _channel_. In addition, the _recipient_ field is provided for some client implementations.
 Each of these fields can be access with a dedicated getter method:
 
-	OOCSI event = ...
+	OOCSIEvent event = ...
 	
 	// sender and receiver
 	String sender = event.getSender();
@@ -105,7 +105,7 @@ Each of these fields can be access with a dedicated getter method:
 Apart from that, OOCSIEvents have a data payload that is freely definable and realized as a key-value store (Map<String, Object>). Such key-value pairs can be accessed with helper mthods
 that will convert the data type of hte value accordingly: 
 	 
-	OOCSI event = ...
+	OOCSIEvent event = ...
 	String stringValue = event.getString("mykey");
 	Object objectValue = event.getObject("mykey");
 	
@@ -113,7 +113,7 @@ Events do not guarantee that specific keys and values are contained. For these c
 added to the retrieval call as a second parameter, and they will be assigned if (1) the key could not be found, or (2) if the value could not converted to the specified data type.  	
 
 	// retrieval with an additional default value
-	OOCSI event = ...
+	OOCSIEvent event = ...
 	String stringValue = event.getString("mykey", "default");
 	long longValue = event.getLong("mykey", 0);
 	int intValue = event.getInt("mykey", 0);
@@ -121,14 +121,14 @@ added to the retrieval call as a second parameter, and they will be assigned if 
 
 As an alternative to using default values, one can also check whether the key is contained in the event:
 
-	OOCSI event = ...
+	OOCSIEvent event = ...
 	if(event.has("mykey")) {
 		// retrieve value
 	}
 	
 Finally, events can provide a list of contained keys, which can be used to dump all contained data or to systematically retrieve all data.
 
-	OOCSI event = ...
+	OOCSIEvent event = ...
 	String[] keys = event.keys();
 	
 
