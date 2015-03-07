@@ -5,8 +5,11 @@ import java.util.Date;
 import java.util.Map;
 
 import nl.tue.id.oocsi.server.model.Channel;
+import nl.tue.id.oocsi.server.model.Server;
 import nl.tue.id.oocsi.server.protocol.Message;
-import nl.tue.id.oocsi.server.socket.SocketServer;
+import nl.tue.id.oocsi.server.services.AbstractService;
+import nl.tue.id.oocsi.server.services.OSCService;
+import nl.tue.id.oocsi.server.services.SocketService;
 
 import com.google.gson.Gson;
 
@@ -16,11 +19,12 @@ import com.google.gson.Gson;
  * @author matsfunk
  * 
  */
-public class OOCSIServer {
+public class OOCSIServer extends Server {
 
-	public static final String VERSION = "0.8";
+	// constants
+	public static final String VERSION = "0.9";
 
-	// defaults
+	// defaults for different services
 	public static int port = 4444;
 	public static int maxClients = 30;
 	public static boolean isLogging = false;
@@ -29,20 +33,118 @@ public class OOCSIServer {
 	public static final String OOCSI_EVENTS = "OOCSI_events";
 	public static final String OOCSI_CONNECTIONS = "OOCSI_connections";
 
-	public static SocketServer server;
+	// singleton
+	private static OOCSIServer server;
+
+	/**
+	 * initialize minimal server without any services running
+	 * 
+	 * @param args
+	 * @throws IOException
+	 */
+	public OOCSIServer() {
+		// singleton assignment
+		server = this;
+	}
+
+	/**
+	 * initialize the server and listen for client connects
+	 * 
+	 * @param args
+	 * @throws IOException
+	 */
+	public OOCSIServer(String[] args) throws IOException {
+		this();
+
+		// parse arguments
+		parseCommandlineArgs(args);
+
+		// then initialize
+		init();
+	}
+
+	/**
+	 * initialize the server and listen for client connects
+	 * 
+	 * @param port
+	 * @param clients
+	 * @param logging
+	 * @throws IOException
+	 */
+	public OOCSIServer(int port, int clients, boolean logging) throws IOException {
+		this();
+
+		// assign argument
+		this.port = port;
+		maxClients = clients;
+		isLogging = logging;
+
+		init();
+	}
+
+	/**
+	 * initialize the server and listen for client connects
+	 * 
+	 * @param args
+	 * @throws IOException
+	 */
+	private void init() throws IOException {
+
+		// add OOCSI channels that will deliver meta-data to potentially
+		// connected clients
+		Channel channel = new Channel(OOCSIServer.OOCSI_CONNECTIONS);
+		addChannel(channel);
+		channel = new Channel(OOCSIServer.OOCSI_EVENTS);
+		addChannel(channel);
+
+		// output status message
+		OOCSIServer.log("Started OOCSI server v" + OOCSIServer.VERSION + " for max. " + maxClients
+				+ " parallel clients" + (isLogging ? " and activated logging" : "") + ".");
+
+		// TODO check command line options
+		// start OSC server
+		OSCService osc = new OSCService(this, port + 1, Math.max(2, maxClients / 3));
+
+		// TODO check command line options
+		// start TCP/socket server
+		SocketService tcp = new SocketService(this, port, Math.max(2, maxClients / 3));
+
+		// start services
+		run(new AbstractService[] { tcp, osc });
+	}
+
+	public void run(final AbstractService[] services) {
+		new Thread(new Runnable() {
+			public void run() {
+				for (AbstractService service : services) {
+					service.start();
+				}
+			}
+		}).start();
+	}
+
+	@Override
+	public Channel getChannel(String channelName) {
+		Channel c = super.getChannel(channelName);
+
+		// intercept for OSC
+		if (c == null && channelName.startsWith("osc://")) {
+			c = getChannel(OSCService.OSC);
+		}
+
+		return c;
+	}
+
+	/** STATIC METHODS *************************************************************/
 
 	public static void main(String[] args) {
 
 		// check dependencies
 		new Gson();
 
-		// get port from arguments
-		parseCommandlineArgs(args);
-
 		// start socket server
 		try {
-			server = new SocketServer(port, maxClients);
-			server.init();
+			new OOCSIServer(args);
 		} catch (IOException e) {
 			// e.printStackTrace();
 		} finally {
@@ -51,7 +153,8 @@ public class OOCSIServer {
 	}
 
 	/**
-	 * logging of a general server event (can be switched off with startup parameter '-logging')
+	 * logging of a general server event (can be switched off with startup
+	 * parameter '-logging')
 	 * 
 	 * @param message
 	 */
@@ -84,7 +187,8 @@ public class OOCSIServer {
 	}
 
 	/**
-	 * logging of connection/channel update (can be switched off with startup parameter '-logging')
+	 * logging of connection/channel update (can be switched off with startup
+	 * parameter '-logging')
 	 * 
 	 * @param message
 	 */

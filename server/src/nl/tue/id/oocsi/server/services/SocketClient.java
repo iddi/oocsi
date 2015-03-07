@@ -1,4 +1,4 @@
-package nl.tue.id.oocsi.server.socket;
+package nl.tue.id.oocsi.server.services;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -12,8 +12,8 @@ import java.util.Map;
 
 import nl.tue.id.oocsi.server.OOCSIServer;
 import nl.tue.id.oocsi.server.model.Client;
+import nl.tue.id.oocsi.server.protocol.Base64Coder;
 import nl.tue.id.oocsi.server.protocol.Message;
-import nl.tue.id.oocsi.server.protocol.Protocol;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -28,7 +28,7 @@ public class SocketClient extends Client {
 
 	private static final Gson JSON_SERIALIZER = new Gson();
 
-	private Protocol protocol;
+	private SocketService protocol;
 
 	private Socket socket = null;
 	private PrintWriter output;
@@ -41,7 +41,7 @@ public class SocketClient extends Client {
 	 * @param protocol
 	 * @param socket
 	 */
-	public SocketClient(Protocol protocol, Socket socket) {
+	public SocketClient(SocketService protocol, Socket socket) {
 		super("");
 		this.protocol = protocol;
 		this.socket = socket;
@@ -50,7 +50,9 @@ public class SocketClient extends Client {
 	/*
 	 * (non-Javadoc)
 	 * 
-	 * @see nl.tue.id.oocsi.server.model.Client#send(nl.tue.id.oocsi.server.protocol .Message)
+	 * @see
+	 * nl.tue.id.oocsi.server.model.Client#send(nl.tue.id.oocsi.server.protocol
+	 * .Message)
 	 */
 	@Override
 	public void send(Message message) {
