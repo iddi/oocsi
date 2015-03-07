@@ -14,7 +14,7 @@
 // Please contact the author if you need another license.
 // This module is provided "as is", without warranties of any kind.
 
-package nl.tue.id.oocsi.server.socket;
+package nl.tue.id.oocsi.server.protocol;
 
 /**
  * A Base64 encoder/decoder.

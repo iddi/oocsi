@@ -1,5 +1,6 @@
 package nl.tue.id.oocsi.server.model;
 
+import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -55,7 +56,8 @@ public class Server extends Channel {
 	}
 
 	/**
-	 * add a client to the server, under the condition that the client's name is not an existing channel
+	 * add a client to the server, under the condition that the client's name is
+	 * not an existing channel
 	 * 
 	 * @param client
 	 * @return
@@ -100,5 +102,49 @@ public class Server extends Channel {
 			// close empty channels
 			closeEmptyChannels();
 		}
+	}
+
+	/**
+	 * subscribe <subscriber> to <channel>
+	 * 
+	 * @param subscriber
+	 * @param channel
+	 */
+	public void subscribe(Channel subscriber, String channel) {
+		Channel c = getChannel(channel);
+		if (c != null) {
+			c.addChannel(subscriber);
+		} else {
+			Channel newChannel = new Channel(channel);
+			addChannel(newChannel);
+			newChannel.addChannel(subscriber);
+		}
+		OOCSIServer.logConnection(subscriber.getName(), channel, "subscribed", new Date());
+	}
+
+	/**
+	 * unsubscribe <subscriber> from <channel>
+	 * 
+	 * @param subscriber
+	 * @param channel
+	 */
+	public void unsubscribe(Channel subscriber, String channel) {
+		Channel c = getChannel(channel);
+		if (c != null) {
+			c.removeChannel(subscriber);
+		}
+		OOCSIServer.logConnection(subscriber.getName(), channel, "unsubscribed", new Date());
+	}
+
+	/**
+	 * delegate the processing of input (from a service) to the protocol and
+	 * return string response
+	 * 
+	 * @param sender
+	 * @param input
+	 * @return
+	 */
+	public String processInput(Channel sender, String input) {
+		return protocol.processInput(sender, input);
 	}
 }

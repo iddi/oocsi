@@ -7,11 +7,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-import nl.tue.id.oocsi.server.OOCSIServer;
 import nl.tue.id.oocsi.server.model.Channel;
-import nl.tue.id.oocsi.server.model.Client;
 import nl.tue.id.oocsi.server.model.Server;
-import nl.tue.id.oocsi.server.socket.Base64Coder;
 
 /**
  * implements the OOCSI communication protocol, registers and unregisters
@@ -34,25 +31,6 @@ public class Protocol {
 	}
 
 	/**
-	 * add a client to the client list in the server
-	 * 
-	 * @param client
-	 * @return
-	 */
-	public boolean register(Client client) {
-		return server.addClient(client);
-	}
-
-	/**
-	 * remove a client from the client list in the server
-	 * 
-	 * @param client
-	 */
-	public void unregister(Client client) {
-		server.removeClient(client);
-	}
-
-	/**
 	 * process a line of input send via the socket
 	 * 
 	 * @param sender
@@ -71,14 +49,14 @@ public class Protocol {
 		}
 		// get channel info
 		else if (inputLine.equals("channels")) {
-			return server.getChannels();
+			return server.getChannelList();
 		}
 		// get channel subscribers
 		else if (inputLine.startsWith("channels") && inputLine.contains(" ")) {
 			String channel = inputLine.split(" ")[1];
 			Channel c = server.getChannel(channel);
 			if (c != null) {
-				return c.getChannels();
+				return c.getChannelList();
 			}
 		}
 		// get clients info
@@ -87,26 +65,13 @@ public class Protocol {
 		}
 		// client subscribes to channel
 		else if (inputLine.startsWith("subscribe") && inputLine.contains(" ")) {
-
 			String channel = inputLine.split(" ")[1];
-			Channel c = server.getChannel(channel);
-			if (c != null) {
-				c.addChannel(sender);
-			} else {
-				Channel newChannel = new Channel(channel);
-				server.addChannel(newChannel);
-				newChannel.addChannel(sender);
-			}
-			OOCSIServer.logConnection(sender.getName(), channel, "subscribed", new Date());
+			server.subscribe(sender, channel);
 		}
 		// client unsubscribes from channel
 		else if (inputLine.startsWith("unsubscribe") && inputLine.contains(" ")) {
 			String channel = inputLine.split(" ")[1];
-			Channel c = server.getChannel(channel);
-			if (c != null) {
-				c.removeChannel(sender);
-			}
-			OOCSIServer.logConnection(sender.getName(), channel, "unsubscribed", new Date());
+			server.unsubscribe(sender, channel);
 		}
 		// create new message
 		else if (inputLine.startsWith("sendraw")) {

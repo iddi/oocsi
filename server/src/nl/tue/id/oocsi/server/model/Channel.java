@@ -1,5 +1,6 @@
 package nl.tue.id.oocsi.server.model;
 
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
@@ -71,7 +72,16 @@ public class Channel {
 	 * 
 	 * @return
 	 */
-	public String getChannels() {
+	public Collection<Channel> getChannels() {
+		return subChannels.values();
+	}
+
+	/**
+	 * list all channels as comma-separated String list
+	 * 
+	 * @return
+	 */
+	public String getChannelList() {
 		String result = "";
 		for (Iterator<String> keys = subChannels.keySet().iterator(); keys.hasNext();) {
 			String key = keys.next();
