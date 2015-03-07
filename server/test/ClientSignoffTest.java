@@ -1,36 +1,27 @@
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 
 import nl.tue.id.oocsi.client.OOCSIClient;
-import nl.tue.id.oocsi.server.socket.SocketServer;
+import nl.tue.id.oocsi.server.OOCSIServer;
 
 import org.junit.Test;
 
 public class ClientSignoffTest {
 
-	CountDownLatch cdl = new CountDownLatch(100);
-	SocketServer server;
+	CountDownLatch cdl;
+	OOCSIServer server;
 
 	@Test
-	public void testMultiClientSignOff() throws InterruptedException {
+	public void testMultiClientSignOff() throws InterruptedException, IOException {
 
-		// start server
-		new Thread(new Runnable() {
+		cdl = new CountDownLatch(100);
 
-			@Override
-			public void run() {
-				try {
-					server = new SocketServer(4444, 102);
-					server.init();
-				} catch (IOException e) {
-					// e.printStackTrace();
-				} finally {
-					// done
-				}
-			}
-		}).start();
+		server = new OOCSIServer(4444, 102, false);
+
+		assertNotEquals(null, server);
 
 		// start clients that simply sign on and then off after some time
 		for (int i = 0; i < 100; i++) {
@@ -38,27 +29,28 @@ public class ClientSignoffTest {
 
 				@Override
 				public void run() {
-					String clientName = "clienttest__" + "__" + System.currentTimeMillis();
-					OOCSIClient client = new OOCSIClient(clientName);
-					if (client.connect("localhost", 4444)) {
-						try {
-							Thread.sleep(2000);
-						} catch (InterruptedException e) {
-						}
+					try {
+						String clientName = "clienttest__" + "__" + System.currentTimeMillis();
+						OOCSIClient client = new OOCSIClient(clientName);
+						if (client.connect("localhost", 4444)) {
+							try {
+								Thread.sleep(2000);
+							} catch (InterruptedException e) {
+							}
 
-						client.kill();
+							client.kill();
+						}
+					} catch (Exception e) {
 					}
 					cdl.countDown();
 				}
 			}).start();
-		}
 
-		try {
-			Thread.sleep(2000);
-		} catch (InterruptedException e) {
+			Thread.sleep(20);
 		}
 
 		cdl.await();
+		assertNotEquals(null, server);
 		assertEquals(server.getClients(), "");
 	}
 
