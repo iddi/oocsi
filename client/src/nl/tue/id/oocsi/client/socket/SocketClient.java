@@ -98,11 +98,11 @@ public class SocketClient {
 
 									Handler c = channels.get(channel);
 									if (c != null) {
-										c.send(sender, data, timestamp);
+										c.send(sender, data, timestamp, channel, name);
 									} else if (channel.equals(name)) {
 										c = channels.get("SELF");
 										if (c != null) {
-											c.send(sender, data, timestamp);
+											c.send(sender, data, timestamp, channel, name);
 										}
 									}
 								}

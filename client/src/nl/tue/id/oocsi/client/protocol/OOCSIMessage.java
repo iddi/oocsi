@@ -1,12 +1,13 @@
 package nl.tue.id.oocsi.client.protocol;
 
 import java.util.HashMap;
+import java.util.Map;
 
 import nl.tue.id.oocsi.OOCSIEvent;
 import nl.tue.id.oocsi.client.OOCSIClient;
 
 /**
- * message class for sending events to OOCSI
+ * message helper class for constructing and sending events to OOCSI
  * 
  * @author mfunk
  * 
@@ -68,6 +69,20 @@ public class OOCSIMessage extends OOCSIEvent {
 
 		// store data
 		this.data.put(key, value);
+
+		return this;
+	}
+
+	/**
+	 * store bulk data in message
+	 * 
+	 * @param bulkData
+	 * @return
+	 */
+	public OOCSIMessage data(Map<String, Object> bulkData) {
+
+		// store data
+		this.data.putAll(bulkData);
 
 		return this;
 	}

@@ -29,8 +29,7 @@ public class ClientLoadTest {
 		o1.connect("localhost", 4444);
 		assertTrue(o1.isConnected());
 		o1.subscribe(new DataHandler() {
-			public void receive(String sender, Map<String, Object> data,
-					String timestamp) {
+			public void receive(String sender, Map<String, Object> data, long timestamp) {
 				list.add((String) data.get("data"));
 			}
 		});
@@ -39,8 +38,7 @@ public class ClientLoadTest {
 		o2.connect("localhost", 4444);
 		assertTrue(o2.isConnected());
 		o2.subscribe(new DataHandler() {
-			public void receive(String sender, Map<String, Object> data,
-					String timestamp) {
+			public void receive(String sender, Map<String, Object> data, long timestamp) {
 				list.add((String) data.get("data"));
 			}
 		});
@@ -52,15 +50,16 @@ public class ClientLoadTest {
 		Thread.sleep(6000);
 
 		assertEquals(1000, list.size());
-		assertEquals(list.get(0), "hello2");
+		assertEquals(list.get(0), "hello 0");
 
+		list.clear();
 		for (int i = 0; i < 1000; i++) {
 			o2.send("test_client_1", "hello1");
 		}
 		Thread.yield();
 		Thread.sleep(3000);
 
-		assertEquals(2000, list.size());
+		assertEquals(1000, list.size());
 		assertEquals(list.get(1), "hello1");
 
 	}
