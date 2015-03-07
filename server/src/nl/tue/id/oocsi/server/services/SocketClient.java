@@ -21,7 +21,7 @@ import com.google.gson.JsonObject;
 /**
  * socket implementation for OOCSI client
  * 
- * @author mfunk
+ * @author matsfunk
  * 
  */
 public class SocketClient extends Client {

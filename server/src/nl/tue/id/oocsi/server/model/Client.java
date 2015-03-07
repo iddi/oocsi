@@ -5,7 +5,7 @@ import nl.tue.id.oocsi.server.protocol.Message;
 /**
  * data structure for client
  * 
- * @author mfunk
+ * @author matsfunk
  * 
  */
 abstract public class Client extends Channel {
@@ -28,7 +28,9 @@ abstract public class Client extends Channel {
 	/*
 	 * (non-Javadoc)
 	 * 
-	 * @see nl.tue.id.oocsi.server.model.Channel#send(nl.tue.id.oocsi.server.protocol.Message)
+	 * @see
+	 * nl.tue.id.oocsi.server.model.Channel#send(nl.tue.id.oocsi.server.protocol
+	 * .Message)
 	 */
 	abstract public void send(Message message);
 

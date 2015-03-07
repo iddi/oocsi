@@ -12,7 +12,7 @@ import nl.tue.id.oocsi.server.protocol.Message;
 /**
  * data structure for channel
  * 
- * @author mfunk
+ * @author matsfunk
  * 
  */
 public class Channel {

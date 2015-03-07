@@ -3,6 +3,12 @@ package nl.tue.id.oocsi.server.services;
 import nl.tue.id.oocsi.server.model.Client;
 import nl.tue.id.oocsi.server.model.Server;
 
+/**
+ * abstract service component class
+ * 
+ * @author matsfunk
+ * 
+ */
 abstract public class AbstractService {
 
 	protected Server server;

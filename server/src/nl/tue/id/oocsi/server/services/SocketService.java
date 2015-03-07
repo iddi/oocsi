@@ -11,6 +11,12 @@ import java.net.UnknownHostException;
 import nl.tue.id.oocsi.server.OOCSIServer;
 import nl.tue.id.oocsi.server.model.Server;
 
+/**
+ * socket service component
+ * 
+ * @author matsfunk
+ * 
+ */
 public class SocketService extends AbstractService {
 
 	private int port;

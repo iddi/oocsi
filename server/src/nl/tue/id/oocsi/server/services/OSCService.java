@@ -17,6 +17,12 @@ import com.illposed.osc.OSCMessage;
 import com.illposed.osc.OSCPortIn;
 import com.illposed.osc.OSCPortOut;
 
+/**
+ * OSC service component
+ * 
+ * @author matsfunk
+ * 
+ */
 public class OSCService extends AbstractService {
 
 	public static final String OSC = "OSC";

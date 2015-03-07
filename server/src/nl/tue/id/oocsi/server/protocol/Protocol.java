@@ -14,7 +14,7 @@ import nl.tue.id.oocsi.server.model.Server;
  * implements the OOCSI communication protocol, registers and unregisters
  * clients, and parses and dispatches input received from clients
  * 
- * @author mfunk
+ * @author matsfunk
  * 
  */
 public class Protocol {

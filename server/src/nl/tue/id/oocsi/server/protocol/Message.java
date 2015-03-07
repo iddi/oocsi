@@ -8,7 +8,7 @@ import java.util.Map;
 /**
  * general message for the OOCSI protocol
  * 
- * @author mfunk
+ * @author matsfunk
  * 
  */
 public class Message implements Serializable {

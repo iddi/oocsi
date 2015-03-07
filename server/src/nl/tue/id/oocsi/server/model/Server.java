@@ -12,7 +12,7 @@ import nl.tue.id.oocsi.server.protocol.Protocol;
  * data structure for server
  * 
  * 
- * @author mfunk
+ * @author matsfunk
  * 
  */
 public class Server extends Channel {
