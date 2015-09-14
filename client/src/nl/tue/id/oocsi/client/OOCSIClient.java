@@ -83,6 +83,15 @@ public class OOCSIClient {
 	}
 
 	/**
+	 * set whether or not a reconnection attempt should be made if a connection fails
+	 * 
+	 * @param reconnect
+	 */
+	public void setReconnect(boolean reconnect) {
+		sc.setReconnect(reconnect);
+	}
+
+	/**
 	 * subscribe to the channel with the given name
 	 * 
 	 * @param channelName

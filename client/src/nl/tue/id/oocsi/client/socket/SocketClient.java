@@ -24,6 +24,7 @@ public class SocketClient {
 
 	private static final int MULTICAST_PORT = 4448;
 	private static final String MULTICAST_GROUP = "224.0.0.144";
+
 	private String name;
 	private Map<String, Handler> channels;
 	private Queue<String> tempIncomingMessages = new LinkedBlockingQueue<String>(1);
@@ -32,6 +33,8 @@ public class SocketClient {
 	private BufferedReader input;
 	private PrintWriter output;
 	private boolean connectionEstablished = false;
+	private boolean reconnect = false;
+	private int reconnectCounter = 0;
 
 	/**
 	 * create a new socket client with the given name
@@ -102,7 +105,7 @@ public class SocketClient {
 	 * @param port
 	 * @return
 	 */
-	public boolean connect(String hostname, int port) {
+	public boolean connect(final String hostname, final int port) {
 		try {
 			// configure socket
 			socket = new Socket();
@@ -182,6 +185,11 @@ public class SocketClient {
 
 						log(" - OOCSI disconnected "
 								+ (!connectionEstablished ? "(client name not accepted)" : "(server unavailable)"));
+
+						// if reconnect is desired, try
+						if (reconnect && reconnectCounter++ < 100) {
+							connect(hostname, port);
+						}
 					}
 				}
 			}).start();
@@ -195,7 +203,18 @@ public class SocketClient {
 		} catch (IOException e) {
 			log(" - OOCSI connection error");
 			return false;
+		} finally {
+			// if reconnect is desired, try
+			if (!isConnected() && reconnect && reconnectCounter++ < 100) {
+				try {
+					Thread.sleep(1000);
+					connect(hostname, port);
+				} catch (InterruptedException e) {
+				}
+			}
 		}
+
+		reconnectCounter = 0;
 		return true;
 	}
 
@@ -215,6 +234,7 @@ public class SocketClient {
 	public void disconnect() {
 		// disconnect from server
 		try {
+			reconnect = false;
 			output.println("quit");
 			output.close();
 			input.close();
@@ -233,6 +253,7 @@ public class SocketClient {
 	public void kill() {
 		// disconnect from server without handshake
 		try {
+			reconnect = false;
 			output.close();
 			input.close();
 			socket.close();
@@ -243,6 +264,15 @@ public class SocketClient {
 		}
 
 		log(" - disconnected (by kill)");
+	}
+
+	/**
+	 * set whether or not a reconnection attempt should be made if a connection fails
+	 * 
+	 * @param reconnect
+	 */
+	public void setReconnect(boolean reconnect) {
+		this.reconnect = reconnect;
 	}
 
 	/**
@@ -419,5 +449,4 @@ public class SocketClient {
 	public void log(String message) {
 		// no logging by default
 	}
-
 }
