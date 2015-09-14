@@ -13,6 +13,7 @@
             <zipfileset src="jar-in-jar-loader.zip"/>
             <fileset dir="../bin">
                 <exclude name="**/*ServerCommandLineParsing*"/>
+                <exclude name="**/*ClientSignoffTest*"/>
           	</fileset>
             <fileset dir="../libs"/>
         </jar>
