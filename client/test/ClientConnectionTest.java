@@ -40,6 +40,23 @@ public class ClientConnectionTest {
 	}
 
 	@Test
+	public void testConnectToMulticastServer() throws InterruptedException {
+		OOCSIClient o = new OOCSIClient("test_client_0_multicast");
+
+		o.connect();
+
+		assertTrue(o.isConnected());
+
+		Thread.sleep(500);
+
+		o.disconnect();
+
+		Thread.sleep(500);
+
+		assertTrue(!o.isConnected());
+	}
+
+	@Test
 	public void testSendReceive() throws InterruptedException {
 		final List<String> list = new ArrayList<String>();
 

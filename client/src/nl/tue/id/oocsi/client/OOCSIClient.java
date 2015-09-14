@@ -36,6 +36,16 @@ public class OOCSIClient {
 	}
 
 	/**
+	 * connect to OOCSI network without a concrete server given, i.e., wait for multi-cast messages broadcasting a
+	 * server to connect to
+	 * 
+	 * @return
+	 */
+	public boolean connect() {
+		return sc.startMulticastLookup();
+	}
+
+	/**
 	 * connect to OOCSI network
 	 * 
 	 * @param hostname

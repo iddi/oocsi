@@ -110,8 +110,8 @@ public class OSCService extends AbstractService {
 			addr = InetAddress.getLocalHost();
 			String hostname = addr.getHostName();
 
-			OOCSIServer.log(" - started OSC service @ local address '" + hostname + "' on port " + (oscInPort + 1)
-					+ " for OSC.");
+			OOCSIServer.log("[OSC server]: Started OSC service @ local address '" + hostname + "' on port "
+					+ (oscInPort + 1) + " for OSC.");
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}

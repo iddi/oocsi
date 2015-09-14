@@ -1,6 +1,8 @@
 package nl.tue.id.oocsi.server.services;
 
 import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -19,10 +21,14 @@ import nl.tue.id.oocsi.server.model.Server;
  */
 public class SocketService extends AbstractService {
 
+	private static final int MULTICAST_PORT = 4448;
+	private static final String MULTICAST_GROUP = "224.0.0.144";
+
 	private int port;
 	private int maxClients;
 
 	private ServerSocket serverSocket;
+	private Thread multicastService;
 	private boolean listening = true;
 
 	/**
@@ -61,11 +67,52 @@ public class SocketService extends AbstractService {
 		InetAddress addr;
 		try {
 			addr = InetAddress.getLocalHost();
-			String hostname = addr.getHostName();
+			final String hostname = addr.getHostName();
 
-			OOCSIServer.log(" - started TCP service @ local address '" + hostname + "' on port " + port + "for TCP");
+			OOCSIServer.log("[TCP socket server]: Started TCP service @ local address '" + hostname + "' on port "
+					+ port + " for TCP");
+
+			multicastService = new Thread() {
+
+				private DatagramSocket socket;
+				private boolean running = true;
+
+				public void run() {
+
+					while (running) {
+						try {
+							if (socket == null) {
+								socket = new DatagramSocket();
+							}
+
+							InetAddress group = InetAddress.getByName(MULTICAST_GROUP);
+							String dString = "OOCSI@" + hostname + ":" + port;
+							byte[] buf = dString.getBytes();
+
+							DatagramPacket packet = new DatagramPacket(buf, buf.length, group, MULTICAST_PORT);
+							socket.send(packet);
+
+							try {
+								sleep((long) Math.random() * 1000 + 5000);
+							} catch (InterruptedException e) {
+							}
+						} catch (IOException e) {
+							e.printStackTrace();
+							running = false;
+						}
+					}
+
+					socket.close();
+					multicastService = null;
+				};
+			};
+			multicastService.start();
 
 			while (listening) {
+
+				if (!serverSocket.isBound()) {
+					continue;
+				}
 
 				// first see if there is a new connection coming in
 				Socket acceptedSocket = serverSocket.accept();

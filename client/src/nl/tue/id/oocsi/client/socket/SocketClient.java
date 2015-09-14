@@ -7,7 +7,10 @@ import java.io.InputStreamReader;
 import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.net.ConnectException;
+import java.net.DatagramPacket;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.MulticastSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
@@ -19,6 +22,8 @@ import nl.tue.id.oocsi.client.protocol.Handler;
 
 public class SocketClient {
 
+	private static final int MULTICAST_PORT = 4448;
+	private static final String MULTICAST_GROUP = "224.0.0.144";
 	private String name;
 	private Map<String, Handler> channels;
 	private Queue<String> tempIncomingMessages = new LinkedBlockingQueue<String>(1);
@@ -37,6 +42,57 @@ public class SocketClient {
 	public SocketClient(String name, Map<String, Handler> channels) {
 		this.name = name;
 		this.channels = channels;
+	}
+
+	public boolean startMulticastLookup() {
+
+		MulticastSocket socket = null;
+		try {
+			socket = new MulticastSocket(MULTICAST_PORT);
+			InetAddress group = InetAddress.getByName(MULTICAST_GROUP);
+			socket.joinGroup(group);
+
+			DatagramPacket packet;
+			// check for multi-cast message from server for 10 * 5 seconds
+			for (int i = 0; i < 10; i++) {
+				byte[] buf = new byte[256];
+				packet = new DatagramPacket(buf, buf.length);
+				socket.receive(packet);
+
+				// pack String and unpack hostname of server from String
+				String received = new String(packet.getData(), 0, packet.getLength());
+				if (received.startsWith("OOCSI@")) {
+					received = received.replace("OOCSI@", "");
+					received = received.replace("\\(.*\\)", "");
+					String[] parts = received.split(":");
+					if (parts.length == 2 && parts[0].length() > 0 && parts[1].length() > 0) {
+						// try to connect
+						int port = Integer.parseInt(parts[1]);
+						if (connect(parts[0], port)) {
+							socket.leaveGroup(group);
+							return true;
+						}
+					}
+				}
+
+				try {
+					// wait a bit
+					Thread.sleep(5000);
+				} catch (InterruptedException e) {
+				}
+			}
+
+			// nothing found for 10 * 5 seconds
+			socket.leaveGroup(group);
+			return false;
+		} catch (IOException ioe) {
+			// problem occurred with connection
+			return false;
+		} finally {
+			if (socket != null) {
+				socket.close();
+			}
+		}
 	}
 
 	/**

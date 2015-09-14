@@ -33,6 +33,27 @@ public class OOCSICommunicator extends OOCSIClient {
 	/*
 	 * (non-Javadoc)
 	 * 
+	 * @see nl.tue.id.oocsi.client.OOCSIClient#connect()
+	 */
+	@Override
+	public boolean connect() {
+
+		// connect delegate
+		boolean result = super.connect();
+
+		// default subscribe
+		if (!subscribe(name, name)) {
+			if (!subscribe(name, "handleOOCSIEvent")) {
+				log(" - no handlers found for receiving direct messages");
+			}
+		}
+
+		return result;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see nl.tue.id.oocsi.client.OOCSIClient#connect(java.lang.String, int)
 	 */
 	@Override
