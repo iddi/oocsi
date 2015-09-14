@@ -63,7 +63,7 @@ public class ClientConnectionTest {
 		o.setReconnect(true);
 		o.connect("localhost", 4444);
 
-		Thread.sleep(10000);
+		Thread.sleep(20000);
 
 		assertTrue(o.isConnected());
 

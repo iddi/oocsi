@@ -32,9 +32,10 @@ public class SocketClient {
 	private Socket socket;
 	private BufferedReader input;
 	private PrintWriter output;
+	private boolean disconnected = false;
 	private boolean connectionEstablished = false;
 	private boolean reconnect = false;
-	private int reconnectCounter = 0;
+	private int reconnectCountDown = 100;
 
 	/**
 	 * create a new socket client with the given name
@@ -106,6 +107,32 @@ public class SocketClient {
 	 * @return
 	 */
 	public boolean connect(final String hostname, final int port) {
+		boolean result = false;
+		while (!disconnected && (!reconnect || reconnectCountDown-- > 0)) {
+			result = connectAttempt(hostname, port);
+
+			if (result) {
+				reconnectCountDown = 100;
+				break;
+			} else {
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e) {
+				}
+			}
+		}
+
+		return result;
+	}
+
+	/**
+	 * internal connect to OOCSI at address hostname:port
+	 * 
+	 * @param hostname
+	 * @param port
+	 * @return
+	 */
+	private boolean connectAttempt(final String hostname, final int port) {
 		try {
 			// configure socket
 			socket = new Socket();
@@ -138,62 +165,59 @@ public class SocketClient {
 
 				// first data has arrived = connection is ok
 				connectionEstablished = true;
-			}
 
-			// if ok, run the communication in a different thread
-			new Thread(new Runnable() {
-				public void run() {
-					try {
-						String fromServer;
-						while (!socket.isClosed() && (fromServer = input.readLine()) != null) {
-							if (fromServer.startsWith("send")) {
-								// parse server output
-								String[] tokens = fromServer.split(" ");
-								if (tokens.length == 5) {
-									String channel = tokens[1];
-									String data = tokens[2];
-									String timestamp = tokens[3];
-									String sender = tokens[4];
+				// if ok, run the communication in a different thread
+				new Thread(new Runnable() {
+					public void run() {
+						try {
+							String fromServer;
+							while (!socket.isClosed() && (fromServer = input.readLine()) != null) {
+								if (fromServer.startsWith("send")) {
+									// parse server output
+									String[] tokens = fromServer.split(" ");
+									if (tokens.length == 5) {
+										String channel = tokens[1];
+										String data = tokens[2];
+										String timestamp = tokens[3];
+										String sender = tokens[4];
 
-									Handler c = channels.get(channel);
-									if (c != null) {
-										c.send(sender, data, timestamp, channel, name);
-									} else if (channel.equals(name)) {
-										c = channels.get("SELF");
+										Handler c = channels.get(channel);
 										if (c != null) {
 											c.send(sender, data, timestamp, channel, name);
+										} else if (channel.equals(name)) {
+											c = channels.get("SELF");
+											if (c != null) {
+												c.send(sender, data, timestamp, channel, name);
+											}
 										}
 									}
+								} else {
+									tempIncomingMessages.offer(fromServer);
 								}
-							} else {
-								tempIncomingMessages.offer(fromServer);
+
+								output.println(".");
 							}
 
-							output.println(".");
-						}
-
-					} catch (IOException e) {
-						// e.printStackTrace();
-					} finally {
-						output.close();
-						try {
-							input.close();
-							socket.close();
 						} catch (IOException e) {
 							// e.printStackTrace();
-						}
+						} finally {
+							output.close();
+							try {
+								input.close();
+								socket.close();
+							} catch (IOException e) {
+								// e.printStackTrace();
+							}
 
-						log(" - OOCSI disconnected "
-								+ (!connectionEstablished ? "(client name not accepted)" : "(server unavailable)"));
+							log(" - OOCSI disconnected "
+									+ (!connectionEstablished ? "(client name not accepted)" : "(server unavailable)"));
 
-						// if reconnect is desired, try
-						if (reconnect && reconnectCounter++ < 100) {
+							// try reconnect
 							connect(hostname, port);
 						}
 					}
-				}
-			}).start();
-
+				}).start();
+			}
 		} catch (UnknownHostException e) {
 			log(" - OOCSI failed to connect (unknown host)");
 			return false;
@@ -203,18 +227,9 @@ public class SocketClient {
 		} catch (IOException e) {
 			log(" - OOCSI connection error");
 			return false;
-		} finally {
-			// if reconnect is desired, try
-			if (!isConnected() && reconnect && reconnectCounter++ < 100) {
-				try {
-					Thread.sleep(1000);
-					connect(hostname, port);
-				} catch (InterruptedException e) {
-				}
-			}
 		}
 
-		reconnectCounter = 0;
+		reconnectCountDown = 0;
 		return true;
 	}
 
@@ -232,9 +247,12 @@ public class SocketClient {
 	 * 
 	 */
 	public void disconnect() {
-		// disconnect from server
+		// disconnect from server with handshake
+		disconnected = true;
+		reconnect = false;
+		reconnectCountDown = 0;
+
 		try {
-			reconnect = false;
 			output.println("quit");
 			output.close();
 			input.close();
@@ -252,8 +270,11 @@ public class SocketClient {
 	 */
 	public void kill() {
 		// disconnect from server without handshake
+		disconnected = true;
+		reconnect = false;
+		reconnectCountDown = 0;
+
 		try {
-			reconnect = false;
 			output.close();
 			input.close();
 			socket.close();
@@ -359,17 +380,10 @@ public class SocketClient {
 	 * @return
 	 */
 	public String clients() {
-
 		synchronized (tempIncomingMessages) {
 			tempIncomingMessages.clear();
 			send("clients");
-			try {
-				while (tempIncomingMessages.size() == 0) {
-					Thread.sleep(50);
-				}
-			} catch (InterruptedException e) {
-			}
-			return tempIncomingMessages.poll();
+			return syncPoll();
 		}
 	}
 
@@ -379,17 +393,10 @@ public class SocketClient {
 	 * @return
 	 */
 	public String channels() {
-
 		synchronized (tempIncomingMessages) {
 			tempIncomingMessages.clear();
 			send("channels");
-			try {
-				while (tempIncomingMessages.size() == 0) {
-					Thread.sleep(50);
-				}
-			} catch (InterruptedException e) {
-			}
-			return tempIncomingMessages.poll();
+			return syncPoll();
 		}
 	}
 
@@ -400,17 +407,10 @@ public class SocketClient {
 	 * @return
 	 */
 	public String channels(String channelName) {
-
 		synchronized (tempIncomingMessages) {
 			tempIncomingMessages.clear();
 			send("channels " + channelName);
-			try {
-				while (tempIncomingMessages.size() == 0) {
-					Thread.sleep(50);
-				}
-			} catch (InterruptedException e) {
-			}
-			return tempIncomingMessages.poll();
+			return syncPoll();
 		}
 	}
 
@@ -423,6 +423,35 @@ public class SocketClient {
 		if (isConnected() && output != null) {
 			output.println(rawMessage);
 		}
+	}
+
+	/**
+	 * poll incoming message in a hard-synchronized way with timeout 1000ms
+	 * 
+	 * @return
+	 */
+	private String syncPoll() {
+		return syncPoll(1000);
+	}
+
+	/**
+	 * poll incoming message in a hard-synchronized way with variable timeout in ms
+	 * 
+	 * @param timeout
+	 * @return
+	 */
+	private String syncPoll(int timeout) {
+		long start = System.currentTimeMillis();
+
+		try {
+			while (tempIncomingMessages.size() == 0 || start + timeout > System.currentTimeMillis()) {
+				Thread.sleep(50);
+			}
+			return tempIncomingMessages.size() > 0 ? tempIncomingMessages.poll() : null;
+		} catch (InterruptedException e) {
+		}
+
+		return null;
 	}
 
 	/**
