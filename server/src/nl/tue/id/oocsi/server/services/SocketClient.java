@@ -151,6 +151,14 @@ public class SocketClient extends Client {
 	}
 
 	/**
+	 * send a ping message to client
+	 * 
+	 */
+	public void ping() {
+		output.println("ping");
+	}
+
+	/**
 	 * start the new client in a thread
 	 * 
 	 */
@@ -201,6 +209,9 @@ public class SocketClient extends Client {
 							OOCSIServer.logConnection(token, "OOCSI", "client connected", new Date());
 
 							while ((inputLine = input.readLine()) != null) {
+
+								// update last action
+								lastAction = System.currentTimeMillis();
 
 								// clean input from PD clients
 								if (type == ClientType.PD) {
