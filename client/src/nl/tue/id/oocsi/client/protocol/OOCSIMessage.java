@@ -79,7 +79,7 @@ public class OOCSIMessage extends OOCSIEvent {
 	 * @param bulkData
 	 * @return
 	 */
-	public OOCSIMessage data(Map<String, Object> bulkData) {
+	public OOCSIMessage data(Map<String, ? extends Object> bulkData) {
 
 		// store data
 		this.data.putAll(bulkData);
