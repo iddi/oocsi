@@ -75,7 +75,7 @@ public class OOCSIServer extends Server {
 		this();
 
 		// assign argument
-		this.port = port;
+		OOCSIServer.port = port;
 		maxClients = clients;
 		isLogging = logging;
 
@@ -159,8 +159,17 @@ public class OOCSIServer extends Server {
 	 */
 	public static void log(String message) {
 		if (isLogging) {
-			System.out.println(message);
+			server.internalLog(message);
 		}
+	}
+
+	/**
+	 * internal logging function that can be overridden by a subclass
+	 * 
+	 * @param message
+	 */
+	protected void internalLog(String message) {
+		System.out.println(new Date() + " " + message);
 	}
 
 	/**
@@ -173,7 +182,7 @@ public class OOCSIServer extends Server {
 	 */
 	public static void logEvent(String sender, String recipient, Map<String, Object> data, Date timestamp) {
 		if (isLogging && recipient != OOCSIServer.OOCSI_EVENTS && recipient != OOCSIServer.OOCSI_CONNECTIONS) {
-			log(new Date() + " " + OOCSI_EVENTS + " " + sender + "->" + recipient);
+			log(OOCSI_EVENTS + " " + sender + "->" + recipient);
 
 			Message message = new Message(sender, OOCSI_EVENTS, timestamp, data);
 			message.addData("sender", sender);
@@ -192,7 +201,7 @@ public class OOCSIServer extends Server {
 	 */
 	public static void logConnection(String client, String channel, String operation, Date timestamp) {
 		if (isLogging && channel != OOCSIServer.OOCSI_EVENTS && channel != OOCSIServer.OOCSI_CONNECTIONS) {
-			log(new Date() + " " + OOCSI_CONNECTIONS + " " + client + "->" + channel + " (" + operation + ")");
+			log(OOCSI_CONNECTIONS + " " + client + "->" + channel + " (" + operation + ")");
 
 			Message message = new Message(client, OOCSI_CONNECTIONS, timestamp);
 			message.addData("client", client);
