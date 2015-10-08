@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href='https://fonts.googleapis.com/css?family=Architects+Daughter' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print">
+
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <title>Oocsi by iddi</title>
+  </head>
+
+  <body>
+    <header>
+      <div class="inner">
+        <h1>Oocsi</h1>
+        <h2>OOCSI – a simple systems-interaction fabric for designers</h2>
+        <a href="https://github.com/iddi/oocsi" class="button"><small>View project on</small> GitHub</a>
+      </div>
+    </header>
+
+    <div id="content-wrapper">
+      <div class="inner clearfix">
+        <section id="main-content">
+          <h1>
+<a id="oocsi" class="anchor" href="#oocsi" aria-hidden="true"><span class="octicon octicon-link"></span></a>oocsi</h1>
+
+<p>The OOCSI mission is to create a simple systems-interaction fabric for use by designers.</p>
+
+<p>There are two basic components that form an OOCSI network: the client and the server. While the server can be started from the command line (see here), the client interface need to be embedded in other code and allows this code to access the OOCSI network, to send and receive data in a simple way.</p>
+
+<h2>
+<a id="server" class="anchor" href="#server" aria-hidden="true"><span class="octicon octicon-link"></span></a>Server</h2>
+
+<p>The server comes as a pre-compiled .jar file: <a href="server/dist/OOCSI_server.jar">OOCSI_server.jar</a> (220kB)</p>
+
+<p>It can be run simply by double-clicking on the JAR file in most operating systems. There are, however, command line parameters that are explained in the following:   </p>
+
+<p>Switch on logging to a file with:</p>
+
+<pre><code>OOCSI_server.jar -logging
+</code></pre>
+
+<p>Allow for a certain maximum number of clients to be connected (here, 40):</p>
+
+<pre><code>OOCSI_server.jar -clients 55
+</code></pre>
+
+<p>Run the server on a specific port (instead of 4444 which is the default):</p>
+
+<pre><code>OOCSI_server.jar -port 4545
+</code></pre>
+
+<p>Of course, all parameters can be used at the same time, like this:</p>
+
+<pre><code>OOCSI_server.jar -logging -clients 55 -port 4545 
+</code></pre>
+
+<h2>
+<a id="client" class="anchor" href="#client" aria-hidden="true"><span class="octicon octicon-link"></span></a>Client</h2>
+
+<p>OOCSI is a in essence a client-server message-bus infrastructure. With the server running, a client can connect an exchange
+messages with other clients via the server. While there is a dedicated <a href="https://github.com/iddi/oocsi-processing">Processing plug-in for OOCSI</a>, 
+a client interface for direct use in Java or JVM program is provided as well (see below). </p>
+
+<h3>
+<a id="embedding-the-client" class="anchor" href="#embedding-the-client" aria-hidden="true"><span class="octicon octicon-link"></span></a>Embedding the client</h3>
+
+<p>The Java OOCSI client can be embedded in any kind of Java program (or anything running on a JVM). The only dependency is the 
+<a href="https://github.com/iddi/oocsi-processing/blob/master/dist/oocsi/library/oocsi.jar">oocsi.jar</a> (20kB) library. Put this library
+into the classpath and follow the steps below. </p>
+
+<h3>
+<a id="connecting-to-the-oocsi-network" class="anchor" href="#connecting-to-the-oocsi-network" aria-hidden="true"><span class="octicon octicon-link"></span></a>Connecting to the OOCSI network</h3>
+
+<p>As the first step, create an OOCSI client by providing a unique name to the OOCSIClient constructor:</p>
+
+<pre><code>OOCSIClient sender = new OOCSIClient("sender");
+</code></pre>
+
+<p>Connect to a running OOCSI server on the same machine and the default port 4444.</p>
+
+<pre><code>sender.connect("localhost", 4444);
+</code></pre>
+
+<p>Connect to a running OOCSI server on a different machine and a custom port 4545.</p>
+
+<pre><code>sender.connect("123.123.123.123", 4545);
+</code></pre>
+
+<h3>
+<a id="sending-messages" class="anchor" href="#sending-messages" aria-hidden="true"><span class="octicon octicon-link"></span></a>Sending messages</h3>
+
+<p>Use the OOCSIMessage class to create and send messages on the OOCSI network:  </p>
+
+<pre><code>new OOCSIMessage(sender, "mychannel").data("mykey", "myvalue").send();
+</code></pre>
+
+<p>In this example a message is created to be sent with the OOCSIClient "sender" and destined for the channel "mychannel".
+A key-value pair of data ("mykey" : "myvalue") is added to the message by calling the data() method
+and finally, the message is sent to the OOCSI network.</p>
+
+<h3>
+<a id="receiving-messages-and-handling-events" class="anchor" href="#receiving-messages-and-handling-events" aria-hidden="true"><span class="octicon octicon-link"></span></a>Receiving messages and handling events</h3>
+
+<p>For receiving messages, another OOCSI client is initialized and started: </p>
+
+<pre><code>OOCSIClient recipient = new OOCSIClient("myrecipient");
+recipient.connect("localhost", 4444);
+</code></pre>
+
+<p>Again, take care that the handle is unique and that the client connects to the right server.</p>
+
+<p>This new client, recipient, subscribes for the channel "mychannel" and provides an EventHandler instance. This newly 
+instantiated object asynchronously receives all events sent on the respective channel and will call the internal
+method "receive". In this example, the event's timestamp will be printed in the console output.</p>
+
+<pre><code>recipient.subscribe("mychannel", new EventHandler() {
+    public void receive(OOCSIEvent event) {
+        System.out.println(event.getTimestamp());
+    }
+});
+</code></pre>
+
+<h3>
+<a id="getting-data-from-events" class="anchor" href="#getting-data-from-events" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting data from events</h3>
+
+<p>An OOCSIEvent has built-in infrastructure-level data fields such as <em>sender</em>, <em>timestamp</em>, and <em>channel</em>. In addition, the <em>recipient</em> field is provided for some client implementations.
+Each of these fields can be access with a dedicated getter method:</p>
+
+<pre><code>OOCSIEvent event = ...
+
+// sender and receiver
+String sender = event.getSender();
+String channel = event.getChannel();
+String channel = event.getRecipient();
+
+// time
+Date timestamp = event.getTimestamp();
+long unixTime = event.getTime();
+</code></pre>
+
+<p>Apart from that, OOCSIEvents have a data payload that is freely definable and realized as a key-value store (Map). Such key-value pairs can be accessed with helper mthods
+that will convert the data type of hte value accordingly: </p>
+
+<pre><code>OOCSIEvent event = ...
+String stringValue = event.getString("mykey");
+Object objectValue = event.getObject("mykey");
+</code></pre>
+
+<p>Events do not guarantee that specific keys and values are contained. For these cases, default values can be used in the retrieval of event data. These default values (with the correct data type) are 
+added to the retrieval call as a second parameter, and they will be assigned if (1) the key could not be found, or (2) if the value could not converted to the specified data type.     </p>
+
+<pre><code>// retrieval with an additional default value
+OOCSIEvent event = ...
+String stringValue = event.getString("mykey", "default");
+long longValue = event.getLong("mykey", 0);
+int intValue = event.getInt("mykey", 0);
+boolean booleanValue = event.getInt("mykey", false);
+</code></pre>
+
+<p>As an alternative to using default values, one can also check whether the key is contained in the event:</p>
+
+<pre><code>OOCSIEvent event = ...
+if(event.has("mykey")) {
+    // retrieve value
+}
+</code></pre>
+
+<p>Finally, events can provide a list of contained keys, which can be used to dump all contained data or to systematically retrieve all data.</p>
+
+<pre><code>OOCSIEvent event = ...
+String[] keys = event.keys();
+</code></pre>
+
+<h3>
+<a id="full-example" class="anchor" href="#full-example" aria-hidden="true"><span class="octicon octicon-link"></span></a>Full example</h3>
+
+<p>The full example given below registers two clients, of which one subscribes for message on the channel "mychannel" and the
+other will send a single message on this channel. The subscribing client receives the message and prints out the value
+associated with the key "mykey" and the timestamp of the event on the console.</p>
+
+<pre><code>OOCSIClient recipient = new OOCSIClient("myrecipient");
+recipient.connect("localhost", 4444);
+recipient.subscribe("mychannel", new EventHandler() {
+    public void receive(OOCSIEvent event) {
+        System.out.println(event.getString("mykey") + " &gt;&gt; " + event.getTimestamp());
+    }
+});
+
+OOCSIClient sender = new OOCSIClient("sender");
+sender.connect("localhost", 4444);
+new OOCSIMessage(sender, "mychannel").data("mykey", "myvalue").send();
+</code></pre>
+        </section>
+
+        <aside id="sidebar">
+          <a href="https://github.com/iddi/oocsi/zipball/master" class="button">
+            <small>Download</small>
+            .zip file
+          </a>
+          <a href="https://github.com/iddi/oocsi/tarball/master" class="button">
+            <small>Download</small>
+            .tar.gz file
+          </a>
+
+          <p class="repo-owner"><a href="https://github.com/iddi/oocsi"></a> is maintained by <a href="https://github.com/iddi">iddi</a>.</p>
+
+          <p>This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the Architect theme by <a href="https://twitter.com/jasonlong">Jason Long</a>.</p>
+        </aside>
+      </div>
+    </div>
+
+  
+  </body>
+</html>
