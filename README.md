@@ -6,7 +6,7 @@ There are two basic components that form an OOCSI network: the client and the se
 
 ## Server
 
-The server comes as a pre-compiled .jar file: [OOCSI_server.jar](server/dist/OOCSI_server.jar) (220kB)
+The server comes as a pre-compiled .jar file: [OOCSI_server.jar](https://github.com/iddi/oocsi/releases/download/server_version_1.2/OOCSI_server.jar) (~250kB)
 
 It can be run simply by double-clicking on the JAR file in most operating systems. There are, however, command line parameters that are explained in the following:   
 
@@ -30,7 +30,7 @@ Of course, all parameters can be used at the same time, like this:
 ## Client
 
 OOCSI is a in essence a client-server message-bus infrastructure. With the server running, a client can connect an exchange
-messages with other clients via the server. While there is a dedicated [Processing plug-in for OOCSI] (https://github.com/iddi/oocsi-processing), 
+messages with other clients via the server. While there is a dedicated [Processing plug-in for OOCSI] (https://iddi.github.io/oocsi-processing), 
 a client interface for direct use in Java or JVM program is provided as well (see below). 
 
 
