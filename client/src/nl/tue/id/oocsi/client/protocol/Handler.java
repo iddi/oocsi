@@ -7,6 +7,11 @@ import java.util.Map;
 
 import nl.tue.id.oocsi.client.socket.Base64Coder;
 
+/**
+ * event handler for events with structured data
+ *
+ * @author matsfunk
+ */
 abstract public class Handler {
 
 	final public void send(String sender, String data, String timestamp, String channel, String recipient) {

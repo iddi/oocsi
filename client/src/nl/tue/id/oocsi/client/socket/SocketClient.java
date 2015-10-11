@@ -20,6 +20,11 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import nl.tue.id.oocsi.client.protocol.Handler;
 
+/**
+ * OOCSI client interface for socket connections
+ * 
+ * @author matsfunk
+ */
 public class SocketClient {
 
 	private static final int MULTICAST_PORT = 4448;
@@ -33,6 +38,7 @@ public class SocketClient {
 	private BufferedReader input;
 	private PrintWriter output;
 	private boolean disconnected = false;
+	private boolean hasPrintedServerInfo = false;
 	private boolean connectionEstablished = false;
 	private boolean reconnect = false;
 	private int reconnectCountDown = 100;
@@ -219,9 +225,11 @@ public class SocketClient {
 				}).start();
 			}
 		} catch (UnknownHostException e) {
+			printServerInfo();
 			log(" - OOCSI failed to connect (unknown host)");
 			return false;
 		} catch (ConnectException e) {
+			printServerInfo();
 			log(" - OOCSI failed to connect (connection refused)");
 			return false;
 		} catch (IOException e) {
@@ -231,6 +239,23 @@ public class SocketClient {
 
 		reconnectCountDown = 0;
 		return true;
+	}
+
+	/**
+	 * print server hint once
+	 */
+	private void printServerInfo() {
+		if (!hasPrintedServerInfo) {
+			log(" --------------------------------------------------");
+			log("   Problem finding an OOCSI server!");
+			log("   Make sure there is an OOCSI server running");
+			log("   at the IP address specified or on the local");
+			log("   network when using the autoconf option.");
+			log("   For more information how to run an OOCSI server");
+			log("   refer to: https://iddi.github.io/oocsi/");
+			log(" --------------------------------------------------");
+			hasPrintedServerInfo = true;
+		}
 	}
 
 	/**

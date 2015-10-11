@@ -6,8 +6,7 @@ import java.util.Map;
 /**
  * event class for receiving events from OOCSI
  * 
- * @author mfunk
- * 
+ * @author matsfunk
  */
 public class OOCSIEvent {
 
@@ -41,7 +40,7 @@ public class OOCSIEvent {
 	 * @param sender
 	 *            who sends it?
 	 * @param timestamp
-	 *            when? --> as long value
+	 *            when? (as UNIX timestamp, long value)
 	 */
 	public OOCSIEvent(String channelName, Map<String, Object> data, String sender, long timestamp) {
 		this(channelName, data, sender, new Date(timestamp));
@@ -57,7 +56,7 @@ public class OOCSIEvent {
 	 * @param sender
 	 *            who sends it?
 	 * @param timestamp
-	 *            when? --> as Date object
+	 *            when? (as Date object)
 	 */
 	public OOCSIEvent(String channelName, Map<String, Object> data, String sender, Date timestamp) {
 		this.channelName = channelName;

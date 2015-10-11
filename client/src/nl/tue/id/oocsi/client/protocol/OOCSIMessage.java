@@ -9,8 +9,7 @@ import nl.tue.id.oocsi.client.OOCSIClient;
 /**
  * message helper class for constructing and sending events to OOCSI
  * 
- * @author mfunk
- * 
+ * @author matsfunk
  */
 public class OOCSIMessage extends OOCSIEvent {
 

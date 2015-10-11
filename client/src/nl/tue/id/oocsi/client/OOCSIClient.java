@@ -6,9 +6,14 @@ import java.util.Map;
 import nl.tue.id.oocsi.client.protocol.Handler;
 import nl.tue.id.oocsi.client.socket.SocketClient;
 
+/**
+ * OOCSI client wrapper
+ * 
+ * @author matsfunk
+ */
 public class OOCSIClient {
 
-	public static final String VERSION = "0.6";
+	public static final String VERSION = "0.7";
 
 	private Map<String, Handler> channels = new HashMap<String, Handler>();
 

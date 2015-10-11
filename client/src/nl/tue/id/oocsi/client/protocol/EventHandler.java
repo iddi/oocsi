@@ -4,6 +4,11 @@ import java.util.Map;
 
 import nl.tue.id.oocsi.OOCSIEvent;
 
+/**
+ * event handler for events with structured data
+ *
+ * @author matsfunk
+ */
 abstract public class EventHandler extends Handler {
 
 	@Override
