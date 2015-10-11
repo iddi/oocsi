@@ -51,7 +51,7 @@ public class ClientSignoffTest {
 
 		cdl.await();
 		assertNotEquals(null, server);
-		assertEquals(server.getClients(), "");
+		assertEquals(server.getClientList(), "");
 	}
 
 }

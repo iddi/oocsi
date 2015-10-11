@@ -22,7 +22,7 @@ import com.google.gson.Gson;
 public class OOCSIServer extends Server {
 
 	// constants
-	public static final String VERSION = "1.1";
+	public static final String VERSION = "1.2";
 
 	// defaults for different services
 	public static int port = 4444;

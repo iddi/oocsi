@@ -1,5 +1,6 @@
 package nl.tue.id.oocsi.server.model;
 
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
@@ -41,11 +42,20 @@ public class Server extends Channel {
 	}
 
 	/**
-	 * return a list of clients of this server
+	 * return a list of client of this server
 	 * 
 	 * @return
 	 */
-	public String getClients() {
+	public Collection<Client> getClients() {
+		return clients.values();
+	}
+
+	/**
+	 * list all clients as comma-separated String list
+	 * 
+	 * @return
+	 */
+	public String getClientList() {
 		String result = "";
 		for (Iterator<String> keys = clients.keySet().iterator(); keys.hasNext();) {
 			String key = keys.next();
@@ -56,8 +66,7 @@ public class Server extends Channel {
 	}
 
 	/**
-	 * add a client to the server, under the condition that the client's name is
-	 * not an existing channel
+	 * add a client to the server, under the condition that the client's name is not an existing channel
 	 * 
 	 * @param client
 	 * @return
@@ -99,7 +108,10 @@ public class Server extends Channel {
 			removeChannel(client, true);
 			clients.remove(clientName);
 
-			// close empty channels
+			// disconnect client
+			client.disconnect();
+
+			// close empty channels (clean-up)
 			closeEmptyChannels();
 		}
 	}
@@ -137,8 +149,7 @@ public class Server extends Channel {
 	}
 
 	/**
-	 * delegate the processing of input (from a service) to the protocol and
-	 * return string response
+	 * delegate the processing of input (from a service) to the protocol and return string response
 	 * 
 	 * @param sender
 	 * @param input

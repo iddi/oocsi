@@ -9,8 +9,11 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import nl.tue.id.oocsi.server.OOCSIServer;
+import nl.tue.id.oocsi.server.model.Client;
 import nl.tue.id.oocsi.server.model.Server;
 
 /**
@@ -28,7 +31,7 @@ public class SocketService extends AbstractService {
 	private int maxClients;
 
 	private ServerSocket serverSocket;
-	private Thread multicastService;
+	private Timer periodicMaintenanceService;
 	private boolean listening = true;
 
 	/**
@@ -72,41 +75,47 @@ public class SocketService extends AbstractService {
 			OOCSIServer.log("[TCP socket server]: Started TCP service @ local address '" + hostname + "' on port "
 					+ port + " for TCP");
 
-			multicastService = new Thread() {
+			TimerTask task = new TimerTask() {
 
 				private DatagramSocket socket;
-				private boolean running = true;
 
+				@Override
 				public void run() {
 
-					while (running) {
-						try {
-							if (socket == null) {
-								socket = new DatagramSocket();
-							}
-
-							InetAddress group = InetAddress.getByName(MULTICAST_GROUP);
-							String dString = "OOCSI@" + hostname + ":" + port;
-							byte[] buf = dString.getBytes();
-
-							DatagramPacket packet = new DatagramPacket(buf, buf.length, group, MULTICAST_PORT);
-							socket.send(packet);
-
-							try {
-								sleep((long) Math.random() * 1000 + 5000);
-							} catch (InterruptedException e) {
-							}
-						} catch (IOException e) {
-							e.printStackTrace();
-							running = false;
+					// multicast beacon
+					try {
+						if (socket == null) {
+							socket = new DatagramSocket();
 						}
+
+						InetAddress group = InetAddress.getByName(MULTICAST_GROUP);
+						String dString = "OOCSI@" + hostname + ":" + port;
+						byte[] buf = dString.getBytes();
+
+						DatagramPacket packet = new DatagramPacket(buf, buf.length, group, MULTICAST_PORT);
+						socket.send(packet);
+					} catch (IOException e) {
+						e.printStackTrace();
 					}
 
-					socket.close();
-					multicastService = null;
+					// keep-alive ping-pong with socket clients
+					for (Client client : server.getClients()) {
+						if (client instanceof SocketClient) {
+							SocketClient sc = (SocketClient) client;
+							long timeout = System.currentTimeMillis() - sc.lastAction();
+							if (timeout > 120000) {
+								OOCSIServer.log("Client " + sc.getName()
+										+ " has not responded for 120 secs and will be disconnected");
+								server.removeClient(sc);
+							} else {
+								sc.ping();
+							}
+						}
+					}
 				};
 			};
-			multicastService.start();
+			periodicMaintenanceService = new Timer();
+			periodicMaintenanceService.schedule(task, 0, (long) (5 * 1000 + Math.random() * 1000));
 
 			while (listening) {
 

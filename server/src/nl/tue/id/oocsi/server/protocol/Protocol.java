@@ -61,7 +61,7 @@ public class Protocol {
 		}
 		// get clients info
 		else if (inputLine.equals("clients")) {
-			return server.getClients();
+			return server.getClientList();
 		}
 		// client subscribes to channel
 		else if (inputLine.startsWith("subscribe") && inputLine.contains(" ")) {
