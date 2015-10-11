@@ -2,10 +2,12 @@ package nl.tue.id.oocsi;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Map;
 
 import nl.tue.id.oocsi.client.OOCSIClient;
 import nl.tue.id.oocsi.client.protocol.EventHandler;
 import nl.tue.id.oocsi.client.protocol.OOCSIMessage;
+import nl.tue.id.oocsi.client.protocol.Responder;
 
 /**
  * communication interface for OOCSI client
@@ -91,6 +93,9 @@ public class OOCSICommunicator extends OOCSIClient {
 	 * @return
 	 */
 	public boolean subscribe(String channelName, String handlerName) {
+
+		// try simple event handler
+
 		try {
 			final Method handler = parent.getClass().getDeclaredMethod(handlerName, new Class[] { OOCSIEvent.class });
 			subscribe(channelName, new EventHandler() {
@@ -113,12 +118,40 @@ public class OOCSICommunicator extends OOCSIClient {
 
 			return true;
 		} catch (Exception e) {
+		}
+
+		// try responder event handler
+
+		try {
+			final Method handler = parent.getClass().getDeclaredMethod(handlerName,
+					new Class[] { OOCSIEvent.class, Map.class });
+			subscribe(channelName, new Responder(this) {
+
+				@Override
+				public void respond(OOCSIEvent event, java.util.Map<String, Object> response) {
+					try {
+						handler.invoke(parent, new Object[] { event });
+					} catch (IllegalAccessException e) {
+						e.printStackTrace();
+					} catch (IllegalArgumentException e) {
+						e.printStackTrace();
+					} catch (InvocationTargetException e) {
+						e.printStackTrace();
+					}
+				}
+			});
+
+			log(" - subscribed to " + channelName);
+
+			return true;
+		} catch (Exception e) {
 			// not found, just return false
 			if (!name.equals(channelName)) {
-				log(" - no subscribe handlers found for channel " + channelName);
+				log(" - no subscribe or response handlers found for channel " + channelName);
 			}
 
 			return false;
 		}
+
 	}
 }

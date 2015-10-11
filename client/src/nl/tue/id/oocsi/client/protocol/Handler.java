@@ -17,12 +17,7 @@ abstract public class Handler {
 	final public void send(String sender, String data, String timestamp, String channel, String recipient) {
 		try {
 
-			// parse data from string
-			ByteArrayInputStream bais = new ByteArrayInputStream(Base64Coder.decode(data));
-			ObjectInputStream ois = new ObjectInputStream(bais);
-			Object outputObject = ois.readObject();
-			@SuppressWarnings("unchecked")
-			Map<String, Object> map = (Map<String, Object>) outputObject;
+			Map<String, Object> map = parseData(data);
 
 			// parse timestamp
 			long ts = System.currentTimeMillis();
@@ -43,4 +38,14 @@ abstract public class Handler {
 
 	abstract public void receive(String sender, Map<String, Object> data, long timestamp, String channel,
 			String recipient);
+
+	public static Map<String, Object> parseData(String data) throws IOException, ClassNotFoundException {
+		// parse data from string
+		ByteArrayInputStream bais = new ByteArrayInputStream(Base64Coder.decode(data));
+		ObjectInputStream ois = new ObjectInputStream(bais);
+		Object outputObject = ois.readObject();
+		@SuppressWarnings("unchecked")
+		Map<String, Object> map = (Map<String, Object>) outputObject;
+		return map;
+	}
 }

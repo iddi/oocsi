@@ -14,11 +14,14 @@ import java.net.MulticastSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import nl.tue.id.oocsi.client.protocol.Handler;
+import nl.tue.id.oocsi.client.protocol.OOCSICall;
 
 /**
  * OOCSI client interface for socket connections
@@ -33,6 +36,7 @@ public class SocketClient {
 	private String name;
 	private Map<String, Handler> channels;
 	private Queue<String> tempIncomingMessages = new LinkedBlockingQueue<String>(1);
+	private List<OOCSICall> openCalls = new LinkedList<OOCSICall>();
 
 	private Socket socket;
 	private BufferedReader input;
@@ -178,30 +182,7 @@ public class SocketClient {
 						try {
 							String fromServer;
 							while (!socket.isClosed() && (fromServer = input.readLine()) != null) {
-								if (fromServer.startsWith("send")) {
-									// parse server output
-									String[] tokens = fromServer.split(" ");
-									if (tokens.length == 5) {
-										String channel = tokens[1];
-										String data = tokens[2];
-										String timestamp = tokens[3];
-										String sender = tokens[4];
-
-										Handler c = channels.get(channel);
-										if (c != null) {
-											c.send(sender, data, timestamp, channel, name);
-										} else if (channel.equals(name)) {
-											c = channels.get("SELF");
-											if (c != null) {
-												c.send(sender, data, timestamp, channel, name);
-											}
-										}
-									}
-								} else {
-									tempIncomingMessages.offer(fromServer);
-								}
-
-								output.println(".");
+								handleMessage(fromServer);
 							}
 
 						} catch (IOException e) {
@@ -221,6 +202,54 @@ public class SocketClient {
 							// try reconnect
 							connect(hostname, port);
 						}
+					}
+
+					public void handleMessage(String fromServer) throws IOException {
+						if (fromServer.startsWith("send")) {
+							// parse server output
+							String[] tokens = fromServer.split(" ");
+							if (tokens.length == 5) {
+								String channel = tokens[1];
+								String data = tokens[2];
+								String timestamp = tokens[3];
+								String sender = tokens[4];
+
+								Handler c = channels.get(channel);
+								if (c != null) {
+									c.send(sender, data, timestamp, channel, name);
+								} else if (channel.equals(name)) {
+									if (!openCalls.isEmpty()) {
+										try {
+											Map<String, Object> dataMap = Handler.parseData(data);
+											if (dataMap.containsKey("MESSAGE_ID")) {
+												String id = (String) dataMap.get("MESSAGE_ID");
+												for (int i = openCalls.size() - 1; i >= 0; i--) {
+													OOCSICall call = openCalls.get(i);
+													if (!call.isValid()) {
+														openCalls.remove(i);
+													} else if (call.getId().equals(id)) {
+														call.respond(dataMap);
+
+														return;
+													}
+												}
+											}
+
+										} catch (ClassNotFoundException e) {
+										}
+									}
+
+									c = channels.get("SELF");
+									if (c != null) {
+										c.send(sender, data, timestamp, channel, name);
+									}
+								}
+							}
+						} else {
+							tempIncomingMessages.offer(fromServer);
+						}
+
+						output.println(".");
 					}
 				}).start();
 			}
@@ -375,6 +404,15 @@ public class SocketClient {
 
 		// remove handler
 		channels.remove("SELF");
+	}
+
+	/**
+	 * register a call in the list of open calls
+	 * 
+	 * @param call
+	 */
+	public void register(OOCSICall call) {
+		openCalls.add(call);
 	}
 
 	/**

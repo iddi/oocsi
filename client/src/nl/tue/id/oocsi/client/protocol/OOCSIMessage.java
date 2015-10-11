@@ -13,7 +13,7 @@ import nl.tue.id.oocsi.client.OOCSIClient;
  */
 public class OOCSIMessage extends OOCSIEvent {
 
-	private OOCSIClient oocsi;
+	protected OOCSIClient oocsi;
 	private boolean isSent = false;
 
 	/**

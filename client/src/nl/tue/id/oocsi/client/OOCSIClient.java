@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import nl.tue.id.oocsi.client.protocol.Handler;
+import nl.tue.id.oocsi.client.protocol.OOCSICall;
 import nl.tue.id.oocsi.client.socket.SocketClient;
 
 /**
@@ -122,6 +123,15 @@ public class OOCSIClient {
 	 */
 	public void unsubscribe(String channelName) {
 		sc.unsubscribe(channelName);
+	}
+
+	/**
+	 * register a call with the socket client
+	 * 
+	 * @param call
+	 */
+	public void register(OOCSICall call) {
+		sc.register(call);
 	}
 
 	/**
