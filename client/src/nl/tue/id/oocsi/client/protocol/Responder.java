@@ -20,7 +20,7 @@ abstract public class Responder extends Handler {
 	}
 
 	@Override
-	public void receive(String sender, Map<String, Object> data, long timestamp, String channel, String recipient) {
+	public void receive(String sender, Map<String, Object> data, long timestamp, String channel, final String recipient) {
 		Map<String, Object> response = new HashMap<String, Object>();
 		respond(new OOCSIEvent(channel, data, sender, timestamp) {
 

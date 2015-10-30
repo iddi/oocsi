@@ -3,6 +3,7 @@ package nl.tue.id.oocsi.client.protocol;
 import java.util.Map;
 import java.util.UUID;
 
+import nl.tue.id.oocsi.OOCSIEvent;
 import nl.tue.id.oocsi.client.OOCSIClient;
 
 /**
@@ -14,7 +15,7 @@ public class OOCSICall extends OOCSIMessage {
 
 	private long expiration = 0;
 	private String uuid = "";
-	private Map<String, Object> response = null;
+	private OOCSIEvent response = null;
 
 	enum CALL_MODE {
 		call_return, call_multi_return
@@ -22,7 +23,7 @@ public class OOCSICall extends OOCSIMessage {
 	}
 
 	/**
-	 * create a new message
+	 * create a new message to the channel <channelName>
 	 * 
 	 * @param oocsi
 	 * @param channelName
@@ -50,7 +51,7 @@ public class OOCSICall extends OOCSIMessage {
 	 * @param data
 	 */
 	public void respond(Map<String, Object> data) {
-		response = data;
+		response = new OOCSIEvent(super.sender, data, super.channelName);
 	}
 
 	/**
@@ -72,11 +73,11 @@ public class OOCSICall extends OOCSIMessage {
 	}
 
 	/**
-	 * retrieve the response
+	 * retrieve the response as an OOCSIEvent
 	 * 
 	 * @return
 	 */
-	public Map<String, Object> getResponse() {
+	public OOCSIEvent getResponse() {
 		return response;
 	}
 
@@ -98,7 +99,7 @@ public class OOCSICall extends OOCSIMessage {
 
 		while (isValid()) {
 			try {
-				Thread.sleep(1000);
+				Thread.sleep(100);
 			} catch (InterruptedException e) {
 				// do nothing
 			}

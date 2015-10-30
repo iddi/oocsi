@@ -1,4 +1,5 @@
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 import java.util.Map;
 
@@ -9,13 +10,15 @@ import nl.tue.id.oocsi.client.protocol.Responder;
 
 import org.junit.Test;
 
+/**
+ * call / responder test case
+ *
+ * @author matsfunk
+ */
 public class ClientCallTest {
 
 	@Test
 	public void testReconnection() throws InterruptedException {
-		// final List<String> list2 = new ArrayList<String>();
-		int counter = 0;
-
 		OOCSIClient o1 = new OOCSIClient("ping");
 		o1.connect("localhost", 4444);
 		assertTrue(o1.isConnected());
@@ -27,34 +30,80 @@ public class ClientCallTest {
 
 			@Override
 			public void respond(OOCSIEvent event, Map<String, Object> response) {
-				int pp = event.getInt("pingipung", -1);
+				int pp = event.getInt("addnineteen", -1);
 				pp += 19;
-				response.put("pingipung", pp);
+				response.put("addedthat", pp);
 			}
 		});
 
 		{
-			OOCSICall call = new OOCSICall(o1, "pong", 500, 1).data("pingipung", 1);
+			OOCSICall call = new OOCSICall(o1, "pong", 500, 1).data("addnineteen", 1);
 			call.send();
-			if (call.hasResponse()) {
-				System.out.println("wow! pingipung: " + call.getResponse().get("pingipung"));
-			} else {
-				System.out.println("no response yet");
-			}
+			assertTrue(call.hasResponse());
+			OOCSIEvent response = call.getResponse();
+			assertEquals(20, response.getInt("addedthat", -1));
 		}
 		{
-			OOCSICall call = new OOCSICall(o1, "pong", 500, 1).data("pingipung", 100);
+			OOCSICall call = new OOCSICall(o1, "pong", 500, 1).data("addnineteen", 100);
 			call.send();
-			if (call.hasResponse()) {
-				System.out.println("wow! pingipung: " + call.getResponse().get("pingipung"));
-			} else {
-				System.out.println("no response yet");
-			}
+			assertTrue(call.hasResponse());
+			OOCSIEvent response = call.getResponse();
+			assertEquals(119, response.getInt("addedthat", -1));
 		}
+	}
 
-		// while (o1.isConnected() && counter < 10000) {
-		// Thread.sleep(100);
-		// }
+	@Test
+	public void testReconnectionFail() throws InterruptedException {
+		OOCSIClient o1 = new OOCSIClient("pingFail");
+		o1.connect("localhost", 4444);
+		assertTrue(o1.isConnected());
+
+		OOCSIClient o2 = new OOCSIClient("pongFail");
+		o2.connect("localhost", 4444);
+		assertTrue(o2.isConnected());
+
+		{
+			OOCSICall call = new OOCSICall(o1, "pongFail", 500, 1).data("addnineteen", 1);
+			call.send();
+			assertTrue(!call.hasResponse());
+		}
+		{
+			OOCSICall call = new OOCSICall(o1, "pongFail", 500, 1).data("addnineteen", 100);
+			call.send();
+			assertTrue(!call.hasResponse());
+		}
+	}
+
+	@Test
+	public void testReconnectionTimeout() throws InterruptedException {
+		OOCSIClient o1 = new OOCSIClient("pingTO");
+		o1.connect("localhost", 4444);
+		assertTrue(o1.isConnected());
+
+		OOCSIClient o2 = new OOCSIClient("pongTO");
+		o2.connect("localhost", 4444);
+		assertTrue(o2.isConnected());
+		o2.subscribe(new Responder(o2) {
+
+			@Override
+			public void respond(OOCSIEvent event, Map<String, Object> response) {
+				try {
+					Thread.sleep(600);
+				} catch (InterruptedException e) {
+				}
+			}
+		});
+
+		{
+			OOCSICall call = new OOCSICall(o1, "pongTO", 500, 1).data("addnineteen", 1);
+			call.send();
+			assertTrue(!call.hasResponse());
+		}
+		{
+			OOCSICall call = new OOCSICall(o1, "pongTO", 500, 1).data("addnineteen", 100);
+			call.send();
+			assertTrue(!call.hasResponse());
+		}
 	}
 
 }
