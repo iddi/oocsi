@@ -100,16 +100,13 @@ public class SocketService extends AbstractService {
 
 					// keep-alive ping-pong with socket clients
 					for (Client client : server.getClients()) {
-						if (client instanceof SocketClient) {
-							SocketClient sc = (SocketClient) client;
-							long timeout = System.currentTimeMillis() - sc.lastAction();
-							if (timeout > 120000) {
-								OOCSIServer.log("Client " + sc.getName()
-										+ " has not responded for 120 secs and will be disconnected");
-								server.removeClient(sc);
-							} else {
-								sc.ping();
-							}
+						long timeout = System.currentTimeMillis() - client.lastAction();
+						if (timeout > 120000) {
+							OOCSIServer.log("Client " + client.getName()
+									+ " has not responded for 120 secs and will be disconnected");
+							server.removeClient(client);
+						} else {
+							client.ping();
 						}
 					}
 				};
