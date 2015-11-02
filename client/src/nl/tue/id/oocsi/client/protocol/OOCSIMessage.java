@@ -64,6 +64,36 @@ public class OOCSIMessage extends OOCSIEvent {
 	 * @param value
 	 * @return
 	 */
+	public OOCSIMessage data(String key, float value) {
+
+		// store data
+		this.data.put(key, value);
+
+		return this;
+	}
+
+	/**
+	 * store data in message
+	 * 
+	 * @param key
+	 * @param value
+	 * @return
+	 */
+	public OOCSIMessage data(String key, double value) {
+
+		// store data
+		this.data.put(key, value);
+
+		return this;
+	}
+
+	/**
+	 * store data in message
+	 * 
+	 * @param key
+	 * @param value
+	 * @return
+	 */
 	public OOCSIMessage data(String key, long value) {
 
 		// store data
