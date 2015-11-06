@@ -95,7 +95,7 @@ public class SocketService extends AbstractService {
 						DatagramPacket packet = new DatagramPacket(buf, buf.length, group, MULTICAST_PORT);
 						socket.send(packet);
 					} catch (IOException e) {
-						e.printStackTrace();
+						// e.printStackTrace();
 					}
 
 					// keep-alive ping-pong with socket clients
@@ -124,7 +124,7 @@ public class SocketService extends AbstractService {
 				Socket acceptedSocket = serverSocket.accept();
 
 				// then check if we can accept
-				if (server.getChannels().size() < maxClients) {
+				if (server.getClients().size() < maxClients) {
 					new SocketClient(this, acceptedSocket).start();
 				} else {
 					acceptedSocket.close();
