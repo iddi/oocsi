@@ -103,6 +103,21 @@ public class OOCSIMessage extends OOCSIEvent {
 	}
 
 	/**
+	 * store data in message
+	 * 
+	 * @param key
+	 * @param value
+	 * @return
+	 */
+	public OOCSIMessage data(String key, Object value) {
+
+		// store data
+		this.data.put(key, value);
+
+		return this;
+	}
+
+	/**
 	 * store bulk data in message
 	 * 
 	 * @param bulkData
