@@ -21,7 +21,8 @@ import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import nl.tue.id.oocsi.client.protocol.Handler;
-import nl.tue.id.oocsi.client.protocol.OOCSICall;
+import nl.tue.id.oocsi.client.services.OOCSICall;
+import nl.tue.id.oocsi.client.services.Responder;
 
 /**
  * OOCSI client interface for socket connections
@@ -30,11 +31,13 @@ import nl.tue.id.oocsi.client.protocol.OOCSICall;
  */
 public class SocketClient {
 
+	private static final String SELF = "SELF";
 	private static final int MULTICAST_PORT = 4448;
 	private static final String MULTICAST_GROUP = "224.0.0.144";
 
 	private String name;
 	private Map<String, Handler> channels;
+	private Map<String, Responder> services;
 	private Queue<String> tempIncomingMessages = new LinkedBlockingQueue<String>(1);
 	private List<OOCSICall> openCalls = new LinkedList<OOCSICall>();
 
@@ -53,9 +56,10 @@ public class SocketClient {
 	 * @param name
 	 * @param channels
 	 */
-	public SocketClient(String name, Map<String, Handler> channels) {
+	public SocketClient(String name, Map<String, Handler> channels, Map<String, Responder> services) {
 		this.name = name;
 		this.channels = channels;
+		this.services = services;
 	}
 
 	public boolean startMulticastLookup() {
@@ -214,35 +218,55 @@ public class SocketClient {
 								String timestamp = tokens[3];
 								String sender = tokens[4];
 
+								// get channel
 								Handler c = channels.get(channel);
-								if (c != null) {
-									c.send(sender, data, timestamp, channel, name);
-								} else if (channel.equals(name)) {
-									if (!openCalls.isEmpty()) {
-										try {
-											Map<String, Object> dataMap = Handler.parseData(data);
-											if (dataMap.containsKey("MESSAGE_ID")) {
-												String id = (String) dataMap.get("MESSAGE_ID");
-												for (int i = openCalls.size() - 1; i >= 0; i--) {
-													OOCSICall call = openCalls.get(i);
-													if (!call.isValid()) {
-														openCalls.remove(i);
-													} else if (call.getId().equals(id)) {
-														call.respond(dataMap);
+								if (c == null && channel.equals(name)) {
+									c = channels.get(SELF);
+								}
 
-														return;
-													}
-												}
+								Map<String, Object> dataMap = null;
+								try {
+									dataMap = Handler.parseData(data);
+								} catch (ClassNotFoundException e) {
+									dataMap = null;
+								}
+
+								if (dataMap != null) {
+									// try to find a responder
+									if (dataMap.containsKey(OOCSICall.MESSAGE_HANDLE)) {
+										Responder r = services.get((String) dataMap.get(OOCSICall.MESSAGE_HANDLE));
+										if (r != null) {
+											try {
+												r.receive(sender, Handler.parseData(data),
+														Handler.parseTimestamp(timestamp), channel, name);
+											} catch (ClassNotFoundException e) {
+											} catch (Exception e) {
 											}
-
-										} catch (ClassNotFoundException e) {
 										}
 									}
+									// try to find an open call
+									else if (!openCalls.isEmpty() && dataMap.containsKey(OOCSICall.MESSAGE_ID)) {
+										String id = (String) dataMap.get(OOCSICall.MESSAGE_ID);
 
-									c = channels.get("SELF");
-									if (c != null) {
+										// walk from back to allow for removal
+										for (int i = openCalls.size() - 1; i >= 0; i--) {
+											OOCSICall call = openCalls.get(i);
+											if (!call.isValid()) {
+												openCalls.remove(i);
+											} else if (call.getId().equals(id)) {
+												call.respond(dataMap);
+												return;
+											}
+										}
+									}
+									// if no responder or call and channel ready waiting
+									else if (c != null) {
 										c.send(sender, data, timestamp, channel, name);
 									}
+								}
+								// if dataMap not parseable and channel ready
+								else if (c != null) {
+									c.send(sender, data, timestamp, channel, name);
 								}
 							}
 						} else {
@@ -361,6 +385,11 @@ public class SocketClient {
 		// register at server
 		send("subscribe " + channelName);
 
+		// check for replacement
+		if (channels.get(channelName) != null) {
+			log(" - existing subscription replaced for " + channelName);
+		}
+
 		// add handler
 		channels.put(channelName, handler);
 	}
@@ -375,8 +404,13 @@ public class SocketClient {
 		// register at server
 		send("subscribe " + name);
 
+		// check for replacement
+		if (channels.get(SELF) != null) {
+			log(" - existing subscription replaced for " + name);
+		}
+
 		// add handler
-		channels.put("SELF", handler);
+		channels.put(SELF, handler);
 	}
 
 	/**
@@ -403,7 +437,7 @@ public class SocketClient {
 		send("unsubscribe " + name);
 
 		// remove handler
-		channels.remove("SELF");
+		channels.remove(SELF);
 	}
 
 	/**
@@ -413,6 +447,16 @@ public class SocketClient {
 	 */
 	public void register(OOCSICall call) {
 		openCalls.add(call);
+	}
+
+	/**
+	 * register a responder with a handle <callName>
+	 * 
+	 * @param callName
+	 * @param responder
+	 */
+	public void register(String callName, Responder responder) {
+		services.put(callName, responder);
 	}
 
 	/**

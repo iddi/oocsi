@@ -4,7 +4,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import nl.tue.id.oocsi.client.protocol.Handler;
-import nl.tue.id.oocsi.client.protocol.OOCSICall;
+import nl.tue.id.oocsi.client.services.OOCSICall;
+import nl.tue.id.oocsi.client.services.Responder;
 import nl.tue.id.oocsi.client.socket.SocketClient;
 
 /**
@@ -14,9 +15,10 @@ import nl.tue.id.oocsi.client.socket.SocketClient;
  */
 public class OOCSIClient {
 
-	public static final String VERSION = "0.7";
+	public static final String VERSION = "0.8";
 
 	private Map<String, Handler> channels = new HashMap<String, Handler>();
+	private Map<String, Responder> services = new HashMap<String, Responder>();
 
 	private SocketClient sc;
 
@@ -33,7 +35,7 @@ public class OOCSIClient {
 			System.exit(-1);
 		}
 
-		sc = new SocketClient(name, channels) {
+		sc = new SocketClient(name, channels, services) {
 			public void log(String message) {
 				OOCSIClient.this.log(message);
 			}
@@ -132,6 +134,17 @@ public class OOCSIClient {
 	 */
 	public void register(OOCSICall call) {
 		sc.register(call);
+	}
+
+	/**
+	 * register a responder with the socket client with a given handle <callName>
+	 * 
+	 * @param callName
+	 * @param responder
+	 */
+	public void register(String callName, Responder responder) {
+		sc.subscribe(callName, responder);
+		sc.register(callName, responder);
 	}
 
 	/**

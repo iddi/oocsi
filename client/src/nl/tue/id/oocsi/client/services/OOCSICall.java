@@ -1,10 +1,11 @@
-package nl.tue.id.oocsi.client.protocol;
+package nl.tue.id.oocsi.client.services;
 
 import java.util.Map;
 import java.util.UUID;
 
 import nl.tue.id.oocsi.OOCSIEvent;
 import nl.tue.id.oocsi.client.OOCSIClient;
+import nl.tue.id.oocsi.client.protocol.OOCSIMessage;
 
 /**
  * call helper class for constructing, sending and receiving (function) calls over OOCSI
@@ -13,13 +14,28 @@ import nl.tue.id.oocsi.client.OOCSIClient;
  */
 public class OOCSICall extends OOCSIMessage {
 
-	private long expiration = 0;
-	private String uuid = "";
-	private OOCSIEvent response = null;
+	public static final String MESSAGE_HANDLE = "_MESSAGE_HANDLE";
+	public static final String MESSAGE_ID = "_MESSAGE_ID";
 
 	enum CALL_MODE {
 		call_return, call_multi_return
+	}
 
+	private String uuid = "";
+	private long expiration = 0;
+	private int maxResponses = 1;
+	private OOCSIEvent response = null;
+
+	/**
+	 * create a new message to the channel <channelName>
+	 * 
+	 * @param oocsi
+	 * @param callName
+	 * @param timeoutMS
+	 * @param maxResponses
+	 */
+	public OOCSICall(OOCSIClient oocsi, String callName, int timeoutMS, int maxResponses) {
+		this(oocsi, callName, callName, timeoutMS, maxResponses);
 	}
 
 	/**
@@ -27,13 +43,16 @@ public class OOCSICall extends OOCSIMessage {
 	 * 
 	 * @param oocsi
 	 * @param channelName
+	 * @param callName
 	 * @param timeoutMS
 	 * @param maxResponses
 	 */
-	public OOCSICall(OOCSIClient oocsi, String channelName, int timeoutMS, int maxResponses) {
+	public OOCSICall(OOCSIClient oocsi, String channelName, String callName, int timeoutMS, int maxResponses) {
 		super(oocsi, channelName);
+		this.data(OOCSICall.MESSAGE_HANDLE, callName);
 
-		expiration = System.currentTimeMillis() + timeoutMS;
+		this.expiration = System.currentTimeMillis() + timeoutMS;
+		this.maxResponses = maxResponses;
 	}
 
 	/**
@@ -52,6 +71,20 @@ public class OOCSICall extends OOCSIMessage {
 	 */
 	public void respond(Map<String, Object> data) {
 		response = new OOCSIEvent(super.sender, data, super.channelName);
+	}
+
+	/**
+	 * check whether all values have been filled in for sending the call
+	 * 
+	 * @return
+	 */
+	public boolean canSend() {
+		for (Map.Entry<String, Object> entry : data.entrySet()) {
+			if (entry.getValue() == null) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	/**
@@ -90,7 +123,7 @@ public class OOCSICall extends OOCSIMessage {
 	public void send() {
 		// intercept to add message id
 		uuid = UUID.randomUUID().toString();
-		data("MESSAGE_ID", uuid);
+		data(OOCSICall.MESSAGE_ID, uuid);
 
 		// register centrally
 		oocsi.register(this);
@@ -106,21 +139,51 @@ public class OOCSICall extends OOCSIMessage {
 		}
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see nl.tue.id.oocsi.client.protocol.OOCSIMessage#data(java.lang.String, java.lang.String)
+	 */
 	@Override
 	public OOCSICall data(String key, String value) {
 		return (OOCSICall) super.data(key, value);
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see nl.tue.id.oocsi.client.protocol.OOCSIMessage#data(java.lang.String, int)
+	 */
 	@Override
 	public OOCSICall data(String key, int value) {
 		return (OOCSICall) super.data(key, value);
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see nl.tue.id.oocsi.client.protocol.OOCSIMessage#data(java.lang.String, long)
+	 */
 	@Override
 	public OOCSICall data(String key, long value) {
 		return (OOCSICall) super.data(key, value);
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see nl.tue.id.oocsi.client.protocol.OOCSIMessage#data(java.lang.String, java.lang.Object)
+	 */
+	@Override
+	public OOCSICall data(String key, Object value) {
+		return (OOCSICall) super.data(key, value);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see nl.tue.id.oocsi.client.protocol.OOCSIMessage#data(java.util.Map)
+	 */
 	@Override
 	public OOCSICall data(Map<String, ? extends Object> bulkData) {
 		return (OOCSICall) super.data(bulkData);
