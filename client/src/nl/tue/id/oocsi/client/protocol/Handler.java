@@ -16,16 +16,8 @@ abstract public class Handler {
 
 	final public void send(String sender, String data, String timestamp, String channel, String recipient) {
 		try {
-
 			Map<String, Object> map = parseData(data);
-
-			// parse timestamp
-			long ts = System.currentTimeMillis();
-			try {
-				ts = Long.parseLong(timestamp);
-			} catch (Exception e) {
-				// do nothing
-			}
+			long ts = parseTimestamp(timestamp);
 
 			// forward event
 			receive(sender, map, ts, channel, recipient);
@@ -39,6 +31,14 @@ abstract public class Handler {
 	abstract public void receive(String sender, Map<String, Object> data, long timestamp, String channel,
 			String recipient);
 
+	/**
+	 * parse the given <data> String into a Map
+	 * 
+	 * @param data
+	 * @return
+	 * @throws IOException
+	 * @throws ClassNotFoundException
+	 */
 	public static Map<String, Object> parseData(String data) throws IOException, ClassNotFoundException {
 		// parse data from string
 		ByteArrayInputStream bais = new ByteArrayInputStream(Base64Coder.decode(data));
@@ -47,5 +47,21 @@ abstract public class Handler {
 		@SuppressWarnings("unchecked")
 		Map<String, Object> map = (Map<String, Object>) outputObject;
 		return map;
+	}
+
+	/**
+	 * parse the given <timestamp> String into a long value
+	 * 
+	 * @param timestamp
+	 * @return
+	 */
+	public static long parseTimestamp(String timestamp) {
+		long ts = System.currentTimeMillis();
+		try {
+			ts = Long.parseLong(timestamp);
+		} catch (Exception e) {
+			// do nothing
+		}
+		return ts;
 	}
 }
