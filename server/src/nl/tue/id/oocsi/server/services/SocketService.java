@@ -95,21 +95,18 @@ public class SocketService extends AbstractService {
 						DatagramPacket packet = new DatagramPacket(buf, buf.length, group, MULTICAST_PORT);
 						socket.send(packet);
 					} catch (IOException e) {
-						e.printStackTrace();
+						// e.printStackTrace();
 					}
 
 					// keep-alive ping-pong with socket clients
 					for (Client client : server.getClients()) {
-						if (client instanceof SocketClient) {
-							SocketClient sc = (SocketClient) client;
-							long timeout = System.currentTimeMillis() - sc.lastAction();
-							if (timeout > 120000) {
-								OOCSIServer.log("Client " + sc.getName()
-										+ " has not responded for 120 secs and will be disconnected");
-								server.removeClient(sc);
-							} else {
-								sc.ping();
-							}
+						long timeout = System.currentTimeMillis() - client.lastAction();
+						if (timeout > 120000) {
+							OOCSIServer.log("Client " + client.getName()
+									+ " has not responded for 120 secs and will be disconnected");
+							server.removeClient(client);
+						} else {
+							client.ping();
 						}
 					}
 				};
@@ -127,7 +124,7 @@ public class SocketService extends AbstractService {
 				Socket acceptedSocket = serverSocket.accept();
 
 				// then check if we can accept
-				if (server.getChannels().size() < maxClients) {
+				if (server.getClients().size() < maxClients) {
 					new SocketClient(this, acceptedSocket).start();
 				} else {
 					acceptedSocket.close();

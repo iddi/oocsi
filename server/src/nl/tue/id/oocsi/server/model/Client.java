@@ -28,9 +28,7 @@ abstract public class Client extends Channel {
 	/*
 	 * (non-Javadoc)
 	 * 
-	 * @see
-	 * nl.tue.id.oocsi.server.model.Channel#send(nl.tue.id.oocsi.server.protocol
-	 * .Message)
+	 * @see nl.tue.id.oocsi.server.model.Channel#send(nl.tue.id.oocsi.server.protocol .Message)
 	 */
 	abstract public void send(Message message);
 
@@ -45,6 +43,12 @@ abstract public class Client extends Channel {
 	 * @return
 	 */
 	abstract public boolean isConnected();
+
+	/**
+	 * ping the client to fill in the last action property, ultimately determining an inactive client
+	 * 
+	 */
+	abstract public void ping();
 
 	/**
 	 * retrieves time stamp of last action from the connected client

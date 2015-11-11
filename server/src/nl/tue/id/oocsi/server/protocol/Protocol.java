@@ -7,12 +7,13 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import nl.tue.id.oocsi.server.OOCSIServer;
 import nl.tue.id.oocsi.server.model.Channel;
 import nl.tue.id.oocsi.server.model.Server;
 
 /**
- * implements the OOCSI communication protocol, registers and unregisters
- * clients, and parses and dispatches input received from clients
+ * implements the OOCSI communication protocol, registers and unregisters clients, and parses and dispatches input
+ * received from clients
  * 
  * @author matsfunk
  * 
@@ -108,11 +109,10 @@ public class Protocol {
 						c.send(new Message(sender.getName(), recipient, new Date(), map));
 					}
 				} catch (IOException e) {
-					e.printStackTrace();
+					OOCSIServer.log("[Parser] IO problem: " + e.getMessage());
 				} catch (ClassNotFoundException e) {
-					e.printStackTrace();
+					OOCSIServer.log("[Parser] Unknown class: " + e.getMessage());
 				}
-
 			}
 		}
 
