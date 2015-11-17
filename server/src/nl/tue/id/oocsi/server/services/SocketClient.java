@@ -143,6 +143,7 @@ public class SocketClient extends Client {
 		JsonObject je = (JsonObject) JSON_SERIALIZER.toJsonTree(data);
 
 		// add OOCSI properties
+		je.addProperty("recipient", recipient);
 		je.addProperty("timestamp", timestamp);
 		je.addProperty("sender", sender);
 
@@ -155,7 +156,7 @@ public class SocketClient extends Client {
 	 * 
 	 */
 	public void ping() {
-		output.println("ping");
+		send("ping");
 	}
 
 	/**
@@ -181,10 +182,12 @@ public class SocketClient extends Client {
 							token = inputLine.replace(";", "");
 							type = ClientType.PD;
 							try {
+								// try special return port
 								output = new PrintWriter(new Socket(socket.getInetAddress(), 4445).getOutputStream(),
 										true);
 							} catch (Exception e) {
-								// do nothing
+								// open normal connection
+								output = new PrintWriter(socket.getOutputStream(), true);
 							}
 						} else if (inputLine.contains("(JSON)")) {
 							token = inputLine.replace("(JSON)", "").trim();

@@ -109,9 +109,14 @@ public class Protocol {
 						c.send(new Message(sender.getName(), recipient, new Date(), map));
 					}
 				} catch (IOException e) {
-					OOCSIServer.log("[Parser] IO problem: " + e.getMessage());
+					OOCSIServer.log("[MsgParser] I/O problem: " + e.getMessage());
+				} catch (IllegalArgumentException e) {
+					OOCSIServer.log("[MsgParser] Base64 encoder problem: " + e.getMessage());
 				} catch (ClassNotFoundException e) {
-					OOCSIServer.log("[Parser] Unknown class: " + e.getMessage());
+					OOCSIServer.log("[MsgParser] Unknown class: " + e.getMessage());
+				} catch (Exception e) {
+					// just in case
+					OOCSIServer.log("[MsgParser] Unknown problem: " + e.getMessage());
 				}
 			}
 		}
