@@ -6,25 +6,25 @@ There are two basic components that form an OOCSI network: the client and the se
 
 ## Server
 
-The server comes as a pre-compiled .jar file: [OOCSI_server.jar](https://github.com/iddi/oocsi/releases/download/server_version_1.2/OOCSI_server.jar) (~250kB)
+The server comes as a pre-compiled .jar file: [OOCSI_server.jar](https://github.com/iddi/oocsi/releases/download/server_version_1.4/OOCSI_server.jar) (~250kB)
 
 It can be run simply by double-clicking on the JAR file in most operating systems. There are, however, command line parameters that are explained in the following:   
 
 Switch on logging to a file with:
 
-	OOCSI_server.jar -logging
+	java -jar OOCSI_server.jar -logging
 
 Allow for a certain maximum number of clients to be connected (here, 40):
 
-	OOCSI_server.jar -clients 55
+	java -jar OOCSI_server.jar -clients 55
 
 Run the server on a specific port (instead of 4444 which is the default):
 
-	OOCSI_server.jar -port 4545
+	java -jar OOCSI_server.jar -port 4545
 
 Of course, all parameters can be used at the same time, like this:
 
-	OOCSI_server.jar -logging -clients 55 -port 4545 
+	java -jar OOCSI_server.jar -logging -clients 55 -port 4545 
 
 
 ## Client
