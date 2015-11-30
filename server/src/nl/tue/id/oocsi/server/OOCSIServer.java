@@ -103,11 +103,11 @@ public class OOCSIServer extends Server {
 
 		// TODO check command line options
 		// start OSC server
-		OSCService osc = new OSCService(this, port + 1, Math.max(2, maxClients / 3));
+		OSCService osc = new OSCService(this, port + 1, Math.max(2, maxClients / 2));
 
 		// TODO check command line options
 		// start TCP/socket server
-		SocketService tcp = new SocketService(this, port, Math.max(2, maxClients / 3));
+		SocketService tcp = new SocketService(this, port, Math.max(2, maxClients / 2));
 
 		// start services
 		run(new AbstractService[] { tcp, osc });
