@@ -14,6 +14,7 @@ import java.net.MulticastSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -179,6 +180,13 @@ public class SocketClient {
 
 				// first data has arrived = connection is ok
 				connectionEstablished = true;
+
+				// subscribe to all open channels
+				if (reconnect) {
+					for (String channelName : channels.keySet()) {
+						this.internalSubscribe(channelName);
+					}
+				}
 
 				// if ok, run the communication in a different thread
 				new Thread(new Runnable() {
@@ -382,16 +390,23 @@ public class SocketClient {
 	 */
 	public void subscribe(String channelName, Handler handler) {
 
+		internalSubscribe(channelName);
+
+		// add handler
+		channels.put(channelName, handler);
+	}
+
+	/**
+	 * @param channelName
+	 */
+	private void internalSubscribe(String channelName) {
 		// register at server
 		send("subscribe " + channelName);
 
 		// check for replacement
 		if (channels.get(channelName) != null) {
-			log(" - existing subscription replaced for " + channelName);
+			log(" - reconnected subscription for " + channelName);
 		}
-
-		// add handler
-		channels.put(channelName, handler);
 	}
 
 	/**
@@ -406,7 +421,7 @@ public class SocketClient {
 
 		// check for replacement
 		if (channels.get(SELF) != null) {
-			log(" - existing subscription replaced for " + name);
+			log(" - reconnected subscription for " + name);
 		}
 
 		// add handler
