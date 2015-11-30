@@ -14,7 +14,7 @@ Switch on logging to a file with:
 
 	java -jar OOCSI_server.jar -logging
 
-Allow for a certain maximum number of clients to be connected (here, 40):
+Allow for a certain maximum number of clients to be connected (here, 55):
 
 	java -jar OOCSI_server.jar -clients 55
 
