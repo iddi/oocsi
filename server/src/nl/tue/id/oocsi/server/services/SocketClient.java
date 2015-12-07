@@ -5,7 +5,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.Date;
 import java.util.Map;
@@ -166,6 +168,8 @@ public class SocketClient extends Client {
 	public void start() {
 		new Thread(new Runnable() {
 			private BufferedReader input;
+			private Socket outputSocket;
+			private OutputStream outputStream;
 
 			public void run() {
 				try {
@@ -182,11 +186,13 @@ public class SocketClient extends Client {
 							token = inputLine.replace(";", "");
 							type = ClientType.PD;
 							try {
-								// try special return port
-								output = new PrintWriter(new Socket(socket.getInetAddress(), 4445).getOutputStream(),
-										true);
+								// try special return port 4445 (for Pd/MaxMSP)
+								outputSocket = new Socket();
+								outputSocket.connect(new InetSocketAddress(socket.getInetAddress(), 4445), 5000);
+								outputStream = outputSocket.getOutputStream();
+								output = new PrintWriter(outputStream, true);
 							} catch (Exception e) {
-								// open normal connection
+								// if not responding in 5 seconds, use open connection for return
 								output = new PrintWriter(socket.getOutputStream(), true);
 							}
 						} else if (inputLine.contains("(JSON)")) {
@@ -248,6 +254,22 @@ public class SocketClient extends Client {
 					// first close input
 					try {
 						input.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+
+					try {
+						// first close print writer
+						if (output != null) {
+							output.flush();
+							output.close();
+						}
+
+						// close stream and socket
+						if (outputStream != null) {
+							outputStream.flush();
+							outputStream.close();
+						}
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
