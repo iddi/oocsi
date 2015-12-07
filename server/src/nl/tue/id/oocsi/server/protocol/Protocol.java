@@ -11,6 +11,12 @@ import nl.tue.id.oocsi.server.OOCSIServer;
 import nl.tue.id.oocsi.server.model.Channel;
 import nl.tue.id.oocsi.server.model.Server;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
+
 /**
  * implements the OOCSI communication protocol, registers and unregisters clients, and parses and dispatches input
  * received from clients
@@ -74,7 +80,7 @@ public class Protocol {
 			String channel = inputLine.split(" ")[1];
 			server.unsubscribe(sender, channel);
 		}
-		// create new message
+		// create new message from raw text input
 		else if (inputLine.startsWith("sendraw")) {
 			String[] tokens = inputLine.split(" ", 3);
 			if (tokens.length == 3) {
@@ -84,12 +90,36 @@ public class Protocol {
 				Channel c = server.getChannel(recipient);
 				if (c != null) {
 					Map<String, Object> map = new HashMap<String, Object>();
-					map.put("data", message);
+
+					// try to parse input as JSON
+					try {
+						Gson serializer = new Gson();
+						JsonElement je = new JsonParser().parse(message);
+						if (je.isJsonObject()) {
+							JsonObject jo = je.getAsJsonObject();
+							for (Map.Entry<String, JsonElement> element : jo.entrySet()) {
+								if (element.getValue().isJsonPrimitive()) {
+									map.put(element.getKey(), element.getValue());
+								} else if (!element.getValue().isJsonNull()) {
+									map.put(element.getKey(), serializer.toJson(element.getValue()));
+								}
+							}
+						}
+
+						// if the map does not contain a data key, add the full data as a raw string
+						if (!map.containsKey("data")) {
+							map.put("data", message);
+						}
+					} catch (JsonSyntaxException jse) {
+						// in case of problems, add the full data as a raw string
+						map.put("data", message);
+					}
+
 					c.send(new Message(sender.getName(), recipient, new Date(), map));
 				}
 			}
 		}
-		// create new message
+		// create new message from Java serialized input
 		else if (inputLine.startsWith("send")) {
 			String[] tokens = inputLine.split(" ", 3);
 			if (tokens.length == 3) {
