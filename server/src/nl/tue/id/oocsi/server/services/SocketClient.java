@@ -10,7 +10,9 @@ import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import nl.tue.id.oocsi.server.OOCSIServer;
 import nl.tue.id.oocsi.server.model.Client;
@@ -18,6 +20,7 @@ import nl.tue.id.oocsi.server.protocol.Base64Coder;
 import nl.tue.id.oocsi.server.protocol.Message;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 /**
@@ -103,6 +106,28 @@ public class SocketClient extends Client {
 	 * @return
 	 */
 	private String serializeOOCSI(Map<String, Object> data) {
+
+		// replace JSON objects
+		for (Entry<String, Object> e : data.entrySet()) {
+			if (e.getValue() instanceof JsonElement) {
+				JsonElement je = (JsonElement) e.getValue();
+				if (je.isJsonPrimitive()) {
+					if (je.getAsJsonPrimitive().isNumber()) {
+						e.setValue(je.getAsJsonPrimitive().getAsNumber());
+						continue;
+					} else if (je.getAsJsonPrimitive().isString()) {
+						e.setValue(je.getAsJsonPrimitive().getAsString());
+						continue;
+					} else if (je.getAsJsonPrimitive().isBoolean()) {
+						e.setValue(je.getAsJsonPrimitive().getAsBoolean());
+						continue;
+					} else {
+						e.setValue(new Gson().toJson(je));
+					}
+				}
+			}
+		}
+
 		// map to serialized java object
 		ByteArrayOutputStream baos = new ByteArrayOutputStream(1024);
 		try {
@@ -111,7 +136,14 @@ public class SocketClient extends Client {
 			byte[] rawData = baos.toByteArray();
 			return new String(Base64Coder.encode(rawData));
 		} catch (IOException e) {
-			return "";
+			try {
+				ObjectOutputStream oos = new ObjectOutputStream(baos);
+				oos.writeObject(new HashMap<String, Object>());
+				byte[] rawData = baos.toByteArray();
+				return new String(Base64Coder.encode(rawData));
+			} catch (IOException e1) {
+				return "";
+			}
 		}
 	}
 

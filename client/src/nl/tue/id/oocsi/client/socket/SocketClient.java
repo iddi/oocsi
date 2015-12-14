@@ -237,6 +237,8 @@ public class SocketClient {
 									dataMap = Handler.parseData(data);
 								} catch (ClassNotFoundException e) {
 									dataMap = null;
+								} catch (IOException e) {
+									dataMap = null;
 								}
 
 								if (dataMap != null) {
