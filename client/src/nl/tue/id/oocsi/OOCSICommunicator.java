@@ -201,7 +201,7 @@ public class OOCSICommunicator extends OOCSIClient {
 		try {
 			final Method handler = parent.getClass().getDeclaredMethod(handlerName,
 					new Class[] { OOCSIEvent.class, Map.class });
-			subscribe(responderName, new Responder(this, responderName) {
+			Responder responder = new Responder(this) {
 
 				@Override
 				public void respond(OOCSIEvent event, java.util.Map<String, Object> response) {
@@ -215,7 +215,9 @@ public class OOCSICommunicator extends OOCSIClient {
 						e.printStackTrace();
 					}
 				}
-			});
+			};
+			responder.setCallName(responderName);
+			subscribe(responderName, responder);
 
 			log(" - registered " + responderName + " as call responder");
 

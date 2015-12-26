@@ -85,7 +85,7 @@ public class ClientCallTest {
 		OOCSIClient o2 = new OOCSIClient("pong");
 		o2.connect("localhost", 4444);
 		assertTrue(o2.isConnected());
-		o2.register("addnineteen", new Responder(o2, "addnineteen") {
+		o2.register("addnineteen", new Responder(o2) {
 
 			@Override
 			public void respond(OOCSIEvent event, Map<String, Object> response) {
@@ -121,16 +121,17 @@ public class ClientCallTest {
 		OOCSIClient o2 = new OOCSIClient("pongR");
 		o2.connect("localhost", 4444);
 		assertTrue(o2.isConnected());
-		o2.register("addnineteen", new Responder(o2, "addnineteen") {
+		o2.register("addnineteen", new Responder(o2) {
 
 			@Override
 			public void respond(OOCSIEvent event, Map<String, Object> response) {
 				int pp = event.getInt("addnineteen", -1);
 				pp += 19;
 				response.put("addedthat", pp);
+				System.out.println("response from pongR");
 			}
 		});
-		o2.register("addnine", new Responder(o2, "addnine") {
+		o2.register("addnine", new Responder(o2) {
 
 			@Override
 			public void respond(OOCSIEvent event, Map<String, Object> response) {
@@ -150,6 +151,73 @@ public class ClientCallTest {
 		}
 		{
 			OOCSICall call = new OOCSICall(o1, "addnineteen", "addnineteen", 500, 1).data("addnineteen", 100);
+			call.send();
+
+			assertTrue(call.hasResponse());
+			OOCSIEvent response = call.getResponse();
+			assertEquals(119, response.getInt("addedthat", -1));
+		}
+	}
+
+	@Test
+	public void testResponderOverlap2() throws InterruptedException {
+		OOCSIClient o1 = new OOCSIClient("pingR1");
+		o1.connect("localhost", 4444);
+		assertTrue(o1.isConnected());
+
+		{
+			OOCSIClient o2 = new OOCSIClient("pongR1");
+			o2.connect("localhost", 4444);
+			assertTrue(o2.isConnected());
+			o2.register("addnineteen2", new Responder(o2) {
+
+				@Override
+				public void respond(OOCSIEvent event, Map<String, Object> response) {
+					int pp = event.getInt("addnineteen", -1);
+					pp += 19;
+					response.put("addedthat", pp);
+					System.out.println("response from pongR1");
+				}
+			});
+		}
+		{
+			OOCSIClient o2 = new OOCSIClient("pongR2");
+			o2.connect("localhost", 4444);
+			assertTrue(o2.isConnected());
+			o2.register("addnineteen2", new Responder(o2) {
+
+				@Override
+				public void respond(OOCSIEvent event, Map<String, Object> response) {
+					int pp = event.getInt("addnineteen", -1);
+					pp += 19;
+					response.put("addedthat", pp);
+					System.out.println("response from pongR2");
+				}
+			});
+		}
+
+		// test normal call/response handlers
+		{
+			OOCSICall call = new OOCSICall(o1, "addnineteen2", "addnineteen2", 500, 1).data("addnineteen", 1);
+			call.send();
+
+			assertTrue(call.hasResponse());
+			OOCSIEvent response = call.getResponse();
+			assertEquals(20, response.getInt("addedthat", -1));
+		}
+
+		// test direct response trigger 1
+		{
+			OOCSICall call = new OOCSICall(o1, "pongR1", "addnineteen2", 500, 1).data("addnineteen", 100);
+			call.send();
+			assertTrue(call.hasResponse());
+			OOCSIEvent response = call.getResponse();
+			assertEquals(119, response.getInt("addedthat", -1));
+		}
+
+		// test direct response trigger 2
+		{
+			OOCSICall call = new OOCSICall(o1, "pongR2", "addnineteen2", 500, 1).data("addnineteen", 100);
 			call.send();
 			assertTrue(call.hasResponse());
 			OOCSIEvent response = call.getResponse();
@@ -189,24 +257,25 @@ public class ClientCallTest {
 		OOCSIClient o2 = new OOCSIClient("pongTO");
 		o2.connect("localhost", 4444);
 		assertTrue(o2.isConnected());
-		new Responder(o2, "addnineteen") {
+		o2.register("addnineteen1", new Responder(o2) {
 
 			@Override
 			public void respond(OOCSIEvent event, Map<String, Object> response) {
 				try {
+					System.out.println("sleeping now");
 					Thread.sleep(600);
 				} catch (InterruptedException e) {
 				}
 			}
-		};
+		});
 
 		{
-			OOCSICall call = new OOCSICall(o1, "pongTO", "addnineteen", 500, 1).data("addnineteen", 1);
+			OOCSICall call = new OOCSICall(o1, "pongTO", "addnineteen1", 500, 1).data("addnineteen", 1);
 			call.send();
 			assertTrue(!call.hasResponse());
 		}
 		{
-			OOCSICall call = new OOCSICall(o1, "pongTO", "addnineteen", 500, 1).data("addnineteen", 100);
+			OOCSICall call = new OOCSICall(o1, "pongTO", "addnineteen1", 500, 1).data("addnineteen", 100);
 			call.send();
 			assertTrue(!call.hasResponse());
 		}

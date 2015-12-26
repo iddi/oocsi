@@ -26,12 +26,21 @@ abstract public class Responder extends Handler {
 	}
 
 	/**
+	 * constructor for instantiation without service methods
+	 * 
+	 * @param oocsi
+	 */
+	public Responder(OOCSIClient oocsi) {
+		this.oocsi = oocsi;
+	}
+
+	/**
 	 * constructor for full instantiation without service methods
 	 * 
 	 * @param oocsi
 	 * @param callName
 	 */
-	public Responder(OOCSIClient oocsi, String callName) {
+	private Responder(OOCSIClient oocsi, String callName) {
 		this.oocsi = oocsi;
 		this.callName = callName;
 	}

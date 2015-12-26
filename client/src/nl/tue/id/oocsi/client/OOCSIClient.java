@@ -143,6 +143,7 @@ public class OOCSIClient {
 	 * @param responder
 	 */
 	public void register(String callName, Responder responder) {
+		responder.setCallName(callName);
 		sc.subscribe(callName, responder);
 		sc.register(callName, responder);
 	}
