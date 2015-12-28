@@ -3,6 +3,8 @@ package nl.tue.id.oocsi.server;
 import java.io.IOException;
 import java.util.Date;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import nl.tue.id.oocsi.server.model.Channel;
 import nl.tue.id.oocsi.server.model.Server;
@@ -22,7 +24,7 @@ import com.google.gson.Gson;
 public class OOCSIServer extends Server {
 
 	// constants
-	public static final String VERSION = "1.5";
+	public static final String VERSION = "1.6";
 
 	// defaults for different services
 	public static int port = 4444;
@@ -32,6 +34,8 @@ public class OOCSIServer extends Server {
 	// default channels
 	public static final String OOCSI_EVENTS = "OOCSI_events";
 	public static final String OOCSI_CONNECTIONS = "OOCSI_connections";
+	public static final String OOCSI_CHANNELS = "OOCSI_channels";
+	public static final String OOCSI_CLIENTS = "OOCSI_clients";
 
 	// singleton
 	private static OOCSIServer server;
@@ -111,6 +115,27 @@ public class OOCSIServer extends Server {
 
 		// start services
 		run(new AbstractService[] { tcp, osc });
+
+		// start timer for posting channel and client information to the respective channels
+		new Timer(true).schedule(new TimerTask() {
+			public void run() {
+				// check if we have a subscriber for public channel information
+				Channel channels = server.getChannel(OOCSI_CHANNELS);
+				if (channels != null) {
+					Message message = new Message("SERVER", OOCSI_CHANNELS);
+					message.addData("channels", server.getChannelList());
+					channels.send(message);
+				}
+
+				// check if we have a subscriber for public client information
+				Channel clients = server.getChannel(OOCSI_CLIENTS);
+				if (clients != null) {
+					Message message = new Message("SERVER", OOCSI_CLIENTS);
+					message.addData("clients", server.getClientList());
+					clients.send(message);
+				}
+			}
+		}, 1000, 5000);
 	}
 
 	public void run(final AbstractService[] services) {
