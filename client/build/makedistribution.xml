@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project default="makeJar" name="Create client distribution bundle">
+    <!--this file was created by Eclipse Runnable JAR Export Wizard-->
+    <!--ANT 1.7 is required                                        -->
+    <target name="makeJar">
+        <jar destfile="../dist/oocsi-client.jar">
+            <manifest>
+                <attribute name="Class-Path" value="."/>
+                <attribute name="Rsrc-Class-Path" value="./"/>
+            </manifest>
+            <fileset dir="../../client/bin" includes="nl/">
+        		<exclude name="***Test***"/>
+        	</fileset>
+		</jar>
+    </target>
+</project>
