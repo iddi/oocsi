@@ -106,11 +106,11 @@ public class OOCSICall extends OOCSIMessage {
 	}
 
 	/**
-	 * retrieve the response as an OOCSIEvent
+	 * retrieve the first response to this call as an OOCSIEvent
 	 * 
 	 * @return
 	 */
-	public OOCSIEvent getResponse() {
+	public OOCSIEvent getFirstResponse() {
 		return response;
 	}
 
@@ -127,9 +127,37 @@ public class OOCSICall extends OOCSIMessage {
 
 		// register centrally
 		oocsi.register(this);
+
 		// submit
 		super.send();
+	}
 
+	/**
+	 * send message and then wait until either the timeout has passed or at least one response has been recorded
+	 * 
+	 */
+	public void sendAndWait() {
+		send();
+		waitForResponse();
+	}
+
+	/**
+	 * send message and then wait until either the timeout given by <code>ms</code> has passed or at least one response
+	 * has been recorded
+	 * 
+	 * @param ms
+	 *            timeout
+	 */
+	public void sendAndWait(int ms) {
+		this.expiration = System.currentTimeMillis() + ms;
+		sendAndWait();
+	}
+
+	/**
+	 * wait until either the timeout has passed or at least one response has been recorded
+	 * 
+	 */
+	public void waitForResponse() {
 		while (isValid()) {
 			try {
 				Thread.sleep(100);
