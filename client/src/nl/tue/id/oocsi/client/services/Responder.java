@@ -73,7 +73,7 @@ abstract public class Responder extends Handler {
 	public void receive(String sender, Map<String, Object> data, long timestamp, String channel, final String recipient) {
 
 		// check if this needs a response
-		if (!data.get(OOCSICall.MESSAGE_HANDLE).equals(callName)) {
+		if (data.get(OOCSICall.MESSAGE_HANDLE) == null || !data.get(OOCSICall.MESSAGE_HANDLE).equals(callName)) {
 			return;
 		}
 
@@ -89,7 +89,7 @@ abstract public class Responder extends Handler {
 
 		// send response
 		response.put(OOCSICall.MESSAGE_ID, data.get(OOCSICall.MESSAGE_ID));
-		new OOCSIMessage(oocsi, sender).data("", 1).data(response).send();
+		new OOCSIMessage(oocsi, sender).data(response).send();
 	}
 
 	/**
