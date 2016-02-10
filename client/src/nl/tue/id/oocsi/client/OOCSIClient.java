@@ -31,7 +31,7 @@ public class OOCSIClient {
 
 		// check oocsi name
 		if (name.contains(" ")) {
-			log("OOCSI name should not contain spaces");
+			log("OOCSI name cannot contain spaces");
 			System.exit(-1);
 		}
 

@@ -6,14 +6,14 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import com.google.gson.Gson;
+
 import nl.tue.id.oocsi.server.model.Channel;
 import nl.tue.id.oocsi.server.model.Server;
 import nl.tue.id.oocsi.server.protocol.Message;
 import nl.tue.id.oocsi.server.services.AbstractService;
 import nl.tue.id.oocsi.server.services.OSCService;
 import nl.tue.id.oocsi.server.services.SocketService;
-
-import com.google.gson.Gson;
 
 /**
  * main server component for running OOCSI
@@ -30,6 +30,7 @@ public class OOCSIServer extends Server {
 	public static int port = 4444;
 	public static int maxClients = 30;
 	public static boolean isLogging = false;
+	public static String[] users = null;
 
 	// default channels
 	public static final String OOCSI_EVENTS = "OOCSI_events";
@@ -89,6 +90,27 @@ public class OOCSIServer extends Server {
 	/**
 	 * initialize the server and listen for client connects
 	 * 
+	 * @param port
+	 * @param clients
+	 * @param logging
+	 * @param userList
+	 * @throws IOException
+	 */
+	public OOCSIServer(int port, int clients, boolean logging, String[] userList) throws IOException {
+		this();
+
+		// assign argument
+		OOCSIServer.port = port;
+		maxClients = clients;
+		isLogging = logging;
+		users = userList;
+
+		init();
+	}
+
+	/**
+	 * initialize the server and listen for client connects
+	 * 
 	 * @param args
 	 * @throws IOException
 	 */
@@ -102,16 +124,16 @@ public class OOCSIServer extends Server {
 		addChannel(channel);
 
 		// output status message
-		OOCSIServer.log("Started OOCSI server v" + OOCSIServer.VERSION + " for max. " + maxClients
-				+ " parallel clients" + (isLogging ? " and activated logging" : "") + ".");
+		OOCSIServer.log("Started OOCSI server v" + OOCSIServer.VERSION + " for max. " + maxClients + " parallel clients"
+				+ (isLogging ? " and activated logging" : "") + ".");
 
 		// TODO check command line options
 		// start OSC server
-		OSCService osc = new OSCService(this, port + 1, Math.max(2, maxClients / 2));
+		OSCService osc = new OSCService(this, port + 1, Math.max(2, maxClients / 3));
 
 		// TODO check command line options
 		// start TCP/socket server
-		SocketService tcp = new SocketService(this, port, Math.max(2, maxClients / 2));
+		SocketService tcp = new SocketService(this, port, Math.max(2, 2 * maxClients / 3), users);
 
 		// start services
 		run(new AbstractService[] { tcp, osc });
@@ -252,6 +274,12 @@ public class OOCSIServer extends Server {
 				maxClients = Integer.parseInt(args[i + 1]);
 			} else if (argument.equals("-logging")) {
 				isLogging = true;
+			} else if (argument.equals("-users") && args.length >= i + 2) {
+				String userList = args[i + 1];
+				if (userList
+						.matches("^([a-zA-Z0-9_\\-.]+:[a-zA-Z0-9_\\-.]+;)*([a-zA-Z0-9_\\-.]+:[a-zA-Z0-9_\\-.]+);*$")) {
+					users = userList.split(";");
+				}
 			}
 		}
 	}

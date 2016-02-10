@@ -29,6 +29,7 @@ public class SocketService extends AbstractService {
 
 	private int port;
 	private int maxClients;
+	private String[] users;
 
 	private ServerSocket serverSocket;
 	private Timer periodicMaintenanceService;
@@ -41,11 +42,34 @@ public class SocketService extends AbstractService {
 	 * @param port
 	 * @param maxClients
 	 */
-	public SocketService(Server server, int port, int maxClients) {
+	public SocketService(Server server, int port, int maxClients, String[] users) {
 		super(server);
 
 		this.port = port;
 		this.maxClients = maxClients;
+		this.users = users;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see nl.tue.id.oocsi.server.services.AbstractService#register(nl.tue.id.oocsi.server.model.Client)
+	 */
+	@Override
+	public boolean register(Client client) {
+		// for private clients, first check whether it needs to comply to existing users
+		String name = client.getName();
+		for (String user : users) {
+			if (user != null && user.replaceFirst(":.*", "").equals(name)) {
+				if (client.validate(user)) {
+					return super.register(client);
+				} else {
+					return false;
+				}
+
+			}
+		}
+		return !client.isPrivate() && super.register(client);
 	}
 
 	/*
@@ -105,6 +129,7 @@ public class SocketService extends AbstractService {
 							OOCSIServer.log("Client " + client.getName()
 									+ " has not responded for 120 secs and will be disconnected");
 							server.removeClient(client);
+							break;
 						} else {
 							client.ping();
 						}
@@ -123,7 +148,7 @@ public class SocketService extends AbstractService {
 				// first see if there is a new connection coming in
 				Socket acceptedSocket = serverSocket.accept();
 
-				// then check if we can accept
+				// then check if we can accept a new client
 				if (server.getClients().size() < maxClients) {
 					new SocketClient(this, acceptedSocket).start();
 				} else {
