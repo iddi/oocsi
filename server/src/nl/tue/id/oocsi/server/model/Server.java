@@ -123,19 +123,22 @@ public class Server extends Channel {
 	 * @param channel
 	 */
 	public void subscribe(Channel subscriber, String channel) {
-		Channel c = getChannel(channel);
+		Channel c = getChannel(channel.replaceFirst(":.*", ""));
 		if (c != null) {
-			c.addChannel(subscriber);
+			if (c.validate(channel)) {
+				c.addChannel(subscriber);
+				OOCSIServer.logConnection(subscriber.getName(), channel, "subscribed", new Date());
+			}
 		} else {
 			Channel newChannel = new Channel(channel);
 			addChannel(newChannel);
 			newChannel.addChannel(subscriber);
+			OOCSIServer.logConnection(subscriber.getName(), channel, "subscribed", new Date());
 		}
-		OOCSIServer.logConnection(subscriber.getName(), channel, "subscribed", new Date());
 	}
 
 	/**
-	 * unsubscribe <subscriber> from <channel>
+	 * unsubscribe <subscriber> from <channel> and close channel if empty
 	 * 
 	 * @param subscriber
 	 * @param channel
@@ -144,6 +147,7 @@ public class Server extends Channel {
 		Channel c = getChannel(channel);
 		if (c != null) {
 			c.removeChannel(subscriber);
+			closeEmptyChannels();
 		}
 		OOCSIServer.logConnection(subscriber.getName(), channel, "unsubscribed", new Date());
 	}

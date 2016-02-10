@@ -28,9 +28,10 @@ public class Channel {
 	 * get token of this channel
 	 * 
 	 * @return
+	 * 
 	 */
 	public String getName() {
-		return token;
+		return token.replaceFirst(":.*", "");
 	}
 
 	/*
@@ -40,7 +41,26 @@ public class Channel {
 	 */
 	@Override
 	public String toString() {
-		return token;
+		return token.replaceFirst(":.*", "");
+	}
+
+	/**
+	 * check whether this channel is private
+	 * 
+	 * @return
+	 */
+	public boolean isPrivate() {
+		return token.contains(";");
+	}
+
+	/**
+	 * check whether the given channelToken (with secret part) matches this channel's token (and its secret part)
+	 * 
+	 * @param channelToken
+	 * @return
+	 */
+	public boolean validate(String channelToken) {
+		return token.equals(channelToken);
 	}
 
 	/**
@@ -58,13 +78,13 @@ public class Channel {
 	}
 
 	/**
-	 * retrieve channel if existing
+	 * retrieve sub-channel if existing
 	 * 
 	 * @param channelName
 	 * @return
 	 */
 	public Channel getChannel(String channelName) {
-		return subChannels.get(channelName);
+		return subChannels.get(channelName.replaceFirst(":.*", ""));
 	}
 
 	/**
@@ -99,7 +119,9 @@ public class Channel {
 	public void addChannel(Channel channel) {
 		if (!token.equals(channel.getName()) && !subChannels.containsKey(channel.getName())) {
 			subChannels.put(channel.getName(), channel);
-			OOCSIServer.logConnection(token, channel.getName(), "added channel", new Date());
+			if (!isPrivate()) {
+				OOCSIServer.logConnection(token, channel.getName(), "added channel", new Date());
+			}
 		}
 	}
 
@@ -120,7 +142,9 @@ public class Channel {
 	 */
 	public void removeChannel(Channel channel, boolean recursive) {
 		if (subChannels.remove(channel.getName()) != null) {
-			OOCSIServer.logConnection(token, channel.getName(), "removed channel", new Date());
+			if (!isPrivate()) {
+				OOCSIServer.logConnection(token, channel.getName(), "removed channel", new Date());
+			}
 		}
 
 		if (recursive) {
@@ -141,7 +165,9 @@ public class Channel {
 			// it is empty now, remove sub channel
 			if (!(subChannel instanceof Client) && subChannel.subChannels.size() == 0) {
 				subChannels.remove(subChannel.getName());
-				OOCSIServer.logConnection(token, subChannel.getName(), "closed empty channel", new Date());
+				if (!isPrivate()) {
+					OOCSIServer.logConnection(token, subChannel.getName(), "closed empty channel", new Date());
+				}
 			}
 		}
 	}
