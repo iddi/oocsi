@@ -21,7 +21,7 @@ import org.junit.Test;
 public class ClientCallTest {
 
 	@Test
-	public void testServiceInstantiation() {
+	public void testServiceInstantiation() throws InterruptedException {
 
 		Service s = new Service();
 		s.name = "addition";
@@ -66,11 +66,13 @@ public class ClientCallTest {
 			call.send();
 			assertTrue(call.hasResponse());
 			if (call.hasResponse()) {
-				int responseValue = call.getResponse().getInt(serviceMethod2.output.get(0).name, 0/*
-																								 * (Integer)
-																								 * serviceMethod2.output
-																								 * .get(0).defaultValue
-																								 */);
+				int responseValue = call.getFirstResponse().getInt(serviceMethod2.output.get(0).name, 0/*
+																										 * (Integer)
+																										 * serviceMethod2
+																										 * .output
+																										 * .get(0
+																										 * ).defaultValue
+																										 */);
 				assertEquals(30, responseValue);
 			}
 		}
@@ -100,14 +102,14 @@ public class ClientCallTest {
 			call.send();
 
 			assertTrue(call.hasResponse());
-			OOCSIEvent response = call.getResponse();
+			OOCSIEvent response = call.getFirstResponse();
 			assertEquals(20, response.getInt("addedthat", -1));
 		}
 		{
 			OOCSICall call = new OOCSICall(o1, "pong", "addnineteen", 500, 1).data("addnineteen", 100);
 			call.send();
 			assertTrue(call.hasResponse());
-			OOCSIEvent response = call.getResponse();
+			OOCSIEvent response = call.getFirstResponse();
 			assertEquals(119, response.getInt("addedthat", -1));
 		}
 	}
@@ -146,7 +148,7 @@ public class ClientCallTest {
 			call.send();
 
 			assertTrue(call.hasResponse());
-			OOCSIEvent response = call.getResponse();
+			OOCSIEvent response = call.getFirstResponse();
 			assertEquals(20, response.getInt("addedthat", -1));
 		}
 		{
@@ -154,7 +156,7 @@ public class ClientCallTest {
 			call.send();
 
 			assertTrue(call.hasResponse());
-			OOCSIEvent response = call.getResponse();
+			OOCSIEvent response = call.getFirstResponse();
 			assertEquals(119, response.getInt("addedthat", -1));
 		}
 	}
@@ -202,7 +204,7 @@ public class ClientCallTest {
 			call.send();
 
 			assertTrue(call.hasResponse());
-			OOCSIEvent response = call.getResponse();
+			OOCSIEvent response = call.getFirstResponse();
 			assertEquals(20, response.getInt("addedthat", -1));
 		}
 
@@ -211,7 +213,7 @@ public class ClientCallTest {
 			OOCSICall call = new OOCSICall(o1, "pongR1", "addnineteen2", 500, 1).data("addnineteen", 100);
 			call.send();
 			assertTrue(call.hasResponse());
-			OOCSIEvent response = call.getResponse();
+			OOCSIEvent response = call.getFirstResponse();
 			assertEquals(119, response.getInt("addedthat", -1));
 		}
 
@@ -220,7 +222,7 @@ public class ClientCallTest {
 			OOCSICall call = new OOCSICall(o1, "pongR2", "addnineteen2", 500, 1).data("addnineteen", 100);
 			call.send();
 			assertTrue(call.hasResponse());
-			OOCSIEvent response = call.getResponse();
+			OOCSIEvent response = call.getFirstResponse();
 			assertEquals(119, response.getInt("addedthat", -1));
 		}
 	}
