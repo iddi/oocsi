@@ -50,7 +50,7 @@ public class Channel {
 	 * @return
 	 */
 	public boolean isPrivate() {
-		return token.contains(";");
+		return token.contains(":");
 	}
 
 	/**
@@ -61,6 +61,16 @@ public class Channel {
 	 */
 	public boolean validate(String channelToken) {
 		return token.equals(channelToken);
+	}
+
+	/**
+	 * check whether this channel accepts messages for recipient channelToken
+	 * 
+	 * @param channelToken
+	 * @return
+	 */
+	public boolean accept(String channelToken) {
+		return validate(channelToken);
 	}
 
 	/**
@@ -117,10 +127,10 @@ public class Channel {
 	 * @param channel
 	 */
 	public void addChannel(Channel channel) {
-		if (!token.equals(channel.getName()) && !subChannels.containsKey(channel.getName())) {
+		if (!getName().equals(channel.getName()) && !subChannels.containsKey(channel.getName())) {
 			subChannels.put(channel.getName(), channel);
-			if (!isPrivate()) {
-				OOCSIServer.logConnection(token, channel.getName(), "added channel", new Date());
+			if (!channel.isPrivate()) {
+				OOCSIServer.logConnection(getName(), channel.getName(), "added channel", new Date());
 			}
 		}
 	}
@@ -142,8 +152,8 @@ public class Channel {
 	 */
 	public void removeChannel(Channel channel, boolean recursive) {
 		if (subChannels.remove(channel.getName()) != null) {
-			if (!isPrivate()) {
-				OOCSIServer.logConnection(token, channel.getName(), "removed channel", new Date());
+			if (!channel.isPrivate()) {
+				OOCSIServer.logConnection(getName(), channel.getName(), "removed channel", new Date());
 			}
 		}
 
@@ -160,13 +170,15 @@ public class Channel {
 	 */
 	protected void closeEmptyChannels() {
 		for (Channel subChannel : subChannels.values()) {
-			subChannel.closeEmptyChannels();
+			if (subChannel != this) {
+				subChannel.closeEmptyChannels();
+			}
 
 			// it is empty now, remove sub channel
 			if (!(subChannel instanceof Client) && subChannel.subChannels.size() == 0) {
 				subChannels.remove(subChannel.getName());
-				if (!isPrivate()) {
-					OOCSIServer.logConnection(token, subChannel.getName(), "closed empty channel", new Date());
+				if (!subChannel.isPrivate()) {
+					OOCSIServer.logConnection(getName(), subChannel.getName(), "closed empty channel", new Date());
 				}
 			}
 		}

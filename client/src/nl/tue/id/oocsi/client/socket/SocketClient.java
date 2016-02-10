@@ -227,7 +227,7 @@ public class SocketClient {
 
 								// get channel
 								Handler c = channels.get(channel);
-								if (c == null && channel.equals(name)) {
+								if (c == null && channel.equals(name.replaceFirst(":.*", ""))) {
 									c = channels.get(SELF);
 								}
 

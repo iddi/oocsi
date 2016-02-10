@@ -180,7 +180,7 @@ public class Protocol {
 					Object outputObject = ois.readObject();
 
 					Channel c = server.getChannel(recipient);
-					if (c != null && c.validate(recipient)) {
+					if (c != null && c.accept(recipient)) {
 						@SuppressWarnings("unchecked")
 						Map<String, Object> map = (Map<String, Object>) outputObject;
 						c.send(new Message(sender.getName(), recipient, new Date(), map));

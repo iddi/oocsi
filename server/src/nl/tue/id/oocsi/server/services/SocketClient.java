@@ -14,14 +14,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+
 import nl.tue.id.oocsi.server.OOCSIServer;
 import nl.tue.id.oocsi.server.model.Client;
 import nl.tue.id.oocsi.server.protocol.Base64Coder;
 import nl.tue.id.oocsi.server.protocol.Message;
-
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 
 /**
  * socket implementation for OOCSI client
@@ -55,6 +55,16 @@ public class SocketClient extends Client {
 	/*
 	 * (non-Javadoc)
 	 * 
+	 * @see nl.tue.id.oocsi.server.model.Channel#accept(java.lang.String)
+	 */
+	@Override
+	public boolean accept(String channelToken) {
+		return true;
+	};
+
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see nl.tue.id.oocsi.server.model.Client#send(nl.tue.id.oocsi.server.protocol .Message)
 	 */
 	@Override
@@ -77,7 +87,10 @@ public class SocketClient extends Client {
 			// this is ok after serialization
 			message.addData("method", "JSON");
 		}
-		OOCSIServer.logEvent(message.sender, message.recipient, message.data, message.timestamp);
+
+		if (!isPrivate()) {
+			OOCSIServer.logEvent(message.sender, message.recipient, message.data, message.timestamp);
+		}
 	}
 
 	/**
@@ -241,13 +254,15 @@ public class SocketClient extends Client {
 
 							// say hi to new client
 							if (type == ClientType.JSON) {
-								send("{'message' : \"welcome " + token + "\"}");
+								send("{'message' : \"welcome " + getName() + "\"}");
 							} else {
-								send("welcome " + token);
+								send("welcome " + getName());
 							}
 
 							// log connection creation
-							OOCSIServer.logConnection(token, "OOCSI", "client connected", new Date());
+							if (!isPrivate()) {
+								OOCSIServer.logConnection(getName(), "OOCSI", "client connected", new Date());
+							}
 
 							while ((inputLine = input.readLine()) != null) {
 
@@ -270,7 +285,7 @@ public class SocketClient extends Client {
 						} else {
 							// say goodbye to new client
 							synchronized (output) {
-								output.println("error (name already registered: " + token + ")");
+								output.println("error (name already registered: " + getName() + ")");
 							}
 						}
 					}
@@ -330,7 +345,9 @@ public class SocketClient extends Client {
 		}
 
 		// log connection close
-		OOCSIServer.logConnection(token, "OOCSI", "client disconnected", new Date());
+		if (!isPrivate()) {
+			OOCSIServer.logConnection(getName(), "OOCSI", "client disconnected", new Date());
+		}
 
 		// remove this client
 		protocol.unregister(SocketClient.this);

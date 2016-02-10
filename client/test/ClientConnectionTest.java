@@ -6,10 +6,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.Test;
+
 import nl.tue.id.oocsi.client.OOCSIClient;
 import nl.tue.id.oocsi.client.protocol.DataHandler;
-
-import org.junit.Test;
 
 public class ClientConnectionTest {
 
@@ -80,7 +80,7 @@ public class ClientConnectionTest {
 	public void testSendReceive() throws InterruptedException {
 		final List<String> list = new ArrayList<String>();
 
-		OOCSIClient o1 = new OOCSIClient("test_client_1");
+		OOCSIClient o1 = new OOCSIClient("test_client_1r");
 		o1.connect("localhost", 4444);
 		assertTrue(o1.isConnected());
 		o1.subscribe(new DataHandler() {
@@ -89,7 +89,7 @@ public class ClientConnectionTest {
 			}
 		});
 
-		OOCSIClient o2 = new OOCSIClient("test_client_2");
+		OOCSIClient o2 = new OOCSIClient("test_client_2r");
 		o2.connect("localhost", 4444);
 		assertTrue(o2.isConnected());
 		o2.subscribe(new DataHandler() {
@@ -98,14 +98,14 @@ public class ClientConnectionTest {
 			}
 		});
 
-		o1.send("test_client_2", "hello2");
+		o1.send("test_client_2r", "hello2");
 		Thread.yield();
 		Thread.sleep(3000);
 
 		assertEquals(1, list.size());
 		assertEquals(list.get(0), "hello2");
 
-		o2.send("test_client_1", "hello1");
+		o2.send("test_client_1r", "hello1");
 		Thread.yield();
 		Thread.sleep(3000);
 
@@ -118,7 +118,7 @@ public class ClientConnectionTest {
 	public void testSendReceive2() throws InterruptedException {
 		final List<Long> list = new ArrayList<Long>();
 
-		OOCSIClient o1 = new OOCSIClient("test_client_3");
+		OOCSIClient o1 = new OOCSIClient("test_client_3s");
 		o1.connect("localhost", 4444);
 		assertTrue(o1.isConnected());
 		o1.subscribe(new DataHandler() {
@@ -129,7 +129,7 @@ public class ClientConnectionTest {
 		Map<String, Object> map1 = new HashMap<String, Object>();
 		map1.put("data", System.currentTimeMillis());
 
-		OOCSIClient o2 = new OOCSIClient("test_client_4");
+		OOCSIClient o2 = new OOCSIClient("test_client_4s");
 		o2.connect("localhost", 4444);
 		assertTrue(o2.isConnected());
 		o2.subscribe(new DataHandler() {
@@ -140,14 +140,14 @@ public class ClientConnectionTest {
 		Map<String, Object> map2 = new HashMap<String, Object>();
 		map2.put("data", System.currentTimeMillis());
 
-		o1.send("test_client_3", map1);
+		o1.send("test_client_3s", map1);
 		Thread.yield();
 		Thread.sleep(3000);
 
 		assertEquals(1, list.size());
 		assertEquals(list.get(0), map1.get("data"));
 
-		o2.send("test_client_4", map2);
+		o2.send("test_client_4s", map2);
 		Thread.yield();
 		Thread.sleep(3000);
 
@@ -155,4 +155,98 @@ public class ClientConnectionTest {
 		assertEquals(list.get(1), map2.get("data"));
 
 	}
+
+	@Test
+	public void testPasswordProtectedClient() throws InterruptedException {
+		final List<String> list = new ArrayList<String>();
+
+		OOCSIClient o1 = new OOCSIClient("test_priv_client_1:12345");
+		o1.connect("localhost", 4444);
+		assertTrue(o1.isConnected());
+		o1.subscribe(new DataHandler() {
+			public void receive(String sender, Map<String, Object> data, long timestamp) {
+				list.add((String) data.get("data"));
+			}
+		});
+
+		OOCSIClient o2 = new OOCSIClient("test_priv_client_2");
+		o2.connect("localhost", 4444);
+		assertTrue(o2.isConnected());
+		o2.subscribe(new DataHandler() {
+			public void receive(String sender, Map<String, Object> data, long timestamp) {
+				list.add((String) data.get("data"));
+			}
+		});
+
+		assertEquals(0, list.size());
+
+		o2.send("test_priv_client_1", "hello1");
+		Thread.yield();
+		Thread.sleep(1000);
+
+		assertEquals(1, list.size());
+		assertEquals(list.get(0), "hello1");
+	}
+
+	@Test
+	public void testPrivateChannel() throws InterruptedException {
+		final List<String> list = new ArrayList<String>();
+
+		OOCSIClient o1 = new OOCSIClient("test_client_1");
+		o1.connect("localhost", 4444);
+		assertTrue(o1.isConnected());
+		o1.subscribe("test:password", new DataHandler() {
+			public void receive(String sender, Map<String, Object> data, long timestamp) {
+				list.add((String) data.get("data"));
+			}
+		});
+
+		OOCSIClient o2 = new OOCSIClient("test_client_2");
+		o2.connect("localhost", 4444);
+		assertTrue(o2.isConnected());
+		o2.subscribe("test", new DataHandler() {
+			public void receive(String sender, Map<String, Object> data, long timestamp) {
+				list.add((String) data.get("data"));
+			}
+		});
+
+		OOCSIClient o3 = new OOCSIClient("test_client_3");
+		o3.connect("localhost", 4444);
+		assertTrue(o3.isConnected());
+
+		// baseline
+		assertEquals(0, list.size());
+
+		// test without password
+		o3.send("test", "hello1");
+		Thread.yield();
+		Thread.sleep(1000);
+		assertEquals(0, list.size());
+
+		// test wrong pass 1
+		o3.send("test:pass", "hello1");
+		Thread.yield();
+		Thread.sleep(1000);
+		assertEquals(0, list.size());
+
+		// test wrong pass 2
+		o3.send("test:passwwwwwooooorrrrddd", "hello1");
+		Thread.yield();
+		Thread.sleep(1000);
+		assertEquals(0, list.size());
+
+		// test wrong pass 3
+		o3.send("test:password1", "hello1");
+		Thread.yield();
+		Thread.sleep(1000);
+		assertEquals(0, list.size());
+
+		// test correct password
+		o3.send("test:password", "hello1");
+		Thread.yield();
+		Thread.sleep(1000);
+		assertEquals(1, list.size());
+		assertEquals(list.get(0), "hello1");
+	}
+
 }

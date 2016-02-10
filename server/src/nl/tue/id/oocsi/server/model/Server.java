@@ -75,12 +75,7 @@ public class Server extends Channel {
 		String clientName = client.getName();
 
 		// clean too old clients
-		long now = System.currentTimeMillis();
-		for (Client existingClient : clients.values()) {
-			if (now - existingClient.lastAction() > 120000 || !existingClient.isConnected()) {
-				removeClient(existingClient);
-			}
-		}
+		closeStaleClients();
 
 		// add client to client list and sub channels
 		if (!clients.containsKey(clientName) && !subChannels.containsKey(clientName) && getClient(clientName) == null
@@ -103,7 +98,7 @@ public class Server extends Channel {
 		String clientName = client.getName();
 
 		// check first if this is really the client to remove
-		if (getChannel(clientName) == client) {
+		if (getClient(clientName) == client || getChannel(clientName) == client) {
 			// remove client from client list and sub channels (recursively)
 			removeChannel(client, true);
 			clients.remove(clientName);
@@ -117,23 +112,37 @@ public class Server extends Channel {
 	}
 
 	/**
+	 * check all current clients for last activity
+	 * 
+	 */
+	private void closeStaleClients() {
+		long now = System.currentTimeMillis();
+		for (Client existingClient : clients.values()) {
+			if (now - existingClient.lastAction() > 120000 || !existingClient.isConnected()) {
+				removeClient(existingClient);
+			}
+		}
+	}
+
+	/**
 	 * subscribe <subscriber> to <channel>
 	 * 
 	 * @param subscriber
 	 * @param channel
 	 */
 	public void subscribe(Channel subscriber, String channel) {
-		Channel c = getChannel(channel.replaceFirst(":.*", ""));
+		String channelName = channel.replaceFirst(":.*", "");
+		Channel c = getChannel(channelName);
 		if (c != null) {
 			if (c.validate(channel)) {
 				c.addChannel(subscriber);
-				OOCSIServer.logConnection(subscriber.getName(), channel, "subscribed", new Date());
+				OOCSIServer.logConnection(subscriber.getName(), channelName, "subscribed", new Date());
 			}
 		} else {
-			Channel newChannel = new Channel(channel);
+			Channel newChannel = new Channel(subscriber.getName().equals(channelName) ? channelName : channel);
 			addChannel(newChannel);
 			newChannel.addChannel(subscriber);
-			OOCSIServer.logConnection(subscriber.getName(), channel, "subscribed", new Date());
+			OOCSIServer.logConnection(subscriber.getName(), channelName, "subscribed", new Date());
 		}
 	}
 
