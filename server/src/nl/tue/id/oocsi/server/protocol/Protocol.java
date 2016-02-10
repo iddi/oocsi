@@ -7,15 +7,16 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-import nl.tue.id.oocsi.server.OOCSIServer;
-import nl.tue.id.oocsi.server.model.Channel;
-import nl.tue.id.oocsi.server.model.Server;
-
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
+
+import nl.tue.id.oocsi.server.OOCSIServer;
+import nl.tue.id.oocsi.server.model.Channel;
+import nl.tue.id.oocsi.server.model.Server;
 
 /**
  * implements the OOCSI communication protocol, registers and unregisters clients, and parses and dispatches input
@@ -98,10 +99,56 @@ public class Protocol {
 						if (je.isJsonObject()) {
 							JsonObject jo = je.getAsJsonObject();
 							for (Map.Entry<String, JsonElement> element : jo.entrySet()) {
-								if (element.getValue().isJsonPrimitive()) {
-									map.put(element.getKey(), element.getValue());
-								} else if (!element.getValue().isJsonNull()) {
-									map.put(element.getKey(), serializer.toJson(element.getValue()));
+								// translate primitives from json to java
+								JsonElement value = element.getValue();
+								if (value.isJsonPrimitive()) {
+									map.put(element.getKey(), value);
+								} else {
+									JsonArray asJsonArray = value.getAsJsonArray();
+									if (value.isJsonArray() && asJsonArray.size() > 0
+											&& asJsonArray.get(0).isJsonPrimitive()) {
+										JsonArray jsonArray = asJsonArray;
+										if (jsonArray != null) {
+											// booleans
+											if (asJsonArray.get(0).getAsJsonPrimitive().isBoolean()) {
+												boolean[] array = new boolean[asJsonArray.size()];
+												for (int i = 0; i < array.length; i++) {
+													JsonElement jsonElement = asJsonArray.get(i);
+													if (jsonElement.isJsonPrimitive()
+															&& jsonElement.getAsJsonPrimitive().isBoolean()) {
+														array[i] = jsonElement.getAsBoolean();
+													}
+												}
+												map.put(element.getKey(), array);
+											}
+											// numbers
+											else if (asJsonArray.get(0).getAsJsonPrimitive().isNumber()) {
+												float[] array = new float[asJsonArray.size()];
+												for (int i = 0; i < array.length; i++) {
+													JsonElement jsonElement = asJsonArray.get(i);
+													if (jsonElement.isJsonPrimitive()
+															&& jsonElement.getAsJsonPrimitive().isNumber()) {
+														array[i] = jsonElement.getAsFloat();
+													}
+												}
+												map.put(element.getKey(), array);
+											}
+											// string
+											else if (asJsonArray.get(0).getAsJsonPrimitive().isString()) {
+												String[] array = new String[asJsonArray.size()];
+												for (int i = 0; i < array.length; i++) {
+													JsonElement jsonElement = asJsonArray.get(i);
+													if (jsonElement.isJsonPrimitive()
+															&& jsonElement.getAsJsonPrimitive().isString()) {
+														array[i] = jsonElement.getAsString();
+													}
+												}
+												map.put(element.getKey(), array);
+											}
+										}
+									} else if (!value.isJsonNull()) {
+										map.put(element.getKey(), serializer.toJson(value));
+									}
 								}
 							}
 						}
