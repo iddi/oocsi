@@ -59,14 +59,16 @@ public class SocketService extends AbstractService {
 	public boolean register(Client client) {
 		// for private clients, first check whether it needs to comply to existing users
 		String name = client.getName();
-		for (String user : users) {
-			if (user != null && user.replaceFirst(":.*", "").equals(name)) {
-				if (client.validate(user)) {
-					return super.register(client);
-				} else {
-					return false;
-				}
+		if (users != null) {
+			for (String user : users) {
+				if (user != null && user.replaceFirst(":.*", "").equals(name)) {
+					if (client.validate(user)) {
+						return super.register(client);
+					} else {
+						return false;
+					}
 
+				}
 			}
 		}
 		return !client.isPrivate() && super.register(client);

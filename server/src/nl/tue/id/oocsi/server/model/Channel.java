@@ -94,7 +94,8 @@ public class Channel {
 	 * @return
 	 */
 	public Channel getChannel(String channelName) {
-		return subChannels.get(channelName.replaceFirst(":.*", ""));
+		Channel channel = subChannels.get(channelName.replaceFirst(":.*", ""));
+		return channel != null && channel.accept(channelName) ? channel : null;
 	}
 
 	/**
@@ -113,9 +114,10 @@ public class Channel {
 	 */
 	public String getChannelList() {
 		String result = "";
-		for (Iterator<String> keys = subChannels.keySet().iterator(); keys.hasNext();) {
-			String key = keys.next();
-			result += key + (keys.hasNext() ? "," : "");
+		for (Channel channel : subChannels.values()) {
+			if (!channel.isPrivate()) {
+				result += channel.getName() + ",";
+			}
 		}
 
 		return result;

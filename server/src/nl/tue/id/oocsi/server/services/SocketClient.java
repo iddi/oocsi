@@ -285,7 +285,11 @@ public class SocketClient extends Client {
 						} else {
 							// say goodbye to new client
 							synchronized (output) {
-								output.println("error (name already registered: " + getName() + ")");
+								if (SocketClient.this.isPrivate()) {
+									output.println("error (password wrong for name: " + getName() + ")");
+								} else {
+									output.println("error (name already registered: " + getName() + ")");
+								}
 							}
 						}
 					}
