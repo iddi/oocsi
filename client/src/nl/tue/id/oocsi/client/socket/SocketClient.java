@@ -330,6 +330,15 @@ public class SocketClient {
 	}
 
 	/**
+	 * return client name
+	 * 
+	 * @return
+	 */
+	public String getName() {
+		return name;
+	}
+
+	/**
 	 * disconnect from OOCSI
 	 * 
 	 */

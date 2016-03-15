@@ -44,6 +44,15 @@ public class OOCSIClient {
 	}
 
 	/**
+	 * get name of this OOCSI client
+	 * 
+	 * @return
+	 */
+	public String getName() {
+		return sc.getName();
+	}
+
+	/**
 	 * connect to OOCSI network without a concrete server given, i.e., wait for multi-cast messages broadcasting a
 	 * server to connect to
 	 * 
