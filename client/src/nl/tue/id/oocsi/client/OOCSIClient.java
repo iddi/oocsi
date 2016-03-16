@@ -2,6 +2,7 @@ package nl.tue.id.oocsi.client;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import nl.tue.id.oocsi.client.protocol.Handler;
 import nl.tue.id.oocsi.client.services.OOCSICall;
@@ -15,12 +16,21 @@ import nl.tue.id.oocsi.client.socket.SocketClient;
  */
 public class OOCSIClient {
 
-	public static final String VERSION = "0.8";
+	public static final String VERSION = "0.9";
 
 	private Map<String, Handler> channels = new HashMap<String, Handler>();
 	private Map<String, Responder> services = new HashMap<String, Responder>();
 
 	private SocketClient sc;
+
+	/**
+	 * create OOCSI client with a RANDOM name as the system-wide handle
+	 * 
+	 * @param name
+	 */
+	public OOCSIClient() {
+		this("OOCSIClient_" + (UUID.randomUUID().toString().replaceAll("-", "").substring(0, 15)));
+	}
 
 	/**
 	 * create OOCSI client with the given name as the system-wide handle
