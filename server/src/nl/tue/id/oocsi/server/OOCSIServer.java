@@ -124,8 +124,8 @@ public class OOCSIServer extends Server {
 		addChannel(channel);
 
 		// output status message
-		OOCSIServer.log("Started OOCSI server v" + OOCSIServer.VERSION + " for max. " + maxClients + " parallel clients"
-				+ (isLogging ? " and activated logging" : "") + ".");
+		OOCSIServer.log("Started OOCSI server v" + OOCSIServer.VERSION + " for max. " + maxClients
+				+ " parallel clients" + (isLogging ? " and activated logging" : "") + ".");
 
 		// TODO check command line options
 		// start OSC server
