@@ -277,7 +277,7 @@ public class OOCSIServer extends Server {
 			} else if (argument.equals("-users") && args.length >= i + 2) {
 				String userList = args[i + 1];
 				if (userList
-						.matches("^([a-zA-Z0-9_\\-.]+:[a-zA-Z0-9_\\-.]+;)*([a-zA-Z0-9_\\-.]+:[a-zA-Z0-9_\\-.]+);*$")) {
+						.matches("^([a-zA-Z0-9_\\-.]+:[a-zA-Z0-9_\\-.%$]+;)*([a-zA-Z0-9_\\-.]+:[a-zA-Z0-9_\\-.%$]+);*$")) {
 					users = userList.split(";");
 				}
 			}
