@@ -4,30 +4,44 @@ The OOCSI mission is to create a simple systems-interaction fabric for use by de
 
 There are two basic components that form an OOCSI network: the client and the server. While the server can be started from the command line (see here), the client interface need to be embedded in other code and allows this code to access the OOCSI network, to send and receive data in a simple way.
 
-## Server
+## OOCSI Server
 
-The server comes as a pre-compiled .jar file: [OOCSI_server.jar](https://github.com/iddi/oocsi/releases/download/server_version_1.4/OOCSI_server.jar) (~250kB)
+The server comes as a pre-compiled .jar file (~250kB) that runs out-of-the-box on Windows and Mac OS X (if Java is installed). You can find the newest version on the releases page:  [OOCSI Server Releases ](https://github.com/iddi/oocsi/releases).
 
-It can be run simply by double-clicking on the JAR file in most operating systems. There are, however, command line parameters that are explained in the following:   
+THe OOCSI server can be run simply by double-clicking on the JAR file in most operating systems. There are, however, command line parameters that are explained in the following:   
 
-Switch on logging to a file with:
-
-	java -jar OOCSI_server.jar -logging
-
-Allow for a certain maximum number of clients to be connected (here, 55):
-
-	java -jar OOCSI_server.jar -clients 55
+### Port
 
 Run the server on a specific port (instead of 4444 which is the default):
 
 	java -jar OOCSI_server.jar -port 4545
 
+### Logging
+
+Switch on logging to the console:
+
+	java -jar OOCSI_server.jar -logging
+
+Switch on logging to a file "logfile.txt":
+
+	java -jar OOCSI_server.jar -logging > logfile.txt
+
+### Clients
+
+Allow for a certain maximum number of clients to be connected (here, 55):
+
+	java -jar OOCSI_server.jar -clients 55
+
+Specify some users which are protected by a password. User and password are separated by a double-colon and different users are separated by a semicolon. You can use alphanumerical characters as well as '-', '_', '.', '$', and '%' for a password of any length. For an example with two users: Alice with her password "Pa$$word%%" and Bob with his password "bob-pas$worD":
+
+	java -jar OOCSI_server.jar -users Alice:Pa$$word%%;Bob:bob-pas$worD
+
 Of course, all parameters can be used at the same time, like this:
 
-	java -jar OOCSI_server.jar -logging -clients 55 -port 4545 
+	java -jar OOCSI_server.jar -logging -clients 55 -port 4545 -users Alice:Pa$$word%%;Bob:bob-pas$worD
 
 
-## Client
+## OOCSI Client
 
 OOCSI is a in essence a client-server message-bus infrastructure. With the server running, a client can connect an exchange
 messages with other clients via the server. While there is a dedicated [Processing plug-in for OOCSI] (https://iddi.github.io/oocsi-processing), 
