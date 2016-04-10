@@ -21,6 +21,7 @@ import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import nl.tue.id.oocsi.client.protocol.Handler;
+import nl.tue.id.oocsi.client.protocol.MultiHandler;
 import nl.tue.id.oocsi.client.services.OOCSICall;
 import nl.tue.id.oocsi.client.services.Responder;
 
@@ -402,8 +403,8 @@ public class SocketClient {
 
 		internalSubscribe(channelName);
 
-		// add handler
-		channels.put(channelName, handler);
+		// add handler to internal multi-handler
+		internalAddHandler(channelName, handler);
 	}
 
 	/**
@@ -416,6 +417,25 @@ public class SocketClient {
 		// check for replacement
 		if (channels.get(channelName) != null) {
 			log(" - reconnected subscription for " + channelName);
+		}
+	}
+
+	/**
+	 * manage internal multi-handler for this channel: will add the given handler to an existing multi-handler's
+	 * internal list, or create a new multi-handler with the given handler as the first sub-handler
+	 * 
+	 * @param channelName
+	 * @param handler
+	 */
+	private void internalAddHandler(String channelName, Handler handler) {
+		if (channels.containsKey(channelName)) {
+			Handler h = channels.get(channelName);
+			if (h instanceof MultiHandler) {
+				MultiHandler mh = (MultiHandler) h;
+				mh.add(handler);
+			}
+		} else {
+			channels.put(channelName, new MultiHandler(handler));
 		}
 	}
 
