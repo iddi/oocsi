@@ -19,7 +19,6 @@ import nl.tue.id.oocsi.client.services.Responder;
 public class OOCSICommunicator extends OOCSIClient {
 
 	private Object parent;
-	private String name;
 
 	/**
 	 * constructor
@@ -31,7 +30,6 @@ public class OOCSICommunicator extends OOCSIClient {
 		super(name);
 
 		this.parent = parent;
-		this.name = name;
 	}
 
 	/*

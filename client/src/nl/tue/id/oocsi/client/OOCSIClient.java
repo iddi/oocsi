@@ -23,13 +23,15 @@ public class OOCSIClient {
 
 	private SocketClient sc;
 
+	protected String name;
+
 	/**
 	 * create OOCSI client with a RANDOM name as the system-wide handle
 	 * 
 	 * @param name
 	 */
 	public OOCSIClient() {
-		this("OOCSIClient_" + (UUID.randomUUID().toString().replaceAll("-", "").substring(0, 15)));
+		this(null);
 	}
 
 	/**
@@ -39,11 +41,18 @@ public class OOCSIClient {
 	 */
 	public OOCSIClient(String name) {
 
+		// check for empty name and replace by random generated name
+		if (name == null || name.isEmpty()) {
+			name = "OOCSIClient_" + (UUID.randomUUID().toString().replaceAll("-", "").substring(0, 15));
+		}
+
 		// check oocsi name
 		if (name.contains(" ")) {
 			log("OOCSI name cannot contain spaces");
 			System.exit(-1);
 		}
+
+		this.name = name;
 
 		sc = new SocketClient(name, channels, services) {
 			public void log(String message) {
