@@ -124,8 +124,8 @@ public class OOCSIServer extends Server {
 		addChannel(channel);
 
 		// output status message
-		OOCSIServer.log("Started OOCSI server v" + OOCSIServer.VERSION + " for max. " + maxClients + " parallel clients"
-				+ (isLogging ? " and activated logging" : "") + ".");
+		OOCSIServer.log("Started OOCSI server v" + OOCSIServer.VERSION + " for max. " + maxClients
+				+ " parallel clients" + (isLogging ? " and activated logging" : "") + ".");
 
 		// TODO check command line options
 		// start OSC server
@@ -228,7 +228,8 @@ public class OOCSIServer extends Server {
 	 * @param timestamp
 	 */
 	public static void logEvent(String sender, String recipient, Map<String, Object> data, Date timestamp) {
-		if (isLogging && recipient != OOCSIServer.OOCSI_EVENTS && recipient != OOCSIServer.OOCSI_CONNECTIONS) {
+		if (isLogging && !OOCSIServer.OOCSI_EVENTS.equals(recipient)
+				&& !OOCSIServer.OOCSI_CONNECTIONS.equals(recipient)) {
 			log(OOCSI_EVENTS + " " + sender + "->" + recipient);
 
 			Message message = new Message(sender, OOCSI_EVENTS, timestamp, data);
@@ -247,7 +248,7 @@ public class OOCSIServer extends Server {
 	 * @param message
 	 */
 	public static void logConnection(String client, String channel, String operation, Date timestamp) {
-		if (isLogging && channel != OOCSIServer.OOCSI_EVENTS && channel != OOCSIServer.OOCSI_CONNECTIONS) {
+		if (isLogging && !OOCSIServer.OOCSI_EVENTS.equals(channel) && !OOCSIServer.OOCSI_CONNECTIONS.equals(channel)) {
 			log(OOCSI_CONNECTIONS + " " + client + "->" + channel + " (" + operation + ")");
 
 			Message message = new Message(client, OOCSI_CONNECTIONS, timestamp);

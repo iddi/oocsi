@@ -101,50 +101,53 @@ public class Protocol {
 							for (Map.Entry<String, JsonElement> element : jo.entrySet()) {
 								// translate primitives from json to java
 								JsonElement value = element.getValue();
+								// element is a single primitive
 								if (value.isJsonPrimitive()) {
 									map.put(element.getKey(), value);
-								} else {
+								}
+								// element is an array
+								else if (value.isJsonArray()) {
 									JsonArray asJsonArray = value.getAsJsonArray();
-									if (value.isJsonArray() && asJsonArray.size() > 0
+
+									// array is non-empty and contains primitives
+									if (asJsonArray != null && asJsonArray.size() > 0
 											&& asJsonArray.get(0).isJsonPrimitive()) {
-										JsonArray jsonArray = asJsonArray;
-										if (jsonArray != null) {
-											// booleans
-											if (asJsonArray.get(0).getAsJsonPrimitive().isBoolean()) {
-												boolean[] array = new boolean[asJsonArray.size()];
-												for (int i = 0; i < array.length; i++) {
-													JsonElement jsonElement = asJsonArray.get(i);
-													if (jsonElement.isJsonPrimitive()
-															&& jsonElement.getAsJsonPrimitive().isBoolean()) {
-														array[i] = jsonElement.getAsBoolean();
-													}
+
+										// booleans
+										if (asJsonArray.get(0).getAsJsonPrimitive().isBoolean()) {
+											boolean[] array = new boolean[asJsonArray.size()];
+											for (int i = 0; i < array.length; i++) {
+												JsonElement jsonElement = asJsonArray.get(i);
+												if (jsonElement.isJsonPrimitive()
+														&& jsonElement.getAsJsonPrimitive().isBoolean()) {
+													array[i] = jsonElement.getAsBoolean();
 												}
-												map.put(element.getKey(), array);
 											}
-											// numbers
-											else if (asJsonArray.get(0).getAsJsonPrimitive().isNumber()) {
-												float[] array = new float[asJsonArray.size()];
-												for (int i = 0; i < array.length; i++) {
-													JsonElement jsonElement = asJsonArray.get(i);
-													if (jsonElement.isJsonPrimitive()
-															&& jsonElement.getAsJsonPrimitive().isNumber()) {
-														array[i] = jsonElement.getAsFloat();
-													}
+											map.put(element.getKey(), array);
+										}
+										// numbers
+										else if (asJsonArray.get(0).getAsJsonPrimitive().isNumber()) {
+											float[] array = new float[asJsonArray.size()];
+											for (int i = 0; i < array.length; i++) {
+												JsonElement jsonElement = asJsonArray.get(i);
+												if (jsonElement.isJsonPrimitive()
+														&& jsonElement.getAsJsonPrimitive().isNumber()) {
+													array[i] = jsonElement.getAsFloat();
 												}
-												map.put(element.getKey(), array);
 											}
-											// string
-											else if (asJsonArray.get(0).getAsJsonPrimitive().isString()) {
-												String[] array = new String[asJsonArray.size()];
-												for (int i = 0; i < array.length; i++) {
-													JsonElement jsonElement = asJsonArray.get(i);
-													if (jsonElement.isJsonPrimitive()
-															&& jsonElement.getAsJsonPrimitive().isString()) {
-														array[i] = jsonElement.getAsString();
-													}
+											map.put(element.getKey(), array);
+										}
+										// string
+										else if (asJsonArray.get(0).getAsJsonPrimitive().isString()) {
+											String[] array = new String[asJsonArray.size()];
+											for (int i = 0; i < array.length; i++) {
+												JsonElement jsonElement = asJsonArray.get(i);
+												if (jsonElement.isJsonPrimitive()
+														&& jsonElement.getAsJsonPrimitive().isString()) {
+													array[i] = jsonElement.getAsString();
 												}
-												map.put(element.getKey(), array);
 											}
+											map.put(element.getKey(), array);
 										}
 									} else if (!value.isJsonNull()) {
 										map.put(element.getKey(), serializer.toJson(value));

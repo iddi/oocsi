@@ -532,11 +532,9 @@ public class SocketClient {
 	 * @return
 	 */
 	public String clients() {
-		synchronized (tempIncomingMessages) {
-			tempIncomingMessages.clear();
-			send("clients");
-			return syncPoll();
-		}
+		tempIncomingMessages.clear();
+		send("clients");
+		return syncPoll();
 	}
 
 	/**
@@ -545,11 +543,9 @@ public class SocketClient {
 	 * @return
 	 */
 	public String channels() {
-		synchronized (tempIncomingMessages) {
-			tempIncomingMessages.clear();
-			send("channels");
-			return syncPoll();
-		}
+		tempIncomingMessages.clear();
+		send("channels");
+		return syncPoll();
 	}
 
 	/**
@@ -559,11 +555,9 @@ public class SocketClient {
 	 * @return
 	 */
 	public String channels(String channelName) {
-		synchronized (tempIncomingMessages) {
-			tempIncomingMessages.clear();
-			send("channels " + channelName);
-			return syncPoll();
-		}
+		tempIncomingMessages.clear();
+		send("channels " + channelName);
+		return syncPoll();
 	}
 
 	/**
