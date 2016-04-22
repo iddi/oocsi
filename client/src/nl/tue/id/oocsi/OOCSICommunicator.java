@@ -6,6 +6,7 @@ import java.util.Map;
 
 import nl.tue.id.oocsi.client.OOCSIClient;
 import nl.tue.id.oocsi.client.protocol.EventHandler;
+import nl.tue.id.oocsi.client.protocol.Handler;
 import nl.tue.id.oocsi.client.protocol.OOCSIMessage;
 import nl.tue.id.oocsi.client.services.OOCSICall;
 import nl.tue.id.oocsi.client.services.Responder;
@@ -18,7 +19,6 @@ import nl.tue.id.oocsi.client.services.Responder;
 public class OOCSICommunicator extends OOCSIClient {
 
 	private Object parent;
-	private String name;
 
 	/**
 	 * constructor
@@ -30,7 +30,6 @@ public class OOCSICommunicator extends OOCSIClient {
 		super(name);
 
 		this.parent = parent;
-		this.name = name;
 	}
 
 	/*
@@ -171,7 +170,38 @@ public class OOCSICommunicator extends OOCSIClient {
 
 			return false;
 		}
+	}
 
+	/**
+	 * create a simple handler that calls the method with the given handlerName in the parent object (without
+	 * parameters)
+	 * 
+	 * @param handlerName
+	 * @return
+	 */
+	public Handler createSimpleCallerHandler(String handlerName) {
+
+		try {
+			final Method handler = parent.getClass().getDeclaredMethod(handlerName, new Class[] {});
+			return new EventHandler() {
+
+				@Override
+				public void receive(OOCSIEvent event) {
+					try {
+						handler.invoke(parent, new Object[] {});
+					} catch (IllegalAccessException e) {
+						e.printStackTrace();
+					} catch (IllegalArgumentException e) {
+						e.printStackTrace();
+					} catch (InvocationTargetException e) {
+						e.printStackTrace();
+					}
+				}
+			};
+		} catch (Exception e) {
+			// not found, just return null
+			return null;
+		}
 	}
 
 	/**

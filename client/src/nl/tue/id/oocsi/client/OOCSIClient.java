@@ -2,6 +2,7 @@ package nl.tue.id.oocsi.client;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import nl.tue.id.oocsi.client.protocol.Handler;
 import nl.tue.id.oocsi.client.services.OOCSICall;
@@ -15,12 +16,23 @@ import nl.tue.id.oocsi.client.socket.SocketClient;
  */
 public class OOCSIClient {
 
-	public static final String VERSION = "0.8";
+	public static final String VERSION = "0.9";
 
 	private Map<String, Handler> channels = new HashMap<String, Handler>();
 	private Map<String, Responder> services = new HashMap<String, Responder>();
 
 	private SocketClient sc;
+
+	protected String name;
+
+	/**
+	 * create OOCSI client with a RANDOM name as the system-wide handle
+	 * 
+	 * @param name
+	 */
+	public OOCSIClient() {
+		this(null);
+	}
 
 	/**
 	 * create OOCSI client with the given name as the system-wide handle
@@ -29,11 +41,18 @@ public class OOCSIClient {
 	 */
 	public OOCSIClient(String name) {
 
+		// check for empty name and replace by random generated name
+		if (name == null || name.isEmpty()) {
+			name = "OOCSIClient_" + (UUID.randomUUID().toString().replaceAll("-", "").substring(0, 15));
+		}
+
 		// check oocsi name
 		if (name.contains(" ")) {
 			log("OOCSI name cannot contain spaces");
 			System.exit(-1);
 		}
+
+		this.name = name;
 
 		sc = new SocketClient(name, channels, services) {
 			public void log(String message) {
@@ -41,6 +60,15 @@ public class OOCSIClient {
 			}
 		};
 		log("OOCSI client v" + VERSION + " started");
+	}
+
+	/**
+	 * get name of this OOCSI client
+	 * 
+	 * @return
+	 */
+	public String getName() {
+		return sc.getName();
 	}
 
 	/**

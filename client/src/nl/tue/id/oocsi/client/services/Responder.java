@@ -31,7 +31,7 @@ abstract public class Responder extends Handler {
 	 * @param oocsi
 	 */
 	public Responder(OOCSIClient oocsi) {
-		this.oocsi = oocsi;
+		this(oocsi, null);
 	}
 
 	/**
