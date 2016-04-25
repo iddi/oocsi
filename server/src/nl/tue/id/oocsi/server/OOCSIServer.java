@@ -6,14 +6,14 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import com.google.gson.Gson;
-
 import nl.tue.id.oocsi.server.model.Channel;
 import nl.tue.id.oocsi.server.model.Server;
 import nl.tue.id.oocsi.server.protocol.Message;
 import nl.tue.id.oocsi.server.services.AbstractService;
 import nl.tue.id.oocsi.server.services.OSCService;
 import nl.tue.id.oocsi.server.services.SocketService;
+
+import com.google.gson.Gson;
 
 /**
  * main server component for running OOCSI
@@ -37,6 +37,12 @@ public class OOCSIServer extends Server {
 	public static final String OOCSI_CONNECTIONS = "OOCSI_connections";
 	public static final String OOCSI_CHANNELS = "OOCSI_channels";
 	public static final String OOCSI_CLIENTS = "OOCSI_clients";
+	public static final String OOCSI_METRICS = "OOCSI_metrics";
+
+	// metrics
+	private static int messageCount = 0;
+	private static int messageTotal = 0;
+	private static final long serverStart = System.currentTimeMillis();
 
 	// singleton
 	private static OOCSIServer server;
@@ -156,6 +162,19 @@ public class OOCSIServer extends Server {
 					message.addData("clients", server.getClientList());
 					clients.send(message);
 				}
+
+				// check if we have a subscriber for public client information
+				Channel metrics = server.getChannel(OOCSI_METRICS);
+				if (metrics != null) {
+					Message message = new Message("SERVER", OOCSI_METRICS);
+					message.addData("messagesTotal", messageTotal);
+					message.addData("messages", (int) Math.ceil(messageCount / 5.));
+					message.addData("uptime", System.currentTimeMillis() - serverStart);
+					message.addData("channels", server.subChannels.size());
+					message.addData("clients", server.clients.size());
+					metrics.send(message);
+				}
+				messageCount = 0;
 			}
 		}, 1000, 5000);
 	}
@@ -228,16 +247,25 @@ public class OOCSIServer extends Server {
 	 * @param timestamp
 	 */
 	public static void logEvent(String sender, String recipient, Map<String, Object> data, Date timestamp) {
-		if (isLogging && !OOCSIServer.OOCSI_EVENTS.equals(recipient)
-				&& !OOCSIServer.OOCSI_CONNECTIONS.equals(recipient)) {
-			log(OOCSI_EVENTS + " " + sender + "->" + recipient);
 
-			Message message = new Message(sender, OOCSI_EVENTS, timestamp, data);
-			message.addData("sender", sender);
-			message.addData("recipient", recipient);
-			Channel logChannel = server.getChannel(OOCSI_EVENTS);
-			if (logChannel != null) {
-				logChannel.send(message);
+		if (!OOCSIServer.OOCSI_EVENTS.equals(recipient) && !OOCSIServer.OOCSI_METRICS.equals(recipient)
+				&& !OOCSIServer.OOCSI_CONNECTIONS.equals(recipient)) {
+
+			// log metrics
+			messageCount++;
+			messageTotal++;
+
+			if (isLogging) {
+				log(OOCSI_EVENTS + " " + sender + "->" + recipient);
+
+				Channel logChannel = server.getChannel(OOCSI_EVENTS);
+				if (logChannel != null) {
+					Message message = new Message(sender, OOCSI_EVENTS, timestamp, data);
+					message.addData("sender", sender);
+					message.addData("recipient", recipient);
+
+					logChannel.send(message);
+				}
 			}
 		}
 	}
