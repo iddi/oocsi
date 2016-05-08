@@ -248,8 +248,8 @@ public class OOCSIServer extends Server {
 	 */
 	public static void logEvent(String sender, String recipient, Map<String, Object> data, Date timestamp) {
 
-		if (!OOCSIServer.OOCSI_EVENTS.equals(recipient) && !OOCSIServer.OOCSI_METRICS.equals(recipient)
-				&& !OOCSIServer.OOCSI_CONNECTIONS.equals(recipient)) {
+		if (!OOCSIServer.OOCSI_EVENTS.equals(sender) && !OOCSIServer.OOCSI_EVENTS.equals(recipient)
+				&& !OOCSIServer.OOCSI_METRICS.equals(recipient) && !OOCSIServer.OOCSI_CONNECTIONS.equals(recipient)) {
 
 			// log metrics
 			messageCount++;
