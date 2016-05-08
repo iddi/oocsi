@@ -89,7 +89,14 @@ public class SocketClient extends Client {
 		}
 
 		if (!isPrivate()) {
-			OOCSIServer.logEvent(message.sender, message.recipient, message.data, message.timestamp);
+			if (!message.recipient.equals(this.getName())) {
+				if (!message.sender.equals("SERVER") && !message.recipient.equals("OOCSI_events")) {
+					OOCSIServer.logEvent(message.sender, message.recipient, message.data, message.timestamp);
+					OOCSIServer.logEvent(message.recipient, this.getName(), message.data, message.timestamp);
+				}
+			} else {
+				OOCSIServer.logEvent(message.sender, message.recipient, message.data, message.timestamp);
+			}
 		}
 	}
 

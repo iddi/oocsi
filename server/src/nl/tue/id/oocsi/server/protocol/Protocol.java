@@ -166,6 +166,10 @@ public class Protocol {
 					}
 
 					c.send(new Message(sender.getName(), recipient, new Date(), map));
+
+					if (!c.isPrivate()) {
+						OOCSIServer.logEvent(sender.getName(), recipient, map, new Date());
+					}
 				}
 			}
 		}
@@ -187,6 +191,10 @@ public class Protocol {
 						@SuppressWarnings("unchecked")
 						Map<String, Object> map = (Map<String, Object>) outputObject;
 						c.send(new Message(sender.getName(), recipient, new Date(), map));
+
+						if (!c.isPrivate()) {
+							OOCSIServer.logEvent(sender.getName(), recipient, map, new Date());
+						}
 					}
 				} catch (IOException e) {
 					OOCSIServer.log("[MsgParser] I/O problem: " + e.getMessage());
