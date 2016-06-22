@@ -49,6 +49,21 @@ public class OOCSIMessage extends OOCSIEvent {
 	 * @param value
 	 * @return
 	 */
+	public OOCSIMessage data(String key, boolean value) {
+
+		// store data
+		this.data.put(key, value);
+
+		return this;
+	}
+
+	/**
+	 * store data in message
+	 * 
+	 * @param key
+	 * @param value
+	 * @return
+	 */
 	public OOCSIMessage data(String key, int value) {
 
 		// store data
