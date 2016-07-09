@@ -1,8 +1,9 @@
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Map;
+import org.junit.Test;
 
+import nl.tue.id.oocsi.OOCSIData;
 import nl.tue.id.oocsi.OOCSIEvent;
 import nl.tue.id.oocsi.client.OOCSIClient;
 import nl.tue.id.oocsi.client.services.OOCSICall;
@@ -10,8 +11,6 @@ import nl.tue.id.oocsi.client.services.Responder;
 import nl.tue.id.oocsi.client.services.Service;
 import nl.tue.id.oocsi.client.services.Service.ServiceField;
 import nl.tue.id.oocsi.client.services.Service.ServiceMethod;
-
-import org.junit.Test;
 
 /**
  * call / responder test cases
@@ -46,10 +45,10 @@ public class ClientCallTest {
 		assertTrue(o1.isConnected());
 		final ServiceMethod serviceMethod2 = s.methods.get(0);
 		serviceMethod2.registerResponder(o1, new Responder() {
-			public void respond(OOCSIEvent event, Map<String, Object> response) {
+			public void respond(OOCSIEvent event, OOCSIData response) {
 				int value = event.getInt(serviceMethod2.input.get(0).name, 0);
 				value += 29;
-				response.put(serviceMethod2.output.get(0).name, value);
+				response.data(serviceMethod2.output.get(0).name, value);
 			}
 		});
 
@@ -66,13 +65,10 @@ public class ClientCallTest {
 			call.send();
 			assertTrue(call.hasResponse());
 			if (call.hasResponse()) {
-				int responseValue = call.getFirstResponse().getInt(serviceMethod2.output.get(0).name, 0/*
-																										 * (Integer)
-																										 * serviceMethod2
-																										 * .output
-																										 * .get(0
-																										 * ).defaultValue
-																										 */);
+				int responseValue = call.getFirstResponse().getInt(serviceMethod2.output.get(0).name,
+						0/*
+							 * (Integer) serviceMethod2 .output .get(0 ).defaultValue
+							 */);
 				assertEquals(30, responseValue);
 			}
 		}
@@ -90,10 +86,9 @@ public class ClientCallTest {
 		o2.register("addnineteen", new Responder(o2) {
 
 			@Override
-			public void respond(OOCSIEvent event, Map<String, Object> response) {
+			public void respond(OOCSIEvent event, OOCSIData response) {
 				int pp = event.getInt("addnineteen", -1);
-				pp += 19;
-				response.put("addedthat", pp);
+				response.data("addedthat", pp + 19);
 			}
 		});
 
@@ -126,20 +121,18 @@ public class ClientCallTest {
 		o2.register("addnineteen", new Responder(o2) {
 
 			@Override
-			public void respond(OOCSIEvent event, Map<String, Object> response) {
+			public void respond(OOCSIEvent event, OOCSIData response) {
 				int pp = event.getInt("addnineteen", -1);
-				pp += 19;
-				response.put("addedthat", pp);
+				response.data("addedthat", pp + 19);
 				System.out.println("response from pongR");
 			}
 		});
 		o2.register("addnine", new Responder(o2) {
 
 			@Override
-			public void respond(OOCSIEvent event, Map<String, Object> response) {
+			public void respond(OOCSIEvent event, OOCSIData response) {
 				int pp = event.getInt("addnineteen", -1);
-				pp += 9;
-				response.put("addedthat", pp);
+				response.data("addedthat", pp + 9);
 			}
 		});
 
@@ -174,10 +167,10 @@ public class ClientCallTest {
 			o2.register("addnineteen2", new Responder(o2) {
 
 				@Override
-				public void respond(OOCSIEvent event, Map<String, Object> response) {
+				public void respond(OOCSIEvent event, OOCSIData response) {
 					int pp = event.getInt("addnineteen", -1);
 					pp += 19;
-					response.put("addedthat", pp);
+					response.data("addedthat", pp);
 					System.out.println("response from pongR1");
 				}
 			});
@@ -189,10 +182,10 @@ public class ClientCallTest {
 			o2.register("addnineteen2", new Responder(o2) {
 
 				@Override
-				public void respond(OOCSIEvent event, Map<String, Object> response) {
+				public void respond(OOCSIEvent event, OOCSIData response) {
 					int pp = event.getInt("addnineteen", -1);
 					pp += 19;
-					response.put("addedthat", pp);
+					response.data("addedthat", pp);
 					System.out.println("response from pongR2");
 				}
 			});
@@ -262,7 +255,7 @@ public class ClientCallTest {
 		o2.register("addnineteen1", new Responder(o2) {
 
 			@Override
-			public void respond(OOCSIEvent event, Map<String, Object> response) {
+			public void respond(OOCSIEvent event, OOCSIData response) {
 				try {
 					System.out.println("sleeping now");
 					Thread.sleep(600);

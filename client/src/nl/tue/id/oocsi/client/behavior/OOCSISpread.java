@@ -138,7 +138,7 @@ public class OOCSISpread extends OOCSISystemCommunicator<Integer> {
 					triggerHandler();
 				}
 			}
-		}, 0, OOCSISpread.this.timeout / 20);
+		}, OOCSISpread.this.timeout / 20, OOCSISpread.this.timeout / 20);
 	}
 
 	/**

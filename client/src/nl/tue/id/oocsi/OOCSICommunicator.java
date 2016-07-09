@@ -2,7 +2,6 @@ package nl.tue.id.oocsi;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Map;
 
 import nl.tue.id.oocsi.client.OOCSIClient;
 import nl.tue.id.oocsi.client.protocol.EventHandler;
@@ -230,11 +229,11 @@ public class OOCSICommunicator extends OOCSIClient {
 
 		try {
 			final Method handler = parent.getClass().getDeclaredMethod(handlerName,
-					new Class[] { OOCSIEvent.class, Map.class });
+					new Class[] { OOCSIEvent.class, OOCSIData.class });
 			Responder responder = new Responder(this) {
 
 				@Override
-				public void respond(OOCSIEvent event, java.util.Map<String, Object> response) {
+				public void respond(OOCSIEvent event, OOCSIData response) {
 					try {
 						handler.invoke(parent, new Object[] { event, response });
 					} catch (IllegalAccessException e) {
@@ -247,7 +246,7 @@ public class OOCSICommunicator extends OOCSIClient {
 				}
 			};
 			responder.setCallName(responderName);
-			subscribe(responderName, responder);
+			register(responderName, responder);
 
 			log(" - registered " + responderName + " as call responder");
 

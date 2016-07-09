@@ -110,7 +110,7 @@ public class OOCSISync extends OOCSISystemCommunicator<Integer> {
 					progress = getPeriodFraction(1 + Math.random() / 50.);
 				}
 			}
-		}, 0, (int) (periodMS / PERIOD));
+		}, (int) (periodMS / PERIOD), (int) (periodMS / PERIOD));
 	}
 
 	/**

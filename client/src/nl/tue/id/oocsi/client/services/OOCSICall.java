@@ -102,7 +102,7 @@ public class OOCSICall extends OOCSIMessage {
 	 * @return
 	 */
 	public boolean hasResponse() {
-		return response != null;
+		return response != null && 1 <= maxResponses;
 	}
 
 	/**
@@ -135,10 +135,13 @@ public class OOCSICall extends OOCSIMessage {
 	/**
 	 * send message and then wait until either the timeout has passed or at least one response has been recorded
 	 * 
+	 * @return
 	 */
-	public void sendAndWait() {
+	public OOCSICall sendAndWait() {
 		send();
 		waitForResponse();
+
+		return this;
 	}
 
 	/**
@@ -147,17 +150,21 @@ public class OOCSICall extends OOCSIMessage {
 	 * 
 	 * @param ms
 	 *            timeout
+	 * @return
 	 */
-	public void sendAndWait(int ms) {
+	public OOCSICall sendAndWait(int ms) {
 		this.expiration = System.currentTimeMillis() + ms;
 		sendAndWait();
+
+		return this;
 	}
 
 	/**
 	 * wait until either the timeout has passed or at least one response has been recorded
 	 * 
+	 * @return
 	 */
-	public void waitForResponse() {
+	public OOCSICall waitForResponse() {
 		while (isValid()) {
 			try {
 				Thread.sleep(100);
@@ -165,6 +172,8 @@ public class OOCSICall extends OOCSIMessage {
 				// do nothing
 			}
 		}
+
+		return this;
 	}
 
 	/*
@@ -180,10 +189,40 @@ public class OOCSICall extends OOCSIMessage {
 	/*
 	 * (non-Javadoc)
 	 * 
+	 * @see nl.tue.id.oocsi.client.protocol.OOCSIMessage#data(java.lang.String, boolean)
+	 */
+	@Override
+	public OOCSICall data(String key, boolean value) {
+		return (OOCSICall) super.data(key, value);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see nl.tue.id.oocsi.client.protocol.OOCSIMessage#data(java.lang.String, int)
 	 */
 	@Override
 	public OOCSICall data(String key, int value) {
+		return (OOCSICall) super.data(key, value);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see nl.tue.id.oocsi.client.protocol.OOCSIMessage#data(java.lang.String, float)
+	 */
+	@Override
+	public OOCSICall data(String key, float value) {
+		return (OOCSICall) super.data(key, value);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see nl.tue.id.oocsi.client.protocol.OOCSIMessage#data(java.lang.String, double)
+	 */
+	@Override
+	public OOCSICall data(String key, double value) {
 		return (OOCSICall) super.data(key, value);
 	}
 
