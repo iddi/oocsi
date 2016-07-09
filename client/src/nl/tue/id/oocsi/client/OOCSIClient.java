@@ -119,6 +119,15 @@ public class OOCSIClient {
 	}
 
 	/**
+	 * reconnects the connection to OOCSI server
+	 * 
+	 * this is for testing, do NOT use for normal operation
+	 */
+	public void reconnect() {
+		sc.reconnect();
+	}
+
+	/**
 	 * set whether or not a reconnection attempt should be made if a connection fails
 	 * 
 	 * @param reconnect

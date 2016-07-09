@@ -10,6 +10,7 @@ import org.junit.Test;
 
 import nl.tue.id.oocsi.client.OOCSIClient;
 import nl.tue.id.oocsi.client.protocol.DataHandler;
+import nl.tue.id.oocsi.client.protocol.Handler;
 
 public class ClientConnectionTest {
 
@@ -63,17 +64,68 @@ public class ClientConnectionTest {
 		o.setReconnect(true);
 		o.connect("localhost", 4444);
 
-		Thread.sleep(20000);
+		Thread.sleep(2000);
 
 		assertTrue(o.isConnected());
 
 		Thread.sleep(500);
 
-		o.disconnect();
+		o.reconnect();
 
 		Thread.sleep(500);
 
-		assertTrue(!o.isConnected());
+		assertTrue(o.isConnected());
+	}
+
+	@Test
+	public void testConnectReconnectSubscriptions() throws InterruptedException {
+		final List<String> list = new ArrayList<String>();
+
+		OOCSIClient o = new OOCSIClient("test_client_0_reconnect_subscriptions1");
+		o.setReconnect(true);
+		o.connect("localhost", 4444);
+		o.subscribe("subscriptionTest", new Handler() {
+
+			@Override
+			public void receive(String sender, Map<String, Object> data, long timestamp, String channel,
+					String recipient) {
+				list.add("event received");
+			}
+		});
+
+		Thread.sleep(1000);
+
+		assertTrue(o.isConnected());
+
+		{
+			OOCSIClient o2 = new OOCSIClient("test_client_0_reconnect_subscriptions2");
+			o2.connect("localhost", 4444);
+			assertTrue(o2.isConnected());
+			o2.send("subscriptionTest", "some unimportant data");
+		}
+
+		Thread.sleep(500);
+		assertTrue(!list.isEmpty());
+
+		list.clear();
+
+		Thread.sleep(500);
+
+		o.reconnect();
+
+		Thread.sleep(500);
+
+		assertTrue(o.isConnected());
+
+		{
+			OOCSIClient o2 = new OOCSIClient("test_client_0_reconnect_subscriptions3");
+			o2.connect("localhost", 4444);
+			assertTrue(o2.isConnected());
+			o2.send("subscriptionTest", "some unimportant data");
+		}
+
+		Thread.sleep(500);
+		assertTrue(!list.isEmpty());
 	}
 
 	@Test

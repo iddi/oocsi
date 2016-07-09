@@ -13,6 +13,7 @@ import java.net.InetSocketAddress;
 import java.net.MulticastSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.LinkedList;
 import java.util.List;
@@ -68,36 +69,43 @@ public class SocketClient {
 		MulticastSocket socket = null;
 		try {
 			socket = new MulticastSocket(MULTICAST_PORT);
+			socket.setSoTimeout(10000);
 			InetAddress group = InetAddress.getByName(MULTICAST_GROUP);
 			socket.joinGroup(group);
 
 			DatagramPacket packet;
 			// check for multi-cast message from server for 10 * 5 seconds
-			for (int i = 0; i < 10; i++) {
-				byte[] buf = new byte[256];
-				packet = new DatagramPacket(buf, buf.length);
-				socket.receive(packet);
+			for (int i = 0; i < 5; i++) {
+				try {
+					byte[] buf = new byte[256];
+					packet = new DatagramPacket(buf, buf.length);
+					socket.receive(packet);
 
-				// pack String and unpack hostname of server from String
-				String received = new String(packet.getData(), 0, packet.getLength());
-				if (received.startsWith("OOCSI@")) {
-					received = received.replace("OOCSI@", "");
-					received = received.replace("\\(.*\\)", "");
-					String[] parts = received.split(":");
-					if (parts.length == 2 && parts[0].length() > 0 && parts[1].length() > 0) {
-						// try to connect
-						int port = Integer.parseInt(parts[1]);
-						if (connect(parts[0], port)) {
-							socket.leaveGroup(group);
-							return true;
+					// pack String and unpack hostname of server from String
+					String received = new String(packet.getData(), 0, packet.getLength());
+					if (received.startsWith("OOCSI@")) {
+						received = received.replace("OOCSI@", "");
+						received = received.replace("\\(.*\\)", "");
+						String[] parts = received.split(":");
+						if (parts.length == 2 && parts[0].length() > 0 && parts[1].length() > 0) {
+							// try to connect
+							int port = Integer.parseInt(parts[1]);
+							if (connect(parts[0], port)) {
+								socket.leaveGroup(group);
+								return true;
+							}
 						}
 					}
-				}
 
-				try {
-					// wait a bit
-					Thread.sleep(5000);
-				} catch (InterruptedException e) {
+					// // no proper signal
+					// try {
+					// // so, wait a bit before next trial
+					// Thread.sleep(5000);
+					// } catch (InterruptedException e) {
+					// }
+
+				} catch (SocketTimeoutException e) {
+					// likely timeout occurred
 				}
 			}
 
@@ -366,12 +374,31 @@ public class SocketClient {
 	 * 
 	 */
 	public void kill() {
-		// disconnect from server without handshake
+		// disconnect from server without handshake, allows for reconnection testing
 		disconnected = true;
-		reconnect = false;
-		reconnectCountDown = 0;
 
 		try {
+			output.close();
+			input.close();
+			socket.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (NullPointerException e) {
+			e.printStackTrace();
+		}
+
+		log(" - disconnected (by kill)");
+	}
+
+	/**
+	 * reconnects this client connection to OOCSI
+	 * 
+	 */
+	public void reconnect() {
+		// disconnect from server without handshake, allows for reconnection testing
+
+		try {
+			output.println("quit");
 			output.close();
 			input.close();
 			socket.close();

@@ -62,7 +62,7 @@ public class ClientCallTest {
 		{
 			OOCSICall call = serviceMethod2.buildCall(o2, 1000, 1).data("value", 1);
 			assertTrue(call.canSend());
-			call.send();
+			call.sendAndWait();
 			assertTrue(call.hasResponse());
 			if (call.hasResponse()) {
 				int responseValue = call.getFirstResponse().getInt(serviceMethod2.output.get(0).name,
@@ -94,7 +94,7 @@ public class ClientCallTest {
 
 		{
 			OOCSICall call = new OOCSICall(o1, "pong", "addnineteen", 500, 1).data("addnineteen", 1);
-			call.send();
+			call.sendAndWait();
 
 			assertTrue(call.hasResponse());
 			OOCSIEvent response = call.getFirstResponse();
@@ -102,7 +102,7 @@ public class ClientCallTest {
 		}
 		{
 			OOCSICall call = new OOCSICall(o1, "pong", "addnineteen", 500, 1).data("addnineteen", 100);
-			call.send();
+			call.sendAndWait();
 			assertTrue(call.hasResponse());
 			OOCSIEvent response = call.getFirstResponse();
 			assertEquals(119, response.getInt("addedthat", -1));
@@ -138,7 +138,7 @@ public class ClientCallTest {
 
 		{
 			OOCSICall call = new OOCSICall(o1, "addnineteen", "addnineteen", 500, 1).data("addnineteen", 1);
-			call.send();
+			call.sendAndWait();
 
 			assertTrue(call.hasResponse());
 			OOCSIEvent response = call.getFirstResponse();
@@ -146,7 +146,7 @@ public class ClientCallTest {
 		}
 		{
 			OOCSICall call = new OOCSICall(o1, "addnineteen", "addnineteen", 500, 1).data("addnineteen", 100);
-			call.send();
+			call.sendAndWait();
 
 			assertTrue(call.hasResponse());
 			OOCSIEvent response = call.getFirstResponse();
@@ -194,7 +194,7 @@ public class ClientCallTest {
 		// test normal call/response handlers
 		{
 			OOCSICall call = new OOCSICall(o1, "addnineteen2", "addnineteen2", 500, 1).data("addnineteen", 1);
-			call.send();
+			call.sendAndWait();
 
 			assertTrue(call.hasResponse());
 			OOCSIEvent response = call.getFirstResponse();
@@ -204,7 +204,7 @@ public class ClientCallTest {
 		// test direct response trigger 1
 		{
 			OOCSICall call = new OOCSICall(o1, "pongR1", "addnineteen2", 500, 1).data("addnineteen", 100);
-			call.send();
+			call.sendAndWait();
 			assertTrue(call.hasResponse());
 			OOCSIEvent response = call.getFirstResponse();
 			assertEquals(119, response.getInt("addedthat", -1));
@@ -213,7 +213,7 @@ public class ClientCallTest {
 		// test direct response trigger 2
 		{
 			OOCSICall call = new OOCSICall(o1, "pongR2", "addnineteen2", 500, 1).data("addnineteen", 100);
-			call.send();
+			call.sendAndWait();
 			assertTrue(call.hasResponse());
 			OOCSIEvent response = call.getFirstResponse();
 			assertEquals(119, response.getInt("addedthat", -1));
