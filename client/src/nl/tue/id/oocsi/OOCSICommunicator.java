@@ -44,8 +44,8 @@ public class OOCSICommunicator extends OOCSIClient {
 
 		// default subscribe
 		if (!subscribe(name, name)) {
-			if (!subscribe(name, "handleOOCSIEvent")) {
-				log(" - no handlers found for receiving direct messages");
+			if (subscribe(name, "handleOOCSIEvent")) {
+				log(" - found 'handleOOCSIEvent', will send direct messages there");
 			}
 		}
 

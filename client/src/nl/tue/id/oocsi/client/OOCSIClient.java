@@ -16,7 +16,7 @@ import nl.tue.id.oocsi.client.socket.SocketClient;
  */
 public class OOCSIClient {
 
-	public static final String VERSION = "1.0";
+	public static final String VERSION = "1.1";
 
 	private Map<String, Handler> channels = new HashMap<String, Handler>();
 	private Map<String, Responder> services = new HashMap<String, Responder>();
