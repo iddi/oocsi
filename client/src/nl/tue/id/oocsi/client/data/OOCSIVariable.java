@@ -118,4 +118,14 @@ public class OOCSIVariable<T> extends OOCSISystemCommunicator<T> {
 		this.internalVariable = var;
 		message(key, internalVariable);
 	}
+
+	/**
+	 * update the setting of the variable, but only if it is different from the reference value
+	 * 
+	 */
+	public void update() {
+		if (this.internalVariable != this.internalReference) {
+			message(key, internalVariable);
+		}
+	}
 }
