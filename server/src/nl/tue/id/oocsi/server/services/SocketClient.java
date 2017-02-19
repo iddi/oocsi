@@ -148,18 +148,26 @@ public class SocketClient extends Client {
 			}
 		}
 
+		return serializeOOCSIOutput(data);
+	}
+
+	/**
+	 * @param data
+	 * @return
+	 */
+	private String serializeOOCSIOutput(Map<String, Object> data) {
 		// map to serialized java object
-		ByteArrayOutputStream baos = new ByteArrayOutputStream(1024);
+		final ByteArrayOutputStream baos = new ByteArrayOutputStream(1024);
 		try {
-			ObjectOutputStream oos = new ObjectOutputStream(baos);
+			final ObjectOutputStream oos = new ObjectOutputStream(baos);
 			oos.writeObject(data);
-			byte[] rawData = baos.toByteArray();
+			final byte[] rawData = baos.toByteArray();
 			return new String(Base64Coder.encode(rawData));
 		} catch (IOException e) {
 			try {
-				ObjectOutputStream oos = new ObjectOutputStream(baos);
+				final ObjectOutputStream oos = new ObjectOutputStream(baos);
 				oos.writeObject(new HashMap<String, Object>());
-				byte[] rawData = baos.toByteArray();
+				final byte[] rawData = baos.toByteArray();
 				return new String(Base64Coder.encode(rawData));
 			} catch (IOException e1) {
 				return "";

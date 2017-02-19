@@ -6,14 +6,14 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import com.google.gson.Gson;
+
 import nl.tue.id.oocsi.server.model.Channel;
 import nl.tue.id.oocsi.server.model.Server;
 import nl.tue.id.oocsi.server.protocol.Message;
 import nl.tue.id.oocsi.server.services.AbstractService;
 import nl.tue.id.oocsi.server.services.OSCService;
 import nl.tue.id.oocsi.server.services.SocketService;
-
-import com.google.gson.Gson;
 
 /**
  * main server component for running OOCSI
@@ -130,8 +130,8 @@ public class OOCSIServer extends Server {
 		addChannel(channel);
 
 		// output status message
-		OOCSIServer.log("Started OOCSI server v" + OOCSIServer.VERSION + " for max. " + maxClients
-				+ " parallel clients" + (isLogging ? " and activated logging" : "") + ".");
+		OOCSIServer.log("Started OOCSI server v" + OOCSIServer.VERSION + " for max. " + maxClients + " parallel clients"
+				+ (isLogging ? " and activated logging" : "") + ".");
 
 		// TODO check command line options
 		// start OSC server
@@ -145,38 +145,7 @@ public class OOCSIServer extends Server {
 		run(new AbstractService[] { tcp, osc });
 
 		// start timer for posting channel and client information to the respective channels
-		new Timer(true).schedule(new TimerTask() {
-			public void run() {
-				// check if we have a subscriber for public channel information
-				Channel channels = server.getChannel(OOCSI_CHANNELS);
-				if (channels != null) {
-					Message message = new Message("SERVER", OOCSI_CHANNELS);
-					message.addData("channels", server.getChannelList());
-					channels.send(message);
-				}
-
-				// check if we have a subscriber for public client information
-				Channel clients = server.getChannel(OOCSI_CLIENTS);
-				if (clients != null) {
-					Message message = new Message("SERVER", OOCSI_CLIENTS);
-					message.addData("clients", server.getClientList());
-					clients.send(message);
-				}
-
-				// check if we have a subscriber for public client information
-				Channel metrics = server.getChannel(OOCSI_METRICS);
-				if (metrics != null) {
-					Message message = new Message("SERVER", OOCSI_METRICS);
-					message.addData("messagesTotal", messageTotal);
-					message.addData("messages", (int) Math.ceil(messageCount / 5.));
-					message.addData("uptime", System.currentTimeMillis() - serverStart);
-					message.addData("channels", server.subChannels.size());
-					message.addData("clients", server.clients.size());
-					metrics.send(message);
-				}
-				messageCount = 0;
-			}
-		}, 1000, 5000);
+		new Timer(true).schedule(new StatusTimeTask(), 1000, 5000);
 	}
 
 	public void run(final AbstractService[] services) {
@@ -305,11 +274,46 @@ public class OOCSIServer extends Server {
 				isLogging = true;
 			} else if (argument.equals("-users") && args.length >= i + 2) {
 				String userList = args[i + 1];
-				if (userList
-						.matches("^([a-zA-Z0-9_\\-.]+:[a-zA-Z0-9_\\-.%$]+;)*([a-zA-Z0-9_\\-.]+:[a-zA-Z0-9_\\-.%$]+);*$")) {
+				if (userList.matches(
+						"^([a-zA-Z0-9_\\-.]+:[a-zA-Z0-9_\\-.%$]+;)*([a-zA-Z0-9_\\-.]+:[a-zA-Z0-9_\\-.%$]+);*$")) {
 					users = userList.split(";");
 				}
 			}
 		}
 	}
+
+	class StatusTimeTask extends TimerTask {
+		@Override
+		public void run() {
+			// check if we have a subscriber for public channel information
+			Channel channels = server.getChannel(OOCSI_CHANNELS);
+			if (channels != null) {
+				Message message = new Message("SERVER", OOCSI_CHANNELS);
+				message.addData("channels", server.getChannelList());
+				channels.send(message);
+			}
+
+			// check if we have a subscriber for public client information
+			Channel clients = server.getChannel(OOCSI_CLIENTS);
+			if (clients != null) {
+				Message message = new Message("SERVER", OOCSI_CLIENTS);
+				message.addData("clients", server.getClientList());
+				clients.send(message);
+			}
+
+			// check if we have a subscriber for public client information
+			Channel metrics = server.getChannel(OOCSI_METRICS);
+			if (metrics != null) {
+				Message message = new Message("SERVER", OOCSI_METRICS);
+				message.addData("messagesTotal", messageTotal);
+				message.addData("messages", (int) Math.ceil(messageCount / 5.));
+				message.addData("uptime", System.currentTimeMillis() - serverStart);
+				message.addData("channels", server.subChannels.size());
+				message.addData("clients", server.clients.size());
+				metrics.send(message);
+			}
+			messageCount = 0;
+		}
+	}
+
 }
