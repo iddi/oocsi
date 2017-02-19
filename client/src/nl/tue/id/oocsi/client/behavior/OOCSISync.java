@@ -17,7 +17,7 @@ public class OOCSISync extends OOCSISystemCommunicator<Integer> {
 
 	// call constants
 	private static final String SYNC = "sync";
-	private double PERIOD = 30;
+	private int PERIOD = 20;
 
 	// infrastructure, configuration
 	private int periodMS;
@@ -26,6 +26,7 @@ public class OOCSISync extends OOCSISystemCommunicator<Integer> {
 	private Timer timer;
 	private boolean isSynced = false;
 	private int progress = 0;
+	private int signalCount = 0;
 
 	/**
 	 * creates a synchronization process among OOCSI clients on the same channel with a default of 2 secs between
@@ -80,18 +81,19 @@ public class OOCSISync extends OOCSISystemCommunicator<Integer> {
 					String recipient) {
 
 				// compare the synchronizing from others to my own progress in the periodic sync cycle
-				if (progress == getPeriodFraction(0.05)) {
-					progress -= getPeriodFraction(0.05);
+				if (progress < getPeriodFraction(0.05) || progress > getPeriodFraction(0.95)) {
+					isSynced = true;
+				} else if (progress < getPeriodFraction(0.6)) {
+					progress -= getPeriodFraction(0.1);
 					isSynced = false;
-				} else if (progress == getPeriodFraction(0.9)) {
+				} else if (progress > getPeriodFraction(0.4)) {
 					progress += getPeriodFraction(0.05);
 					isSynced = false;
-				} else if (progress < getPeriodFraction(0.05) || progress > getPeriodFraction(0.9)) {
-					isSynced = true;
 				} else {
-					progress -= getPeriodFraction(0.01);
+					progress -= getPeriodFraction(0.05);
 					isSynced = false;
 				}
+				signalCount++;
 			}
 		});
 
@@ -101,13 +103,16 @@ public class OOCSISync extends OOCSISystemCommunicator<Integer> {
 			public void run() {
 				if (progress-- <= 0) {
 					// send sync signal to channel
-					message(SYNC);
+					if (Math.round(Math.random() * signalCount / 2) == 0) {
+						message(SYNC);
+					}
+					signalCount = 1;
 
 					// trigger pulse
 					triggerHandler();
 
-					// re-calibrate progress
-					progress = getPeriodFraction(1 + Math.random() / 50.);
+					// reset progress
+					progress = PERIOD;
 				}
 			}
 		}, (int) (periodMS / PERIOD), (int) (periodMS / PERIOD));

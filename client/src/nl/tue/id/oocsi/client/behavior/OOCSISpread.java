@@ -21,12 +21,13 @@ public class OOCSISpread extends OOCSISystemCommunicator<Integer> {
 
 	// call constants
 	private static final String ROLE = "role";
+	private static final int REBALANCE = 80;
 
 	// infrastructure
 	private int timeout;
 
 	// confirmed roles
-	private Map<Integer, String> roles = new HashMap<Integer, String>();
+	private Map<String, Integer> roles = new HashMap<String, Integer>();
 
 	// my role (1 - ...), 0: no role
 	private int role = 0;
@@ -75,7 +76,7 @@ public class OOCSISpread extends OOCSISystemCommunicator<Integer> {
 					String confirmedHandle = event.getSender();
 
 					if (confirmedRole > -1 && confirmedHandle != null && confirmedHandle.length() > 0) {
-						roles.put(confirmedRole, confirmedHandle);
+						roles.put(confirmedHandle, confirmedRole);
 
 						// if someone has the same role and I'm still in election, start a new round by resetting my
 						// role
@@ -108,7 +109,7 @@ public class OOCSISpread extends OOCSISystemCommunicator<Integer> {
 				if (role == 0) {
 					// start with 1 and use cache to pick better next number
 					int triedRole = 1;
-					while (roles.containsKey(triedRole)) {
+					while (roles.values().contains(triedRole)) {
 						triedRole++;
 					}
 
@@ -121,7 +122,7 @@ public class OOCSISpread extends OOCSISystemCommunicator<Integer> {
 				if (role > 0) {
 					if (isRebalancing) {
 						// sometimes clear the roles, to shake it up
-						if (frameCount % 80 == 0) {
+						if (framesSinceAssignment > REBALANCE * role) {
 							reset();
 						}
 					}
@@ -138,7 +139,8 @@ public class OOCSISpread extends OOCSISystemCommunicator<Integer> {
 					triggerHandler();
 				}
 			}
-		}, OOCSISpread.this.timeout / 20, OOCSISpread.this.timeout / 20);
+		}, OOCSISpread.this.timeout / 20 + Math.round(Math.random() * OOCSISpread.this.timeout),
+				OOCSISpread.this.timeout / 20 + Math.round(Math.random() * OOCSISpread.this.timeout));
 	}
 
 	/**
