@@ -13,6 +13,7 @@ import java.net.InetSocketAddress;
 import java.net.MulticastSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.LinkedList;
@@ -65,60 +66,66 @@ public class SocketClient {
 	}
 
 	public boolean startMulticastLookup() {
-
-		MulticastSocket socket = null;
-		try {
-			socket = new MulticastSocket(MULTICAST_PORT);
+		try (MulticastSocket socket = new MulticastSocket(MULTICAST_PORT)) {
 			socket.setSoTimeout(10000);
 			InetAddress group = InetAddress.getByName(MULTICAST_GROUP);
 			socket.joinGroup(group);
 
-			DatagramPacket packet;
-			// check for multi-cast message from server for 10 * 5 seconds
-			for (int i = 0; i < 5; i++) {
-				try {
-					byte[] buf = new byte[256];
-					packet = new DatagramPacket(buf, buf.length);
-					socket.receive(packet);
+			// check for multi-cast message from server for 5 * 1 second
+			for (int i = 0; !isConnected() && i < 5; i++) {
 
-					// pack String and unpack hostname of server from String
-					String received = new String(packet.getData(), 0, packet.getLength());
-					if (received.startsWith("OOCSI@")) {
-						received = received.replace("OOCSI@", "");
-						received = received.replace("\\(.*\\)", "");
-						String[] parts = received.split(":");
-						if (parts.length == 2 && parts[0].length() > 0 && parts[1].length() > 0) {
-							// try to connect
-							int port = Integer.parseInt(parts[1]);
-							if (connect(parts[0], port)) {
-								socket.leaveGroup(group);
-								return true;
-							}
-						}
-					}
+				// connect to multi-cast server host name
+				connectFromMulticast(socket);
 
-					// // no proper signal
-					// try {
-					// // so, wait a bit before next trial
-					// Thread.sleep(5000);
-					// } catch (InterruptedException e) {
-					// }
-
-				} catch (SocketTimeoutException e) {
-					// likely timeout occurred
-				}
+				// no proper signal
+				sleep(1000);
 			}
 
 			// nothing found for 10 * 5 seconds
 			socket.leaveGroup(group);
-			return false;
+			return isConnected();
 		} catch (IOException ioe) {
 			// problem occurred with connection
 			return false;
-		} finally {
-			if (socket != null) {
-				socket.close();
+		}
+	}
+
+	/**
+	 * let thread sleep for ms milliseconds
+	 * 
+	 */
+	private void sleep(int ms) {
+		try {
+			// so, wait a bit before next trial
+			Thread.sleep(ms);
+		} catch (InterruptedException e) {
+			// do nothing
+		}
+	}
+
+	/**
+	 * @param socket
+	 * @throws IOException
+	 */
+	private void connectFromMulticast(MulticastSocket socket) throws IOException {
+		try {
+			final byte[] buf = new byte[256];
+			final DatagramPacket packet = new DatagramPacket(buf, buf.length);
+			socket.receive(packet);
+
+			// pack String and unpack host name of server from String
+			String received = new String(packet.getData(), 0, packet.getLength());
+			if (received.startsWith("OOCSI@")) {
+				String[] parts = received.replace("OOCSI@", "").replace("\\(.*\\)", "").split(":");
+				if (parts.length == 2 && parts[0].length() > 0 && parts[1].length() > 0) {
+					// try to connect with given parts as server address
+					connect(parts[0], Integer.parseInt(parts[1]));
+				}
 			}
+		} catch (NumberFormatException nfe) {
+			// do nothing
+		} catch (SocketTimeoutException e) {
+			// likely timeout occurred
 		}
 	}
 
@@ -138,10 +145,7 @@ public class SocketClient {
 				reconnectCountDown = 100;
 				break;
 			} else {
-				try {
-					Thread.sleep(1000);
-				} catch (InterruptedException e) {
-				}
+				sleep(1000);
 			}
 		}
 
@@ -157,15 +161,8 @@ public class SocketClient {
 	 */
 	private boolean connectAttempt(final String hostname, final int port) {
 		try {
-			// configure socket
-			socket = new Socket();
-			socket.setTcpNoDelay(true);
-			socket.setTrafficClass(0x10);
-			socket.setPerformancePreferences(0, 1, 0);
-
-			// connect
-			SocketAddress sockaddr = new InetSocketAddress(hostname, port);
-			socket.connect(sockaddr);
+			// configure and connect socket
+			connectSocket(hostname, port);
 
 			output = new PrintWriter(socket.getOutputStream(), true);
 
@@ -175,126 +172,9 @@ public class SocketClient {
 			// acquire input channel from server
 			input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
-			// check if we are ok to connect
-			String serverWelcomeMessage;
-			if (!socket.isClosed() && (serverWelcomeMessage = input.readLine()) != null) {
-				if (!serverWelcomeMessage.startsWith("welcome")) {
-					disconnect();
-					log(" - disconnected (client name not accepted)");
-					return false;
-				} else {
-					log(" - connected successfully");
-				}
+			// do the handshake
+			return connectionHandshake(hostname, port);
 
-				// first data has arrived = connection is ok
-				connectionEstablished = true;
-
-				// subscribe to all open channels
-				if (reconnect) {
-					for (String channelName : channels.keySet()) {
-						this.internalSubscribe(channelName);
-					}
-				}
-
-				// if ok, run the communication in a different thread
-				new Thread(new Runnable() {
-					public void run() {
-						try {
-							String fromServer;
-							while (!socket.isClosed() && (fromServer = input.readLine()) != null) {
-								handleMessage(fromServer);
-							}
-
-						} catch (IOException e) {
-							// e.printStackTrace();
-						} finally {
-							output.close();
-							try {
-								input.close();
-								socket.close();
-							} catch (IOException e) {
-								// e.printStackTrace();
-							}
-
-							log(" - OOCSI disconnected "
-									+ (!connectionEstablished ? "(client name not accepted)" : "(server unavailable)"));
-
-							// try reconnect
-							connect(hostname, port);
-						}
-					}
-
-					public void handleMessage(String fromServer) throws IOException {
-						if (fromServer.startsWith("send")) {
-							// parse server output
-							String[] tokens = fromServer.split(" ");
-							if (tokens.length == 5) {
-								String channel = tokens[1];
-								String data = tokens[2];
-								String timestamp = tokens[3];
-								String sender = tokens[4];
-
-								// get channel
-								Handler c = channels.get(channel);
-								if (c == null && channel.equals(name.replaceFirst(":.*", ""))) {
-									c = channels.get(SELF);
-								}
-
-								Map<String, Object> dataMap = null;
-								try {
-									dataMap = Handler.parseData(data);
-								} catch (ClassNotFoundException e) {
-									dataMap = null;
-								} catch (IOException e) {
-									dataMap = null;
-								}
-
-								if (dataMap != null) {
-									// try to find a responder
-									if (dataMap.containsKey(OOCSICall.MESSAGE_HANDLE)) {
-										Responder r = services.get((String) dataMap.get(OOCSICall.MESSAGE_HANDLE));
-										if (r != null) {
-											try {
-												r.receive(sender, Handler.parseData(data),
-														Handler.parseTimestamp(timestamp), channel, name);
-											} catch (ClassNotFoundException e) {
-											} catch (Exception e) {
-											}
-										}
-									}
-									// try to find an open call
-									else if (!openCalls.isEmpty() && dataMap.containsKey(OOCSICall.MESSAGE_ID)) {
-										String id = (String) dataMap.get(OOCSICall.MESSAGE_ID);
-
-										// walk from back to allow for removal
-										for (int i = openCalls.size() - 1; i >= 0; i--) {
-											OOCSICall call = openCalls.get(i);
-											if (!call.isValid()) {
-												openCalls.remove(i);
-											} else if (call.getId().equals(id)) {
-												call.respond(dataMap);
-												return;
-											}
-										}
-									}
-									// if no responder or call and channel ready waiting
-									else if (c != null) {
-										c.send(sender, data, timestamp, channel, name);
-									}
-								}
-								// if dataMap not parseable and channel ready
-								else if (c != null) {
-									c.send(sender, data, timestamp, channel, name);
-								}
-							}
-						} else {
-							tempIncomingMessages.offer(fromServer);
-						}
-
-						output.println(".");
-					}
-				}).start();
-			}
 		} catch (UnknownHostException e) {
 			printServerInfo();
 			log(" - OOCSI failed to connect (unknown host)");
@@ -308,8 +188,61 @@ public class SocketClient {
 			return false;
 		}
 
+	}
+
+	/**
+	 * @param hostname
+	 * @param port
+	 * @return
+	 * @throws IOException
+	 */
+	private boolean connectionHandshake(final String hostname, final int port) throws IOException {
+		// check if we are ok to connect
+		String serverWelcomeMessage;
+		if (!socket.isClosed() && (serverWelcomeMessage = input.readLine()) != null) {
+			if (!serverWelcomeMessage.startsWith("welcome")) {
+				disconnect();
+				log(" - disconnected (client name not accepted)");
+				return false;
+			} else {
+				log(" - connected successfully");
+			}
+
+			// first data has arrived = connection is ok
+			connectionEstablished = true;
+
+			// subscribe to all open channels
+			if (reconnect) {
+				for (String channelName : channels.keySet()) {
+					this.internalSubscribe(channelName);
+				}
+			}
+
+			// if ok, run the communication in a different thread
+			new Thread(new SocketClientRunnable(hostname, port)).start();
+		}
+
 		reconnectCountDown = 0;
 		return true;
+	}
+
+	/**
+	 * connect a socket
+	 * 
+	 * @param hostname
+	 * @param port
+	 * @throws SocketException
+	 * @throws IOException
+	 */
+	private void connectSocket(final String hostname, final int port) throws SocketException, IOException {
+		socket = new Socket();
+		socket.setTcpNoDelay(true);
+		socket.setTrafficClass(0x10);
+		socket.setPerformancePreferences(0, 1, 0);
+
+		// connect
+		SocketAddress sockaddr = new InetSocketAddress(hostname, port);
+		socket.connect(sockaddr);
 	}
 
 	/**
@@ -352,21 +285,13 @@ public class SocketClient {
 	 * 
 	 */
 	public void disconnect() {
-		// disconnect from server with handshake
+		// disconnect from server with handshake and no reconnect
 		disconnected = true;
 		reconnect = false;
 		reconnectCountDown = 0;
 
-		try {
-			output.println("quit");
-			output.close();
-			input.close();
-			socket.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (NullPointerException e) {
-			e.printStackTrace();
-		}
+		output.println("quit");
+		internalDisconnect();
 	}
 
 	/**
@@ -377,16 +302,7 @@ public class SocketClient {
 		// disconnect from server without handshake, allows for reconnection testing
 		disconnected = true;
 
-		try {
-			output.close();
-			input.close();
-			socket.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (NullPointerException e) {
-			e.printStackTrace();
-		}
-
+		internalDisconnect();
 		log(" - disconnected (by kill)");
 	}
 
@@ -395,20 +311,32 @@ public class SocketClient {
 	 * 
 	 */
 	public void reconnect() {
-		// disconnect from server without handshake, allows for reconnection testing
+		output.println("quit");
 
+		internalDisconnect();
+		log(" - disconnected (by reconnect)");
+	}
+
+	/**
+	 * close all resources safely
+	 * 
+	 */
+	private void internalDisconnect() {
 		try {
-			output.println("quit");
-			output.close();
-			input.close();
-			socket.close();
+			if (output != null) {
+				output.close();
+			}
+			if (input != null) {
+				input.close();
+			}
+			if (socket != null) {
+				socket.close();
+			}
 		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (NullPointerException e) {
 			e.printStackTrace();
 		}
-
-		log(" - disconnected (by kill)");
 	}
 
 	/**
@@ -650,5 +578,160 @@ public class SocketClient {
 	 */
 	public void log(String message) {
 		// no logging by default
+	}
+
+	class SocketClientRunnable implements Runnable {
+
+		private String hostname;
+		private int port;
+
+		/**
+		 * 
+		 * 
+		 * @param hostname
+		 * @param port
+		 */
+		public SocketClientRunnable(String hostname, int port) {
+			this.hostname = hostname;
+			this.port = port;
+		}
+
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see java.lang.Runnable#run()
+		 */
+		public void run() {
+			try {
+				String fromServer;
+				while (!socket.isClosed() && (fromServer = input.readLine()) != null) {
+					handleMessage(fromServer);
+				}
+
+			} catch (IOException e) {
+				// do nothing
+			} finally {
+				internalDisconnect();
+				log(" - OOCSI disconnected "
+						+ (!connectionEstablished ? "(client name not accepted)" : "(server unavailable)"));
+
+				// try reconnect
+				connect(hostname, port);
+			}
+		}
+
+		/**
+		 * handle a whole message
+		 * 
+		 * @param fromServer
+		 * @throws IOException
+		 */
+		public void handleMessage(String fromServer) throws IOException {
+
+			// check message type
+			if (!fromServer.startsWith("send")) {
+				tempIncomingMessages.offer(fromServer);
+				return;
+			}
+
+			// parse server output
+			String[] tokens = fromServer.split(" ");
+			if (tokens.length != 5) {
+				output.println(".");
+				return;
+			}
+
+			// get channel
+			final String channel = tokens[1];
+			Handler c = channels.get(channel);
+			if (c == null && channel.equals(name.replaceFirst(":.*", ""))) {
+				c = channels.get(SELF);
+			}
+
+			// parse the data
+			handleData(channel, tokens[2], tokens[3], tokens[4], c);
+		}
+
+		/**
+		 * handle the data pay-load within the message
+		 * 
+		 * @param channel
+		 * @param data
+		 * @param timestamp
+		 * @param sender
+		 * @param c
+		 */
+		private void handleData(final String channel, final String data, final String timestamp, final String sender,
+				Handler c) {
+
+			Map<String, Object> dataMap = parseData(data);
+			if (dataMap != null) {
+				handleMappedData(channel, data, timestamp, sender, c, dataMap);
+			}
+			// if dataMap not parseable and channel ready
+			else if (c != null) {
+				c.send(sender, data, timestamp, channel, name);
+			}
+		}
+
+		/**
+		 * handle the data pay-load map within the message
+		 * 
+		 * @param channel
+		 * @param data
+		 * @param timestamp
+		 * @param sender
+		 * @param c
+		 * @param dataMap
+		 */
+		private void handleMappedData(final String channel, final String data, final String timestamp,
+				final String sender, Handler c, Map<String, Object> dataMap) {
+			// try to find a responder
+			if (dataMap.containsKey(OOCSICall.MESSAGE_HANDLE)) {
+				Responder r = services.get((String) dataMap.get(OOCSICall.MESSAGE_HANDLE));
+				if (r != null) {
+					try {
+						r.receive(sender, Handler.parseData(data), Handler.parseTimestamp(timestamp), channel, name);
+					} catch (ClassNotFoundException e) {
+					} catch (Exception e) {
+					}
+				}
+			}
+			// try to find an open call
+			else if (!openCalls.isEmpty() && dataMap.containsKey(OOCSICall.MESSAGE_ID)) {
+				String id = (String) dataMap.get(OOCSICall.MESSAGE_ID);
+
+				// walk from back to allow for removal
+				for (int i = openCalls.size() - 1; i >= 0; i--) {
+					OOCSICall call = openCalls.get(i);
+					if (!call.isValid()) {
+						openCalls.remove(i);
+					} else if (call.getId().equals(id)) {
+						call.respond(dataMap);
+						break;
+					}
+				}
+			}
+			// if no responder or call and channel ready waiting
+			else if (c != null) {
+				c.send(sender, data, timestamp, channel, name);
+			}
+		}
+
+		/**
+		 * @param data
+		 * @return
+		 */
+		private Map<String, Object> parseData(String data) {
+			Map<String, Object> dataMap = null;
+			try {
+				dataMap = Handler.parseData(data);
+			} catch (ClassNotFoundException e) {
+				dataMap = null;
+			} catch (IOException e) {
+				dataMap = null;
+			}
+			return dataMap;
+		}
 	}
 }
