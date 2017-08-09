@@ -17,25 +17,25 @@ public class ClientRequestTest {
 
 	@Test
 	public void testClientAvailable() {
-		String clientName1 = "test_client1";
+		String clientName = "test_client_client_available_1";
 
-		OOCSIClient o = new OOCSIClient(clientName1);
+		OOCSIClient o = new OOCSIClient(clientName);
 		o.connect("localhost", 4444);
 
 		assertTrue(o.isConnected());
-		assertTrue(o.clients().contains(clientName1));
+		assertTrue(o.clients().contains(clientName));
 	}
 
 	@Test
 	public void testChannelAvailable() throws InterruptedException {
-		String clientName2 = "test_client2";
+		String clientName = "test_client_channel_available_2";
 		String channelName = "test_channel";
 
-		OOCSIClient o = new OOCSIClient(clientName2);
+		OOCSIClient o = new OOCSIClient(clientName);
 		o.connect("localhost", 4444);
 
 		assertTrue(o.isConnected());
-		assertTrue(o.channels().contains(clientName2));
+		assertTrue(o.channels().contains(clientName));
 
 		o.subscribe(channelName, new EventHandler() {
 			public void receive(OOCSIEvent event) {
@@ -43,17 +43,19 @@ public class ClientRequestTest {
 			}
 		});
 
-		assertTrue(o.channels().contains(clientName2));
+		assertTrue(o.channels().contains(clientName));
 		assertTrue(o.channels().contains(channelName));
 	}
 
 	@Test
 	public void testMessageContents() throws InterruptedException {
+		String clientNameRecipient = "test_client_message_contents_1";
+		String clientNameSender = "test_client_message_contents_2";
 
 		final List<OOCSIEvent> events = new ArrayList<OOCSIEvent>();
 
 		// create recipient, connect and subscribe for event on a channel
-		OOCSIClient recipient = new OOCSIClient("myrecipient");
+		OOCSIClient recipient = new OOCSIClient(clientNameRecipient);
 		recipient.connect("localhost", 4444);
 		recipient.subscribe("mychannel", new EventHandler() {
 			@Override
@@ -68,15 +70,15 @@ public class ClientRequestTest {
 		});
 
 		// create sender, connect and send
-		OOCSIClient sender = new OOCSIClient("mysender");
+		OOCSIClient sender = new OOCSIClient(clientNameSender);
 		sender.connect("localhost", 4444);
 		new OOCSIMessage(sender, "mychannel").data("mykey", "myvalue").send();
 
 		// assertions
 		Thread.sleep(200);
 		OOCSIEvent event = events.get(0);
-		assertEquals("mysender", event.getSender());
-		assertEquals("myrecipient", event.getRecipient());
+		assertEquals(clientNameSender, event.getSender());
+		assertEquals(clientNameRecipient, event.getRecipient());
 		assertEquals("mychannel", event.getChannel());
 		assertTrue(System.currentTimeMillis() - 300 < event.getTime());
 	}

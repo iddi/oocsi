@@ -76,11 +76,11 @@ public class ClientCallTest {
 
 	@Test
 	public void testResponse() throws InterruptedException {
-		OOCSIClient o1 = new OOCSIClient("ping");
+		OOCSIClient o1 = new OOCSIClient("pingResponse");
 		o1.connect("localhost", 4444);
 		assertTrue(o1.isConnected());
 
-		OOCSIClient o2 = new OOCSIClient("pong");
+		OOCSIClient o2 = new OOCSIClient("pongResponse");
 		o2.connect("localhost", 4444);
 		assertTrue(o2.isConnected());
 		o2.register("addnineteen", new Responder(o2) {
@@ -93,7 +93,7 @@ public class ClientCallTest {
 		});
 
 		{
-			OOCSICall call = new OOCSICall(o1, "pong", "addnineteen", 500, 1).data("addnineteen", 1);
+			OOCSICall call = new OOCSICall(o1, "pongResponse", "addnineteen", 500, 1).data("addnineteen", 1);
 			call.sendAndWait();
 
 			assertTrue(call.hasResponse());
@@ -101,7 +101,7 @@ public class ClientCallTest {
 			assertEquals(20, response.getInt("addedthat", -1));
 		}
 		{
-			OOCSICall call = new OOCSICall(o1, "pong", "addnineteen", 500, 1).data("addnineteen", 100);
+			OOCSICall call = new OOCSICall(o1, "pongResponse", "addnineteen", 500, 1).data("addnineteen", 100);
 			call.sendAndWait();
 			assertTrue(call.hasResponse());
 			OOCSIEvent response = call.getFirstResponse();

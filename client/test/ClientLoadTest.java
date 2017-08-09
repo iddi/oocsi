@@ -14,7 +14,7 @@ public class ClientLoadTest {
 
 	@Test
 	public void testConnectionToServer() {
-		OOCSIClient o = new OOCSIClient("test_client");
+		OOCSIClient o = new OOCSIClient("test_client_connection_to_server");
 
 		o.connect("localhost", 4444);
 
@@ -25,7 +25,7 @@ public class ClientLoadTest {
 	public void testSendReceive() throws InterruptedException {
 		final List<String> list = new ArrayList<String>();
 
-		OOCSIClient o1 = new OOCSIClient("test_client_1");
+		OOCSIClient o1 = new OOCSIClient("test_client_send_receive_1");
 		o1.connect("localhost", 4444);
 		assertTrue(o1.isConnected());
 		o1.subscribe(new DataHandler() {
@@ -34,7 +34,7 @@ public class ClientLoadTest {
 			}
 		});
 
-		OOCSIClient o2 = new OOCSIClient("test_client_2");
+		OOCSIClient o2 = new OOCSIClient("test_client_send_receive_2");
 		o2.connect("localhost", 4444);
 		assertTrue(o2.isConnected());
 		o2.subscribe(new DataHandler() {
@@ -44,7 +44,7 @@ public class ClientLoadTest {
 		});
 
 		for (int i = 0; i < 1000; i++) {
-			o1.send("test_client_2", "hello " + i);
+			o1.send("test_client_send_receive_2", "hello " + i);
 		}
 		Thread.yield();
 		Thread.sleep(6000);
@@ -54,7 +54,7 @@ public class ClientLoadTest {
 
 		list.clear();
 		for (int i = 0; i < 1000; i++) {
-			o2.send("test_client_1", "hello1");
+			o2.send("test_client_send_receive_1", "hello1");
 		}
 		Thread.yield();
 		Thread.sleep(3000);
