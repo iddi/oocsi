@@ -11,8 +11,15 @@ import nl.tue.id.oocsi.OOCSIEvent;
  */
 abstract public class EventHandler extends Handler {
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see nl.tue.id.oocsi.client.protocol.Handler#receive(java.lang.String, java.util.Map, long, java.lang.String,
+	 * java.lang.String)
+	 */
 	@Override
-	public void receive(String sender, Map<String, Object> data, long timestamp, String channel, final String recipient) {
+	public void receive(String sender, Map<String, Object> data, long timestamp, String channel,
+			final String recipient) {
 		receive(new OOCSIEvent(channel, data, sender, timestamp) {
 
 			@Override
@@ -22,5 +29,11 @@ abstract public class EventHandler extends Handler {
 		});
 	}
 
+	/**
+	 * abstract method to be implemented in anonymous classes that are instantiated by subscribing and registering for
+	 * events; encapsulates all incoming data as OOCSIEvent object
+	 * 
+	 * @param event
+	 */
 	abstract public void receive(OOCSIEvent event);
 }

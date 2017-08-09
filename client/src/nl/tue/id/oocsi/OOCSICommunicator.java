@@ -7,6 +7,8 @@ import nl.tue.id.oocsi.client.OOCSIClient;
 import nl.tue.id.oocsi.client.protocol.EventHandler;
 import nl.tue.id.oocsi.client.protocol.Handler;
 import nl.tue.id.oocsi.client.protocol.OOCSIMessage;
+import nl.tue.id.oocsi.client.protocol.RateLimitedClientEventHandler;
+import nl.tue.id.oocsi.client.protocol.RateLimitedEventHandler;
 import nl.tue.id.oocsi.client.services.OOCSICall;
 import nl.tue.id.oocsi.client.services.Responder;
 
@@ -137,27 +139,91 @@ public class OOCSICommunicator extends OOCSIClient {
 	 * @return
 	 */
 	public boolean subscribe(String channelName, String handlerName) {
+		return this.subscribe(channelName, handlerName, 0, 0);
+	}
 
-		// try simple event handler with OOCSIEvent parameter
+	/**
+	 * subscribe to channel <channelName> for handler method in the parent class with the given name <handlerName>; the
+	 * handler method will be called with an OOCSIEvent object upon occurrence of an event
+	 * 
+	 * @param channelName
+	 * @param handlerName
+	 * @param rate
+	 * @param seconds
+	 * @return
+	 */
+	public boolean subscribe(String channelName, String handlerName, int rate, int seconds) {
+		return subscribe(channelName, handlerName, rate, seconds, false);
+	}
+
+	/**
+	 * subscribe to channel <channelName> for handler method in the parent class with the given name <handlerName>; the
+	 * handler method will be called with an OOCSIEvent object upon occurrence of an event
+	 * 
+	 * @param channelName
+	 * @param handlerName
+	 * @param rate
+	 * @param seconds
+	 * @param ratePerSender
+	 * @return
+	 */
+	public boolean subscribe(String channelName, String handlerName, int rate, int seconds, boolean ratePerSender) {
+
+		// try event handler with OOCSIEvent parameter
 
 		try {
 			final Method handler = parent.getClass().getDeclaredMethod(handlerName, new Class[] { OOCSIEvent.class });
-			subscribe(channelName, new EventHandler() {
+			if (rate > 0 && seconds > 0) {
+				if (ratePerSender) {
+					subscribe(channelName, new RateLimitedClientEventHandler(rate, seconds) {
 
-				@Override
-				public void receive(OOCSIEvent event) {
-					try {
-						handler.invoke(parent, new Object[] { event });
-					} catch (IllegalAccessException e) {
-						e.printStackTrace();
-					} catch (IllegalArgumentException e) {
-						e.printStackTrace();
-					} catch (InvocationTargetException e) {
-						e.printStackTrace();
-					}
+						@Override
+						public void receive(OOCSIEvent event) {
+							try {
+								handler.invoke(parent, new Object[] { event });
+							} catch (IllegalAccessException e) {
+								e.printStackTrace();
+							} catch (IllegalArgumentException e) {
+								e.printStackTrace();
+							} catch (InvocationTargetException e) {
+								e.printStackTrace();
+							}
+						}
+					});
+				} else {
+					subscribe(channelName, new RateLimitedEventHandler(rate, seconds) {
+
+						@Override
+						public void receive(OOCSIEvent event) {
+							try {
+								handler.invoke(parent, new Object[] { event });
+							} catch (IllegalAccessException e) {
+								e.printStackTrace();
+							} catch (IllegalArgumentException e) {
+								e.printStackTrace();
+							} catch (InvocationTargetException e) {
+								e.printStackTrace();
+							}
+						}
+					});
 				}
-			});
+			} else {
+				subscribe(channelName, new RateLimitedEventHandler(rate, seconds) {
 
+					@Override
+					public void receive(OOCSIEvent event) {
+						try {
+							handler.invoke(parent, new Object[] { event });
+						} catch (IllegalAccessException e) {
+							e.printStackTrace();
+						} catch (IllegalArgumentException e) {
+							e.printStackTrace();
+						} catch (InvocationTargetException e) {
+							e.printStackTrace();
+						}
+					}
+				});
+			}
 			log(" - subscribed to " + channelName + " with event handler");
 
 			return true;

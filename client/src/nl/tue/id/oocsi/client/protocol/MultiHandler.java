@@ -12,7 +12,7 @@ import java.util.Map;
  */
 public class MultiHandler extends Handler {
 
-	List<Handler> subscribers = new LinkedList<Handler>();
+	private List<Handler> subscribers = new LinkedList<Handler>();
 
 	public MultiHandler() {
 	}

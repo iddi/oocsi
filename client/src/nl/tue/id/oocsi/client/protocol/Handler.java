@@ -14,7 +14,16 @@ import nl.tue.id.oocsi.client.socket.Base64Coder;
  */
 abstract public class Handler {
 
-	final public void send(String sender, String data, String timestamp, String channel, String recipient) {
+	/**
+	 * raw data wrapper; will parse the incoming data and forward the event to the actual handler
+	 * 
+	 * @param sender
+	 * @param data
+	 * @param timestamp
+	 * @param channel
+	 * @param recipient
+	 */
+	public void send(String sender, String data, String timestamp, String channel, String recipient) {
 		try {
 			Map<String, Object> map = parseData(data);
 			long ts = parseTimestamp(timestamp);
@@ -28,6 +37,16 @@ abstract public class Handler {
 		}
 	}
 
+	/**
+	 * abstract method to be implemented in anonymous classes that are instantiated by subscribing and registering for
+	 * events
+	 * 
+	 * @param sender
+	 * @param data
+	 * @param timestamp
+	 * @param channel
+	 * @param recipient
+	 */
 	abstract public void receive(String sender, Map<String, Object> data, long timestamp, String channel,
 			String recipient);
 
