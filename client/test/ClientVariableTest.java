@@ -180,11 +180,11 @@ public class ClientVariableTest {
 	public void testVariableRateLimit() throws InterruptedException {
 		OOCSIClient client1 = new OOCSIClient();
 		client1.connect("localhost", 4444);
-		OOCSIFloat of11 = new OOCSIFloat(client1, "localVariableTestChannel", "float1");
+		OOCSIFloat of11 = new OOCSIFloat(client1, "localVariableTestChannel", "float1").limit(5, 1);
 
 		OOCSIClient client2 = new OOCSIClient();
 		client2.connect("localhost", 4444);
-		OOCSIFloat of21 = new OOCSIFloat(client2, "localVariableTestChannel", "float1");
+		OOCSIFloat of21 = new OOCSIFloat(client2, "localVariableTestChannel", "float1").limit(5, 1);
 
 		// initially ---
 

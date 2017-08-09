@@ -11,11 +11,13 @@ import java.util.Map;
 abstract public class RateLimitedEventHandler extends EventHandler {
 
 	// configuration
-	private int rate = 0;
-	private int seconds = 0;
+	protected int rate = 0;
+	protected int seconds = 0;
 
-	// dynamic variables
-	private long timestamp = 0;
+	// keep track of time
+	protected long timestamp = 0;
+
+	// counter
 	private int counter = 0;
 
 	/**
@@ -41,24 +43,55 @@ abstract public class RateLimitedEventHandler extends EventHandler {
 			final String recipient) {
 		final long currentTimeMillis = System.currentTimeMillis();
 
-		// if timeout has passed
-		if (this.timestamp + seconds * 1000l < currentTimeMillis) {
-			this.timestamp = currentTimeMillis;
-			this.counter = 1;
-			super.receive(sender, data, timestamp, channel, recipient);
-		}
-		// if timeout has not passed = rate limit check necessary
-		else {
-			if (++counter <= rate) {
-				super.receive(sender, data, timestamp, channel, recipient);
-			} else {
-				// rate limit exceeded, no forwarding
-				exceeded(sender, data, timestamp, channel, recipient);
+		// if rate and seconds are invalid
+		if (rate <= 0 || seconds <= 0) {
+			// just forward the event
+			internalReceive(sender, data, timestamp, channel, recipient);
+		} else {
+			// if timeout has passed
+			if (this.timestamp + seconds * 1000l < currentTimeMillis) {
+				this.timestamp = currentTimeMillis;
+				this.counter = 1;
+				internalReceive(sender, data, timestamp, channel, recipient);
+			}
+			// if timeout has not passed = rate limit check necessary
+			else {
+				if (++counter <= rate) {
+					internalReceive(sender, data, timestamp, channel, recipient);
+				} else {
+					// rate limit exceeded, no forwarding
+					exceeded(sender, data, timestamp, channel, recipient);
+				}
 			}
 		}
 	}
 
+	/**
+	 * internal hook to the super class method
+	 * 
+	 * @param sender
+	 * @param data
+	 * @param timestamp
+	 * @param channel
+	 * @param recipient
+	 */
+	final protected void internalReceive(String sender, Map<String, Object> data, long timestamp, String channel,
+			final String recipient) {
+		super.receive(sender, data, timestamp, channel, recipient);
+	}
+
 	public void exceeded(String sender, Map<String, Object> data, long timestamp, String channel, String recipient) {
 		// do nothing
+	}
+
+	/**
+	 * reconfigure the rate limitation to different <rate> and <seconds> timeframe
+	 * 
+	 * @param rate
+	 * @param seconds
+	 */
+	public void limit(int rate, int seconds) {
+		this.rate = rate;
+		this.seconds = seconds;
 	}
 }

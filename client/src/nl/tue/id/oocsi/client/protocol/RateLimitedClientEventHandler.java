@@ -9,14 +9,9 @@ import java.util.Map;
  *
  * @author matsfunk
  */
-abstract public class RateLimitedClientEventHandler extends EventHandler {
+abstract public class RateLimitedClientEventHandler extends RateLimitedEventHandler {
 
-	// configuration
-	private int rate = 0;
-	private int seconds = 0;
-
-	// dynamic variables
-	private long timestamp = 0;
+	// counter map
 	private Map<String, Integer> counter = new HashMap<String, Integer>(100);
 
 	/**
@@ -26,29 +21,34 @@ abstract public class RateLimitedClientEventHandler extends EventHandler {
 	 * @param seconds
 	 */
 	public RateLimitedClientEventHandler(int rate, int seconds) {
-		this.rate = rate;
-		this.seconds = seconds;
-		this.timestamp = System.currentTimeMillis();
+		super(rate, seconds);
 	}
 
 	@Override
-	public void send(String sender, String data, String timestamp, String channel, String recipient) {
+	public void receive(String sender, Map<String, Object> data, long timestamp, String channel,
+			final String recipient) {
 		final long currentTimeMillis = System.currentTimeMillis();
 
-		// if timeout has passed
-		if (this.timestamp + seconds * 1000l < currentTimeMillis) {
-			this.timestamp = currentTimeMillis;
-			counter.clear();
-			inc(sender);
-			super.send(sender, data, timestamp, channel, recipient);
-		}
-		// if timeout has not passed = rate limit check necessary
-		else {
-			if (inc(sender) <= rate) {
-				System.out.println(sender);
-				super.send(sender, data, timestamp, channel, recipient);
-			} else {
-				// rate limit exceeded, no forwarding
+		// if rate and seconds are invalid
+		if (rate <= 0 || seconds <= 0) {
+			// just forward the event
+			internalReceive(sender, data, timestamp, channel, recipient);
+		} else {
+			// if timeout has passed
+			if (this.timestamp + seconds * 1000l < currentTimeMillis) {
+				this.timestamp = currentTimeMillis;
+				counter.clear();
+				inc(sender);
+				internalReceive(sender, data, timestamp, channel, recipient);
+			}
+			// if timeout has not passed = rate limit check necessary
+			else {
+				if (inc(sender) <= rate) {
+					internalReceive(sender, data, timestamp, channel, recipient);
+				} else {
+					// rate limit exceeded, no forwarding
+					exceeded(sender, data, timestamp, channel, recipient);
+				}
 			}
 		}
 	}
@@ -62,4 +62,5 @@ abstract public class RateLimitedClientEventHandler extends EventHandler {
 
 		return count;
 	}
+
 }

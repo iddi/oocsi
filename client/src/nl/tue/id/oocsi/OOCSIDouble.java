@@ -115,6 +115,19 @@ public class OOCSIDouble extends OOCSIVariable<Double> {
 	}
 
 	/**
+	 * set the limiting of incoming events in terms of <rate> and <seconds> timeframe; supports chained invocation
+	 * 
+	 * @param rate
+	 * @param seconds
+	 * @return
+	 */
+	public OOCSIDouble limit(int rate, int seconds) {
+		super.limit(rate, seconds);
+
+		return this;
+	}
+
+	/**
 	 * set the minimum value for (lower-)bounded variable (also possible during operation); supports chained invocation
 	 * 
 	 * @param min

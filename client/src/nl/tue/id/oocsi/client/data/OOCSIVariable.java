@@ -62,6 +62,8 @@ public class OOCSIVariable<T> extends OOCSISystemCommunicator<T> {
 	// preserve the last input
 	protected T lastInput = null;
 
+	private nl.tue.id.oocsi.client.protocol.RateLimitedEventHandler eventHandler;
+
 	/**
 	 * Constructor for a simple OOCSI variable to sync on a given channel and key
 	 * 
@@ -104,8 +106,7 @@ public class OOCSIVariable<T> extends OOCSISystemCommunicator<T> {
 		this.internalReference = referenceValue;
 		this.timeout = timeout;
 
-		// connect to channel
-		client.subscribe(channelName, new nl.tue.id.oocsi.client.protocol.RateLimitedEventHandler(5, 1) {
+		this.eventHandler = new nl.tue.id.oocsi.client.protocol.RateLimitedEventHandler(0, 0) {
 
 			@SuppressWarnings("unchecked")
 			@Override
@@ -129,7 +130,10 @@ public class OOCSIVariable<T> extends OOCSISystemCommunicator<T> {
 					String recipient) {
 				System.out.println(data.toString());
 			}
-		});
+		};
+
+		// subscribe
+		client.subscribe(channelName, eventHandler);
 	}
 
 	/**
@@ -279,6 +283,19 @@ public class OOCSIVariable<T> extends OOCSISystemCommunicator<T> {
 	 */
 	public OOCSIVariable<T> timeout(int timeoutMS) {
 		this.timeout = timeoutMS;
+
+		return this;
+	}
+
+	/**
+	 * set the limiting of incoming events in terms of <rate> and <seconds> timeframe; supports chained invocation
+	 * 
+	 * @param rate
+	 * @param seconds
+	 * @return
+	 */
+	public OOCSIVariable<T> limit(int rate, int seconds) {
+		eventHandler.limit(rate, seconds);
 
 		return this;
 	}
