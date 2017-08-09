@@ -356,7 +356,10 @@ public class SocketClient {
 	 */
 	public void subscribe(String channelName, Handler handler) {
 
-		internalSubscribe(channelName);
+		// subscribe to channel if not done yet
+		if (!internalIsSubscribed(channelName)) {
+			internalSubscribe(channelName);
+		}
 
 		// add handler to internal multi-handler
 		internalAddHandler(channelName, handler);
@@ -392,6 +395,16 @@ public class SocketClient {
 		} else {
 			channels.put(channelName, new MultiHandler(handler));
 		}
+	}
+
+	/**
+	 * returns whether this client has already subscribed to the given channel
+	 * 
+	 * @param channelName
+	 * @return
+	 */
+	private boolean internalIsSubscribed(String channelName) {
+		return channels.containsKey(channelName);
 	}
 
 	/**
@@ -631,13 +644,13 @@ public class SocketClient {
 			// check message type
 			if (!fromServer.startsWith("send")) {
 				tempIncomingMessages.offer(fromServer);
+				send(".");
 				return;
 			}
 
 			// parse server output
 			String[] tokens = fromServer.split(" ");
 			if (tokens.length != 5) {
-				output.println(".");
 				return;
 			}
 
