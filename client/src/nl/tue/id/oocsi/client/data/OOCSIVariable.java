@@ -1,5 +1,7 @@
 package nl.tue.id.oocsi.client.data;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -62,6 +64,9 @@ public class OOCSIVariable<T> extends OOCSISystemCommunicator<T> {
 	// preserve the last input
 	protected T lastInput = null;
 
+	// list of connected variables
+	protected List<OOCSIVariable<T>> forwarders = new LinkedList<OOCSIVariable<T>>();
+
 	private nl.tue.id.oocsi.client.protocol.RateLimitedEventHandler eventHandler;
 
 	/**
@@ -119,6 +124,7 @@ public class OOCSIVariable<T> extends OOCSISystemCommunicator<T> {
 
 						// update timeout
 						lastWrite = System.currentTimeMillis();
+						remoteUpdate();
 					} catch (Exception e) {
 						// do nothing
 					}
@@ -134,6 +140,20 @@ public class OOCSIVariable<T> extends OOCSISystemCommunicator<T> {
 
 		// subscribe
 		client.subscribe(channelName, eventHandler);
+	}
+
+	/**
+	 * Constructor for a local OOCSI variable that does not sync on a given channel and key, a reference value is
+	 * provided which will be set automatically after the given timeout
+	 * 
+	 * @param referenceValue
+	 * @param timeout
+	 */
+	public OOCSIVariable(T referenceValue, int timeout) {
+		super(null, null);
+		this.internalVariable = referenceValue;
+		this.internalReference = referenceValue;
+		this.timeout = timeout;
 	}
 
 	/**
@@ -163,6 +183,22 @@ public class OOCSIVariable<T> extends OOCSISystemCommunicator<T> {
 			} else {
 				message(key, internalVariable);
 			}
+			localUpdate();
+
+			for (OOCSIVariable<T> v : forwarders) {
+				v.set(this.get());
+			}
+		}
+	}
+
+	/**
+	 * update the setting of the variable, but only if it is different from the reference value; and then let the
+	 * channel know
+	 * 
+	 */
+	public void set() {
+		if (this.internalVariable != this.internalReference) {
+			message(key, internalVariable);
 		}
 	}
 
@@ -201,13 +237,27 @@ public class OOCSIVariable<T> extends OOCSISystemCommunicator<T> {
 	}
 
 	/**
-	 * update the setting of the variable, but only if it is different from the reference value
+	 * notifier for a variable update; override to get notified about this
 	 * 
 	 */
 	public void update() {
-		if (this.internalVariable != this.internalReference) {
-			message(key, internalVariable);
-		}
+		// do nothing, only for use in sub-classes that override this method
+	}
+
+	/**
+	 * notifier for a remote variable update (from another client); override to get notified about this
+	 * 
+	 */
+	public void remoteUpdate() {
+		update();
+	}
+
+	/**
+	 * notifier for a local variable update; override to get notified about this
+	 * 
+	 */
+	public void localUpdate() {
+		update();
 	}
 
 	/**
@@ -397,4 +447,24 @@ public class OOCSIVariable<T> extends OOCSISystemCommunicator<T> {
 
 		return this;
 	}
+
+	/**
+	 * connect the given variable to this variable, so whenever this variable is set, the connected given variable will
+	 * be set as well
+	 * 
+	 * @param forward
+	 */
+	public void connect(OOCSIVariable<T> forward) {
+		forwarders.add(forward);
+	}
+
+	/**
+	 * disconnect the given variable from this variable; no more events will be sent
+	 * 
+	 * @param forward
+	 */
+	public void disconnect(OOCSIVariable<T> forward) {
+		forwarders.remove(forward);
+	}
+
 }

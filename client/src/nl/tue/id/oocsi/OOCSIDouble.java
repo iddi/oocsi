@@ -25,6 +25,10 @@ public class OOCSIDouble extends OOCSIVariable<Double> {
 		super(client, channelName, key, referenceValue, timeout);
 	}
 
+	public OOCSIDouble(double referenceValue, int timeout) {
+		super(referenceValue, timeout);
+	}
+
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -52,13 +56,12 @@ public class OOCSIDouble extends OOCSIVariable<Double> {
 			var = max;
 		}
 
-		// compute mean
-		if (windowLength > 0 && values != null && values.size() > 0) {
-			double sum = 0;
-			for (Double v : values) {
-				sum += v;
+		// check mean and sigma
+		if (sigma != null && mean != null) {
+			// return null if value outside sigma deviation from mean
+			if (Math.abs(mean - var) > sigma) {
+				var = mean - var > 0 ? mean - sigma / (float) values.size() : mean + sigma / (float) values.size();
 			}
-			mean = (double) (sum / (float) values.size());
 		}
 
 		// return filtered value
@@ -74,19 +77,14 @@ public class OOCSIDouble extends OOCSIVariable<Double> {
 	protected Double adapt(Double var) {
 		// history processing?
 		if (windowLength > 0 && values != null && values.size() > 0) {
-			// check deviation from mean
-			if (sigma != null) {
-				double sum = Math.abs(mean - var);
-
-				// return null if value outside sigma deviation from mean
-				if (sum > sigma) {
-					return mean - var > 0 ? mean - sigma / values.size() : mean + sigma / values.size();
-				} else {
-					return mean;
-				}
-			} else {
-				return mean;
+			// compute and store mean
+			double sum = 0;
+			for (Double v : values) {
+				sum += v;
 			}
+			mean = (double) (sum / (float) values.size());
+
+			return mean;
 		} else {
 			return var;
 		}
@@ -200,5 +198,25 @@ public class OOCSIDouble extends OOCSIVariable<Double> {
 	@Override
 	public OOCSIDouble generator(long periodMS, String outputChannel, String outputKey) {
 		return (OOCSIDouble) super.generator(periodMS, outputChannel, outputKey);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see nl.tue.id.oocsi.client.data.OOCSIVariable#connect(nl.tue.id.oocsi.client.data.OOCSIVariable)
+	 */
+	@Override
+	public void connect(OOCSIVariable<Double> forward) {
+		super.connect(forward);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see nl.tue.id.oocsi.client.data.OOCSIVariable#disconnect(nl.tue.id.oocsi.client.data.OOCSIVariable)
+	 */
+	@Override
+	public void disconnect(OOCSIVariable<Double> forward) {
+		super.disconnect(forward);
 	}
 }

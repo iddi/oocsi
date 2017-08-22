@@ -24,6 +24,8 @@ public class ClientConnectionTest {
 		o.connect("localhost", 4444);
 
 		assertTrue(o.isConnected());
+
+		o.disconnect();
 	}
 
 	@Test
@@ -41,6 +43,8 @@ public class ClientConnectionTest {
 		Thread.sleep(500);
 
 		assertTrue(!o.isConnected());
+
+		o.disconnect();
 	}
 
 	@Test
@@ -61,6 +65,9 @@ public class ClientConnectionTest {
 		Thread.sleep(5000);
 
 		assertTrue(o.isConnected());
+
+		o.setReconnect(false);
+		o.disconnect();
 	}
 
 	@Test
@@ -83,12 +90,10 @@ public class ClientConnectionTest {
 
 		assertTrue(o.isConnected());
 
-		{
-			OOCSIClient o2 = new OOCSIClient("test_client_0_reconnect_subscriptions2");
-			o2.connect("localhost", 4444);
-			assertTrue(o2.isConnected());
-			o2.send("subscriptionTest", "some unimportant data");
-		}
+		OOCSIClient o2 = new OOCSIClient("test_client_0_reconnect_subscriptions2");
+		o2.connect("localhost", 4444);
+		assertTrue(o2.isConnected());
+		o2.send("subscriptionTest", "some unimportant data");
 
 		Thread.sleep(500);
 		assertTrue(!list.isEmpty());
@@ -103,15 +108,17 @@ public class ClientConnectionTest {
 
 		assertTrue(o.isConnected());
 
-		{
-			OOCSIClient o2 = new OOCSIClient("test_client_0_reconnect_subscriptions3");
-			o2.connect("localhost", 4444);
-			assertTrue(o2.isConnected());
-			o2.send("subscriptionTest", "some unimportant data");
-		}
+		OOCSIClient o3 = new OOCSIClient("test_client_0_reconnect_subscriptions3");
+		o3.connect("localhost", 4444);
+		assertTrue(o3.isConnected());
+		o3.send("subscriptionTest", "some unimportant data");
 
 		Thread.sleep(500);
 		assertTrue(!list.isEmpty());
+
+		o.disconnect();
+		o2.disconnect();
+		o3.disconnect();
 	}
 
 	@Test
@@ -150,6 +157,8 @@ public class ClientConnectionTest {
 		assertEquals(2, list.size());
 		assertEquals(list.get(1), "hello1");
 
+		o1.disconnect();
+		o2.disconnect();
 	}
 
 	@Test
@@ -192,6 +201,8 @@ public class ClientConnectionTest {
 		assertEquals(2, list.size());
 		assertEquals(list.get(1), map2.get("data"));
 
+		o1.disconnect();
+		o2.disconnect();
 	}
 
 	@Test
@@ -272,6 +283,9 @@ public class ClientConnectionTest {
 		}
 
 		assertEquals(12, list.size());
+
+		o1.disconnect();
+		o2.disconnect();
 	}
 
 	@Test
@@ -350,6 +364,10 @@ public class ClientConnectionTest {
 			System.out.println(string);
 		}
 		assertEquals(8, list.size());
+
+		o1.disconnect();
+		o2.disconnect();
+		o3.disconnect();
 	}
 
 	@Test
@@ -382,6 +400,9 @@ public class ClientConnectionTest {
 
 		assertEquals(1, list.size());
 		assertEquals(list.get(0), "hello1");
+
+		o1.disconnect();
+		o2.disconnect();
 	}
 
 	@Test
@@ -443,6 +464,9 @@ public class ClientConnectionTest {
 		Thread.sleep(1000);
 		assertEquals(1, list.size());
 		assertEquals(list.get(0), "hello1");
+
+		o1.disconnect();
+		o2.disconnect();
 	}
 
 	// @Test

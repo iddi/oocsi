@@ -24,6 +24,8 @@ public class ClientRequestTest {
 
 		assertTrue(o.isConnected());
 		assertTrue(o.clients().contains(clientName));
+
+		o.disconnect();
 	}
 
 	@Test
@@ -45,6 +47,8 @@ public class ClientRequestTest {
 
 		assertTrue(o.channels().contains(clientName));
 		assertTrue(o.channels().contains(channelName));
+
+		o.disconnect();
 	}
 
 	@Test
@@ -81,5 +85,8 @@ public class ClientRequestTest {
 		assertEquals(clientNameRecipient, event.getRecipient());
 		assertEquals("mychannel", event.getChannel());
 		assertTrue(System.currentTimeMillis() - 300 < event.getTime());
+
+		recipient.disconnect();
+		sender.disconnect();
 	}
 }

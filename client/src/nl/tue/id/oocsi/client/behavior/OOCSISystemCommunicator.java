@@ -23,11 +23,15 @@ public class OOCSISystemCommunicator<T> {
 	}
 
 	protected void message(String command, T data) {
-		new OOCSIMessage(client, channelName).data(command, data).send();
+		if (client != null) {
+			new OOCSIMessage(client, channelName).data(command, data).send();
+		}
 	}
 
 	protected void message(String command) {
-		new OOCSIMessage(client, channelName).data(command, "").send();
+		if (client != null) {
+			new OOCSIMessage(client, channelName).data(command, "").send();
+		}
 	}
 
 	protected void triggerHandler() {

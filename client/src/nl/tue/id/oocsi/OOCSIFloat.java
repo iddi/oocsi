@@ -25,6 +25,10 @@ public class OOCSIFloat extends OOCSIVariable<Float> {
 		super(client, channelName, key, referenceValue, timeout);
 	}
 
+	public OOCSIFloat(float referenceValue, int timeout) {
+		super(referenceValue, timeout);
+	}
+
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -52,6 +56,14 @@ public class OOCSIFloat extends OOCSIVariable<Float> {
 			var = max;
 		}
 
+		// check mean and sigma
+		if (sigma != null && mean != null) {
+			// return null if value outside sigma deviation from mean
+			if ((float) Math.abs(mean - var) > sigma) {
+				var = mean - var > 0 ? mean - sigma / (float) values.size() : mean + sigma / (float) values.size();
+			}
+		}
+
 		// return filtered value
 		return super.filter(var);
 	}
@@ -65,32 +77,14 @@ public class OOCSIFloat extends OOCSIVariable<Float> {
 	protected Float adapt(Float var) {
 		// history processing?
 		if (windowLength > 0 && values != null && values.size() > 0) {
-			// check deviation from mean
-			if (sigma != null) {
-				// compute mean
-				float sum = 0;
-				for (Float v : values) {
-					sum += v;
-				}
-				mean = (float) (sum / (float) values.size());
-
-				float dev = Math.abs(mean - var);
-
-				// return null if value outside sigma deviation from mean
-				if (dev > sigma) {
-					return mean - var > 0 ? mean - sigma / values.size() : mean + sigma / values.size();
-				} else {
-					return mean;
-				}
-			} else {
-				// compute mean
-				float sum = 0;
-				for (Float v : values) {
-					sum += v;
-				}
-				mean = (float) (sum / (float) values.size());
-				return mean;
+			// compute and store mean
+			float sum = 0;
+			for (Float v : values) {
+				sum += v;
 			}
+			mean = (float) (sum / (float) values.size());
+
+			return mean;
 		} else {
 			return var;
 		}
@@ -205,5 +199,25 @@ public class OOCSIFloat extends OOCSIVariable<Float> {
 	@Override
 	public OOCSIFloat generator(long periodMS, String outputChannel, String outputKey) {
 		return (OOCSIFloat) super.generator(periodMS, outputChannel, outputKey);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see nl.tue.id.oocsi.client.data.OOCSIVariable#connect(nl.tue.id.oocsi.client.data.OOCSIVariable)
+	 */
+	@Override
+	public void connect(OOCSIVariable<Float> forward) {
+		super.connect(forward);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see nl.tue.id.oocsi.client.data.OOCSIVariable#disconnect(nl.tue.id.oocsi.client.data.OOCSIVariable)
+	 */
+	@Override
+	public void disconnect(OOCSIVariable<Float> forward) {
+		super.disconnect(forward);
 	}
 }

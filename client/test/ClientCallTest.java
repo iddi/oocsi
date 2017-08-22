@@ -72,6 +72,9 @@ public class ClientCallTest {
 				assertEquals(30, responseValue);
 			}
 		}
+
+		o1.disconnect();
+		o2.disconnect();
 	}
 
 	@Test
@@ -107,6 +110,9 @@ public class ClientCallTest {
 			OOCSIEvent response = call.getFirstResponse();
 			assertEquals(119, response.getInt("addedthat", -1));
 		}
+
+		o1.disconnect();
+		o2.disconnect();
 	}
 
 	@Test
@@ -152,6 +158,9 @@ public class ClientCallTest {
 			OOCSIEvent response = call.getFirstResponse();
 			assertEquals(119, response.getInt("addedthat", -1));
 		}
+
+		o1.disconnect();
+		o2.disconnect();
 	}
 
 	@Test
@@ -160,36 +169,33 @@ public class ClientCallTest {
 		o1.connect("localhost", 4444);
 		assertTrue(o1.isConnected());
 
-		{
-			OOCSIClient o2 = new OOCSIClient("pongR1");
-			o2.connect("localhost", 4444);
-			assertTrue(o2.isConnected());
-			o2.register("addnineteen2", new Responder(o2) {
+		OOCSIClient o2 = new OOCSIClient("pongR1");
+		o2.connect("localhost", 4444);
+		assertTrue(o2.isConnected());
+		o2.register("addnineteen2", new Responder(o2) {
 
-				@Override
-				public void respond(OOCSIEvent event, OOCSIData response) {
-					int pp = event.getInt("addnineteen", -1);
-					pp += 19;
-					response.data("addedthat", pp);
-					System.out.println("response from pongR1");
-				}
-			});
-		}
-		{
-			OOCSIClient o2 = new OOCSIClient("pongR2");
-			o2.connect("localhost", 4444);
-			assertTrue(o2.isConnected());
-			o2.register("addnineteen2", new Responder(o2) {
+			@Override
+			public void respond(OOCSIEvent event, OOCSIData response) {
+				int pp = event.getInt("addnineteen", -1);
+				pp += 19;
+				response.data("addedthat", pp);
+				System.out.println("response from pongR1");
+			}
+		});
 
-				@Override
-				public void respond(OOCSIEvent event, OOCSIData response) {
-					int pp = event.getInt("addnineteen", -1);
-					pp += 19;
-					response.data("addedthat", pp);
-					System.out.println("response from pongR2");
-				}
-			});
-		}
+		OOCSIClient o3 = new OOCSIClient("pongR2");
+		o3.connect("localhost", 4444);
+		assertTrue(o3.isConnected());
+		o3.register("addnineteen2", new Responder(o3) {
+
+			@Override
+			public void respond(OOCSIEvent event, OOCSIData response) {
+				int pp = event.getInt("addnineteen", -1);
+				pp += 19;
+				response.data("addedthat", pp);
+				System.out.println("response from pongR2");
+			}
+		});
 
 		// test normal call/response handlers
 		{
@@ -218,6 +224,10 @@ public class ClientCallTest {
 			OOCSIEvent response = call.getFirstResponse();
 			assertEquals(119, response.getInt("addedthat", -1));
 		}
+
+		o1.disconnect();
+		o2.disconnect();
+		o3.disconnect();
 	}
 
 	@Test
@@ -241,6 +251,9 @@ public class ClientCallTest {
 			call.send();
 			assertTrue(!call.hasResponse());
 		}
+
+		o1.disconnect();
+		o2.disconnect();
 	}
 
 	@Test
@@ -274,6 +287,9 @@ public class ClientCallTest {
 			call.send();
 			assertTrue(!call.hasResponse());
 		}
+
+		o1.disconnect();
+		o2.disconnect();
 	}
 
 }

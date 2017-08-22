@@ -19,6 +19,8 @@ public class ClientLoadTest {
 		o.connect("localhost", 4444);
 
 		assertTrue(o.isConnected());
+
+		o.disconnect();
 	}
 
 	@Test
@@ -62,6 +64,8 @@ public class ClientLoadTest {
 		assertEquals(1000, list.size());
 		assertEquals(list.get(1), "hello1");
 
+		o1.disconnect();
+		o2.disconnect();
 	}
 
 	// @Test
