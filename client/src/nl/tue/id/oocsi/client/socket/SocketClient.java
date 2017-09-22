@@ -709,9 +709,12 @@ public class SocketClient {
 					} catch (Exception e) {
 					}
 				}
+
+				return;
 			}
+
 			// try to find an open call
-			else if (!openCalls.isEmpty() && dataMap.containsKey(OOCSICall.MESSAGE_ID)) {
+			if (!openCalls.isEmpty() && dataMap.containsKey(OOCSICall.MESSAGE_ID)) {
 				String id = (String) dataMap.get(OOCSICall.MESSAGE_ID);
 
 				// walk from back to allow for removal
@@ -724,9 +727,12 @@ public class SocketClient {
 						break;
 					}
 				}
+
+				return;
 			}
+
 			// if no responder or call and channel ready waiting
-			else if (c != null) {
+			if (c != null) {
 				c.send(sender, data, timestamp, channel, name);
 			}
 		}
