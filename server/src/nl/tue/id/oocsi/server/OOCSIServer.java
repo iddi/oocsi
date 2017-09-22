@@ -24,7 +24,7 @@ import nl.tue.id.oocsi.server.services.SocketService;
 public class OOCSIServer extends Server {
 
 	// constants
-	public static final String VERSION = "1.6";
+	public static final String VERSION = "1.7";
 
 	// defaults for different services
 	public static int port = 4444;
@@ -46,6 +46,9 @@ public class OOCSIServer extends Server {
 
 	// singleton
 	private static OOCSIServer server;
+
+	// services
+	AbstractService[] services;
 
 	/**
 	 * initialize minimal server without any services running
@@ -142,20 +145,47 @@ public class OOCSIServer extends Server {
 		SocketService tcp = new SocketService(this, port, Math.max(2, 2 * maxClients / 3), users);
 
 		// start services
-		run(new AbstractService[] { tcp, osc });
+		start(new AbstractService[] { tcp, osc });
 
 		// start timer for posting channel and client information to the respective channels
 		new Timer(true).schedule(new StatusTimeTask(), 1000, 5000);
 	}
 
-	public void run(final AbstractService[] services) {
-		new Thread(new Runnable() {
-			public void run() {
-				for (AbstractService service : services) {
+	/**
+	 * start given services
+	 * 
+	 * @param services
+	 */
+	public void start(AbstractService[] services) {
+
+		// first stop all running services
+		stop();
+
+		// start new services
+		for (final AbstractService service : services) {
+			new Thread(new Runnable() {
+				public void run() {
 					service.start();
 				}
-			}
-		}).start();
+			}).start();
+		}
+
+		// keep record of newly started services
+		this.services = services;
+	}
+
+	/**
+	 * stop all running services
+	 * 
+	 */
+	public void stop() {
+		if (services == null) {
+			return;
+		}
+
+		for (AbstractService service : services) {
+			service.stop();
+		}
 	}
 
 	@Override

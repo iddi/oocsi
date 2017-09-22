@@ -8,6 +8,7 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -144,6 +145,7 @@ public class SocketService extends AbstractService {
 			while (listening) {
 
 				if (!serverSocket.isBound()) {
+					Thread.yield();
 					continue;
 				}
 
@@ -159,6 +161,8 @@ public class SocketService extends AbstractService {
 			}
 
 			serverSocket.close();
+		} catch (SocketException e) {
+			e.printStackTrace();
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
