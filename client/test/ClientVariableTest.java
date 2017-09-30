@@ -425,4 +425,51 @@ public class ClientVariableTest {
 		assertEquals(10f, of21.get(), 0);
 	}
 
+	@Test
+	public void testConnectReconnectVariableSubscriptions() throws InterruptedException {
+
+		OOCSIClient client1 = new OOCSIClient();
+		// client1.setReconnect(true);
+		client1.connect("localhost", 4444);
+		assertTrue(client1.isConnected());
+
+		OOCSIFloat of11 = new OOCSIFloat(client1, "localVariableTestChannel", "float1");
+
+		of11.set(10f);
+
+		// connect second client
+
+		OOCSIClient client2 = new OOCSIClient();
+		client2.connect("localhost", 4444);
+		assertTrue(client2.isConnected());
+
+		assertEquals(10f, of11.get(), 0);
+
+		OOCSIFloat of21 = new OOCSIFloat(client2, "localVariableTestChannel", "float1");
+
+		of11.set(11f);
+		Thread.sleep(500);
+
+		assertEquals(11f, of11.get(), 0);
+		assertEquals(11f, of21.get(), 0);
+
+		client1.reconnect();
+
+		of21.set(10.6f);
+		Thread.sleep(500);
+
+		assertEquals(10.6f, of21.get(), 0);
+		assertEquals(11f, of11.get(), 0);
+
+		assertTrue(client1.isConnected());
+
+		of21.set(12.6f);
+		Thread.sleep(500);
+
+		assertEquals(12.6f, of11.get(), 0);
+
+		client1.disconnect();
+		client2.disconnect();
+	}
+
 }

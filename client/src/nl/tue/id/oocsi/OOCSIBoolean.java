@@ -25,6 +25,10 @@ public class OOCSIBoolean extends OOCSIVariable<Boolean> {
 		super(client, channelName, key, referenceValue, timeout);
 	}
 
+	public OOCSIBoolean(boolean referenceValue, int timeout) {
+		super(referenceValue, timeout);
+	}
+
 	/**
 	 * set the limiting of incoming events in terms of <rate> and <seconds> timeframe; supports chained invocation
 	 * 

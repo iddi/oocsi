@@ -212,10 +212,8 @@ public class SocketClient {
 			connectionEstablished = true;
 
 			// subscribe to all open channels
-			if (reconnect) {
-				for (String channelName : channels.keySet()) {
-					this.internalSubscribe(channelName);
-				}
+			for (String channelName : channels.keySet()) {
+				this.internalSubscribe(channelName);
 			}
 
 			// if ok, run the communication in a different thread
