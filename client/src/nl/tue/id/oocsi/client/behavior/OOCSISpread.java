@@ -73,14 +73,14 @@ public class OOCSISpread extends OOCSISystemCommunicator<Integer> {
 				// record confirmed roles for others
 				if (event.has(ROLE)) {
 					int confirmedRole = event.getInt(ROLE, -1);
-					String confirmedHandle = event.getSender();
+					String confirmedHandle = event.getString(HANDLE, "");// event.getSender();
 
 					if (confirmedRole > -1 && confirmedHandle != null && confirmedHandle.length() > 0) {
 						roles.put(confirmedHandle, confirmedRole);
 
 						// if someone has the same role and I'm still in election, start a new round by resetting my
 						// role
-						if (confirmedRole == role) {
+						if (confirmedRole == role && !confirmedHandle.equals(getHandle())) {
 							role = 0;
 							framesSinceAssignment = 0;
 						}

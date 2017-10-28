@@ -18,8 +18,8 @@ public class OOCSIClient {
 
 	public static final String VERSION = "1.3.4";
 
-	private Map<String, Handler> channels = new HashMap<String, Handler>();
-	private Map<String, Responder> services = new HashMap<String, Responder>();
+	protected Map<String, Handler> channels = new HashMap<String, Handler>();
+	protected Map<String, Responder> services = new HashMap<String, Responder>();
 
 	private SocketClient sc;
 
