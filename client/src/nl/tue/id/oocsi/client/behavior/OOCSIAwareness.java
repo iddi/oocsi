@@ -42,7 +42,7 @@ public class OOCSIAwareness extends OOCSISystemCommunicator<String> {
 	}
 
 	/**
-	 * create a new awareness proess on the given channel for the specified data (as keys)
+	 * create a new awareness process on the given channel for the specified data (as keys)
 	 * 
 	 * @param client
 	 * @param channelName
@@ -59,7 +59,7 @@ public class OOCSIAwareness extends OOCSISystemCommunicator<String> {
 	}
 
 	/**
-	 * create a new awareness proess on the given channel for the specified data (as keys), a timeout is specified to
+	 * create a new awareness process on the given channel for the specified data (as keys), a timeout is specified to
 	 * "forget" nodes on the channel, unless they post data during the timeout duration
 	 * 
 	 * @param client
