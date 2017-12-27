@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import nl.tue.id.oocsi.server.OOCSIServer;
 import nl.tue.id.oocsi.server.protocol.Protocol;
+import nl.tue.id.oocsi.server.services.SocketClient;
 
 /**
  * data structure for server
@@ -76,6 +77,26 @@ public class Server extends Channel {
 
 		// clean too old clients
 		closeStaleClients();
+
+		// check earlier connection from same client, if yes, remove to enable reconnect
+		if (clients.containsKey(clientName)) {
+			Client existingClient = clients.get(clientName);
+			if (existingClient instanceof SocketClient && client instanceof SocketClient) {
+				SocketClient socketClientOld = (SocketClient) existingClient;
+				SocketClient socketClientNew = (SocketClient) client;
+				if (socketClientOld.getIPAddress() != null && socketClientNew.getIPAddress() != null) {
+					if (socketClientOld.getIPAddress().equals(socketClientNew.getIPAddress())) {
+						removeClient(existingClient);
+						OOCSIServer.logConnection(clientName, clientName, "replaced client at same IP", new Date());
+
+						addChannel(client);
+						clients.put(clientName, client);
+
+						return true;
+					}
+				}
+			}
+		}
 
 		// add client to client list and sub channels
 		if (!clients.containsKey(clientName) && !subChannels.containsKey(clientName) && getClient(clientName) == null
