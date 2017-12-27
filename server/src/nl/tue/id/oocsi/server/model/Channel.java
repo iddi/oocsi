@@ -78,10 +78,20 @@ public class Channel {
 	 * @param message
 	 */
 	public void send(Message message) {
-		// OOCSIServer.logEvent("Channel " + token + " received " + message);
+		OOCSIServer.logEvent(message.sender, message.recipient, message.data, message.timestamp);
 		for (Channel subChannel : subChannels.values()) {
 			if (!message.sender.equals(subChannel.getName())) {
 				subChannel.send(message);
+
+				// log event
+				if (!subChannel.isPrivate()) {
+					if (!message.recipient.equals(subChannel.getName())) {
+						if (!message.sender.equals("SERVER") && !message.recipient.equals("OOCSI_events")) {
+							OOCSIServer.logEvent(message.recipient, subChannel.getName(), message.data,
+									message.timestamp);
+						}
+					}
+				}
 			}
 		}
 	}

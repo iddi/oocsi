@@ -87,17 +87,6 @@ public class SocketClient extends Client {
 			// this is ok after serialization
 			message.addData("method", "JSON");
 		}
-
-		if (!isPrivate()) {
-			if (!message.recipient.equals(this.getName())) {
-				if (!message.sender.equals("SERVER") && !message.recipient.equals("OOCSI_events")) {
-					OOCSIServer.logEvent(message.sender, message.recipient, message.data, message.timestamp);
-					OOCSIServer.logEvent(message.recipient, this.getName(), message.data, message.timestamp);
-				}
-			} else {
-				OOCSIServer.logEvent(message.sender, message.recipient, message.data, message.timestamp);
-			}
-		}
 	}
 
 	/**
@@ -379,5 +368,14 @@ public class SocketClient extends Client {
 	 */
 	public boolean isConnected() {
 		return socket.isConnected() && !socket.isClosed();
+	}
+
+	/**
+	 * return the IP address of connected client
+	 * 
+	 * @return
+	 */
+	public String getIPAddress() {
+		return socket != null && socket.isBound() ? socket.getInetAddress().getHostAddress() : null;
 	}
 }

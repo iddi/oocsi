@@ -72,6 +72,8 @@ public class SocketService extends AbstractService {
 				}
 			}
 		}
+
+		// for non-private clients
 		return !client.isPrivate() && super.register(client);
 	}
 
