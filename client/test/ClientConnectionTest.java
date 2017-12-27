@@ -48,6 +48,55 @@ public class ClientConnectionTest {
 	}
 
 	@Test
+	public void testConnectAndKill() throws InterruptedException {
+		OOCSIClient o = new OOCSIClient("test_client_0_kill");
+
+		o.setReconnect(false);
+		o.connect("localhost", 4444);
+
+		assertTrue(o.isConnected());
+
+		Thread.sleep(500);
+
+		{
+			OOCSIClient o1 = new OOCSIClient("test_client_0_kill");
+			o1.connect("localhost", 4444);
+
+			Thread.sleep(500);
+
+			assertTrue(o1.isConnected());
+			o1.disconnect();
+		}
+
+		o.disconnect();
+	}
+
+	@Test
+	public void testConnectAndKillWithPassword() throws InterruptedException {
+		OOCSIClient o1 = new OOCSIClient("test_priv_client_1:12345");
+		o1.connect("localhost", 4444);
+		assertTrue(o1.isConnected());
+
+		OOCSIClient o2 = new OOCSIClient("test_priv_client_1");
+		o2.connect("localhost", 4444);
+		assertTrue(!o2.isConnected());
+
+		OOCSIClient o3 = new OOCSIClient("test_priv_client_1:345");
+		o3.connect("localhost", 4444);
+		assertTrue(!o3.isConnected());
+
+		OOCSIClient o4 = new OOCSIClient("test_priv_client_1:12345");
+		o4.connect("localhost", 4444);
+		assertTrue(o4.isConnected());
+
+		o1.disconnect();
+		o2.disconnect();
+		o3.disconnect();
+		o4.disconnect();
+
+	}
+
+	@Test
 	public void testConnectReconnect() throws InterruptedException {
 		OOCSIClient o = new OOCSIClient("test_client_0_reconnect");
 

@@ -147,7 +147,6 @@ public class SocketClient {
 		boolean result = false;
 		while (!disconnected && (!reconnect || reconnectCountDown-- > 0)) {
 			result = connectAttempt(hostname, port);
-
 			if (result) {
 				reconnectCountDown = 100;
 				break;
@@ -654,6 +653,8 @@ public class SocketClient {
 				log(" - OOCSI disconnected "
 						+ (!connectionEstablished ? "(client name not accepted)" : "(server unavailable)"));
 
+				sleep(200);
+
 				// try reconnect
 				connect(hostname, port);
 			}
@@ -757,7 +758,6 @@ public class SocketClient {
 						break;
 					}
 				}
-
 				return;
 			}
 

@@ -98,7 +98,6 @@ public class ClientCallTest {
 		{
 			OOCSICall call = new OOCSICall(o1, "pongResponse", "addnineteen", 500, 1).data("addnineteen", 1);
 			call.sendAndWait();
-
 			assertTrue(call.hasResponse());
 			OOCSIEvent response = call.getFirstResponse();
 			assertEquals(20, response.getInt("addedthat", -1));
