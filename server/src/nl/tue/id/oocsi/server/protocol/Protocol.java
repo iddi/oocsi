@@ -71,6 +71,10 @@ public class Protocol {
 		else if (inputLine.equals("clients")) {
 			return server.getClientList();
 		}
+		// respond to ping
+		else if (inputLine.equals("ping")) {
+			return ".";
+		}
 		// client subscribes to channel
 		else if (inputLine.startsWith("subscribe") && inputLine.contains(" ")) {
 			String channel = inputLine.split(" ")[1];
