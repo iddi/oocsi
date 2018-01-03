@@ -2,6 +2,7 @@ package nl.tue.id.oocsi;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 
 import nl.tue.id.oocsi.client.OOCSIClient;
 import nl.tue.id.oocsi.client.protocol.EventHandler;
@@ -167,12 +168,19 @@ public class OOCSICommunicator extends OOCSIClient {
 	 * @param ratePerSender
 	 * @return
 	 */
-	public boolean subscribe(String channelName, String handlerName, int rate, int seconds, boolean ratePerSender) {
+	public boolean subscribe(final String channelName, String handlerName, int rate, int seconds,
+			boolean ratePerSender) {
 
 		// try event handler with OOCSIEvent parameter
 
 		try {
 			final Method handler = parent.getClass().getDeclaredMethod(handlerName, new Class[] { OOCSIEvent.class });
+			if (!Modifier.isPublic(handler.getModifiers())) {
+				log(" - [ERROR] event handler for channel " + channelName
+						+ " needs to be a public method: 'public void " + channelName + "(OOCSIEvent evt) { ... }'");
+				return false;
+			}
+
 			if (rate > 0 && seconds > 0) {
 				if (ratePerSender) {
 					subscribe(channelName, new RateLimitedClientEventHandler(rate, seconds) {
