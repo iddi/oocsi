@@ -159,11 +159,6 @@ public class Protocol {
 								}
 							}
 						}
-
-						// if the map does not contain a data key, add the full data as a raw string
-						if (!map.containsKey("data")) {
-							map.put("data", message);
-						}
 					} catch (JsonSyntaxException jse) {
 						// in case of problems, add the full data as a raw string
 						map.put("data", message);
