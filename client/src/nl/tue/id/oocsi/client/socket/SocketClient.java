@@ -702,15 +702,21 @@ public class SocketClient {
 		 * @param c
 		 */
 		private void handleData(final String channel, final String data, final String timestamp, final String sender,
-				Handler c) {
+				final Handler c) {
 
+			// try to parse the data
 			Map<String, Object> dataMap = parseData(data);
 			if (dataMap != null) {
 				handleMappedData(channel, data, timestamp, sender, c, dataMap);
 			}
+
 			// if dataMap not parseable and channel ready
 			else if (c != null) {
-				c.send(sender, data, timestamp, channel, name);
+				executor.submit(new Runnable() {
+					public void run() {
+						c.send(sender, data, timestamp, channel, name);
+					}
+				});
 			}
 		}
 
@@ -725,7 +731,7 @@ public class SocketClient {
 		 * @param dataMap
 		 */
 		private void handleMappedData(final String channel, final String data, final String timestamp,
-				final String sender, Handler c, Map<String, Object> dataMap) {
+				final String sender, final Handler c, final Map<String, Object> dataMap) {
 			// try to find a responder
 			if (dataMap.containsKey(OOCSICall.MESSAGE_HANDLE)) {
 				final Responder r = services.get((String) dataMap.get(OOCSICall.MESSAGE_HANDLE));
@@ -750,11 +756,15 @@ public class SocketClient {
 
 				// walk from back to allow for removal
 				for (int i = openCalls.size() - 1; i >= 0; i--) {
-					OOCSICall call = openCalls.get(i);
+					final OOCSICall call = openCalls.get(i);
 					if (!call.isValid()) {
 						openCalls.remove(i);
 					} else if (call.getId().equals(id)) {
-						call.respond(dataMap);
+						executor.submit(new Runnable() {
+							public void run() {
+								call.respond(dataMap);
+							}
+						});
 						break;
 					}
 				}
@@ -763,7 +773,11 @@ public class SocketClient {
 
 			// if no responder or call and channel ready waiting
 			if (c != null) {
-				c.send(sender, data, timestamp, channel, name);
+				executor.submit(new Runnable() {
+					public void run() {
+						c.send(sender, data, timestamp, channel, name);
+					}
+				});
 			}
 		}
 
