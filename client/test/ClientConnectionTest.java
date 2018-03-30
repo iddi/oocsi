@@ -98,7 +98,12 @@ public class ClientConnectionTest {
 
 	@Test
 	public void testConnectReconnect() throws InterruptedException {
-		OOCSIClient o = new OOCSIClient("test_client_0_reconnect");
+		OOCSIClient o = new OOCSIClient("test_client_0_reconnect") {
+			// @Override
+			// public void log(String message) {
+			// System.out.println(message);
+			// }
+		};
 
 		o.setReconnect(true);
 		o.connect("localhost", 4444);
@@ -111,11 +116,21 @@ public class ClientConnectionTest {
 
 		o.reconnect();
 
-		Thread.sleep(5000);
+		assertTrue(!o.isConnected());
+
+		Thread.sleep(500);
 
 		assertTrue(o.isConnected());
 
 		o.setReconnect(false);
+		o.reconnect();
+
+		assertTrue(!o.isConnected());
+
+		Thread.sleep(500);
+
+		assertTrue(!o.isConnected());
+
 		o.disconnect();
 	}
 
@@ -123,7 +138,13 @@ public class ClientConnectionTest {
 	public void testConnectReconnectSubscriptions() throws InterruptedException {
 		final List<String> list = new ArrayList<String>();
 
-		OOCSIClient o = new OOCSIClient("test_client_0_reconnect_subscriptions1");
+		OOCSIClient o = new OOCSIClient("test_client_0_reconnect_subscriptions1") {
+			// @Override
+			// public void log(String message) {
+			// System.out.println(message);
+			// }
+		};
+		;
 		o.setReconnect(true);
 		o.connect("localhost", 4444);
 		o.subscribe("subscriptionTest", new Handler() {
@@ -153,6 +174,8 @@ public class ClientConnectionTest {
 
 		o.reconnect();
 
+		assertTrue(!o.isConnected());
+
 		Thread.sleep(500);
 
 		assertTrue(o.isConnected());
@@ -179,7 +202,7 @@ public class ClientConnectionTest {
 		assertTrue(o1.isConnected());
 		o1.subscribe(new DataHandler() {
 			public void receive(String sender, Map<String, Object> data, long timestamp) {
-				list.add((String) data.get("data"));
+				list.add(sender);
 			}
 		});
 
@@ -188,7 +211,7 @@ public class ClientConnectionTest {
 		assertTrue(o2.isConnected());
 		o2.subscribe(new DataHandler() {
 			public void receive(String sender, Map<String, Object> data, long timestamp) {
-				list.add((String) data.get("data"));
+				list.add(sender);
 			}
 		});
 
@@ -197,14 +220,14 @@ public class ClientConnectionTest {
 		Thread.sleep(3000);
 
 		assertEquals(1, list.size());
-		assertEquals(list.get(0), "hello2");
+		assertEquals("test_client_1r", list.get(0));
 
 		o2.send("test_client_1r", "hello1");
 		Thread.yield();
 		Thread.sleep(3000);
 
 		assertEquals(2, list.size());
-		assertEquals(list.get(1), "hello1");
+		assertEquals("test_client_2r", list.get(1));
 
 		o1.disconnect();
 		o2.disconnect();
@@ -263,7 +286,7 @@ public class ClientConnectionTest {
 		assertTrue(o1.isConnected());
 		o1.subscribe(new RateLimitedEventHandler(5, 3) {
 			public void receive(OOCSIEvent event) {
-				list.add(event.getString("data"));
+				list.add(event.getSender());
 			}
 		});
 
@@ -272,7 +295,7 @@ public class ClientConnectionTest {
 		assertTrue(o2.isConnected());
 		o2.subscribe(new RateLimitedEventHandler(2, 3) {
 			public void receive(OOCSIEvent event) {
-				list.add(event.getString("data"));
+				list.add(event.getSender());
 			}
 		});
 
@@ -283,7 +306,6 @@ public class ClientConnectionTest {
 		o1.send("test_client_rate_limit_2", "hello2y");
 		// won't appear
 		o1.send("test_client_rate_limit_2", "hello3n");
-		Thread.yield();
 		Thread.sleep(1000);
 
 		assertEquals(2, list.size());
@@ -292,7 +314,6 @@ public class ClientConnectionTest {
 		o2.send("test_client_rate_limit_1", "hello4y");
 		o2.send("test_client_rate_limit_1", "hello5y");
 		o2.send("test_client_rate_limit_1", "hello6y");
-		Thread.yield();
 		Thread.sleep(1000);
 
 		assertEquals(5, list.size());
@@ -306,7 +327,6 @@ public class ClientConnectionTest {
 		o2.send("test_client_rate_limit_1", "hello11y");
 		// won't appear
 		o2.send("test_client_rate_limit_1", "hello12n");
-		Thread.yield();
 		Thread.sleep(500);
 
 		assertEquals(7, list.size());
@@ -324,7 +344,6 @@ public class ClientConnectionTest {
 		o2.send("test_client_rate_limit_1", "hello16y");
 		o2.send("test_client_rate_limit_1", "hello17y");
 		o2.send("test_client_rate_limit_1", "hello18y");
-		Thread.yield();
 		Thread.sleep(500);
 
 		for (String string : list) {
@@ -346,7 +365,7 @@ public class ClientConnectionTest {
 		assertTrue(o1.isConnected());
 		o1.subscribe(new RateLimitedClientEventHandler(2, 3) {
 			public void receive(OOCSIEvent event) {
-				list.add(event.getString("data"));
+				list.add(event.getSender());
 			}
 		});
 
@@ -365,8 +384,7 @@ public class ClientConnectionTest {
 		o2.send("test_client_rate_limit_pc_1", "hello2y");
 		// won't appear
 		o2.send("test_client_rate_limit_pc_1", "hello3n");
-		Thread.yield();
-		Thread.sleep(500);
+		Thread.sleep(1500);
 
 		assertEquals(2, list.size());
 
@@ -375,7 +393,6 @@ public class ClientConnectionTest {
 		o3.send("test_client_rate_limit_pc_1", "hello5y");
 		// won't appear
 		o3.send("test_client_rate_limit_pc_1", "hello6n");
-		Thread.yield();
 		Thread.sleep(500);
 
 		assertEquals(4, list.size());
@@ -387,7 +404,6 @@ public class ClientConnectionTest {
 		o3.send("test_client_rate_limit_pc_1", "hello10n");
 		o3.send("test_client_rate_limit_pc_1", "hello11n");
 		o3.send("test_client_rate_limit_pc_1", "hello12n");
-		Thread.yield();
 		Thread.sleep(500);
 
 		assertEquals(4, list.size());
@@ -406,7 +422,6 @@ public class ClientConnectionTest {
 		o3.send("test_client_rate_limit_pc_1", "hello17y");
 		// won't appear
 		o3.send("test_client_rate_limit_pc_1", "hello18n");
-		Thread.yield();
 		Thread.sleep(500);
 
 		for (String string : list) {
@@ -428,7 +443,7 @@ public class ClientConnectionTest {
 		assertTrue(o1.isConnected());
 		o1.subscribe(new DataHandler() {
 			public void receive(String sender, Map<String, Object> data, long timestamp) {
-				list.add((String) data.get("data"));
+				list.add(sender);
 			}
 		});
 
@@ -437,7 +452,7 @@ public class ClientConnectionTest {
 		assertTrue(o2.isConnected());
 		o2.subscribe(new DataHandler() {
 			public void receive(String sender, Map<String, Object> data, long timestamp) {
-				list.add((String) data.get("data"));
+				list.add(sender);
 			}
 		});
 
@@ -448,7 +463,7 @@ public class ClientConnectionTest {
 		Thread.sleep(1000);
 
 		assertEquals(1, list.size());
-		assertEquals(list.get(0), "hello1");
+		assertEquals("test_priv_client_2", list.get(0));
 
 		o1.disconnect();
 		o2.disconnect();
@@ -463,7 +478,7 @@ public class ClientConnectionTest {
 		assertTrue(o1.isConnected());
 		o1.subscribe("test:password", new DataHandler() {
 			public void receive(String sender, Map<String, Object> data, long timestamp) {
-				list.add((String) data.get("data"));
+				list.add(sender);
 			}
 		});
 
@@ -472,7 +487,7 @@ public class ClientConnectionTest {
 		assertTrue(o2.isConnected());
 		o2.subscribe("test", new DataHandler() {
 			public void receive(String sender, Map<String, Object> data, long timestamp) {
-				list.add((String) data.get("data"));
+				list.add(sender);
 			}
 		});
 
@@ -485,34 +500,28 @@ public class ClientConnectionTest {
 
 		// test without password
 		o3.send("test", "hello1");
-		Thread.yield();
-		Thread.sleep(1000);
+		Thread.sleep(100);
 		assertEquals(0, list.size());
 
 		// test wrong pass 1
 		o3.send("test:pass", "hello1");
-		Thread.yield();
-		Thread.sleep(1000);
+		Thread.sleep(100);
 		assertEquals(0, list.size());
 
 		// test wrong pass 2
 		o3.send("test:passwwwwwooooorrrrddd", "hello1");
-		Thread.yield();
-		Thread.sleep(1000);
+		Thread.sleep(100);
 		assertEquals(0, list.size());
 
 		// test wrong pass 3
 		o3.send("test:password1", "hello1");
-		Thread.yield();
-		Thread.sleep(1000);
+		Thread.sleep(100);
 		assertEquals(0, list.size());
 
 		// test correct password
 		o3.send("test:password", "hello1");
-		Thread.yield();
-		Thread.sleep(1000);
+		Thread.sleep(100);
 		assertEquals(1, list.size());
-		assertEquals(list.get(0), "hello1");
 
 		o1.disconnect();
 		o2.disconnect();

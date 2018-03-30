@@ -77,8 +77,8 @@ public class ClientVariableTest {
 
 		Thread.sleep(1000);
 
-		assertTrue(1 == of21.get());
-		assertTrue(-1 == of22.get());
+		assertEquals(1, (int) of21.get());
+		assertEquals(-1, (int) of22.get());
 
 		// back ---
 
@@ -87,8 +87,8 @@ public class ClientVariableTest {
 
 		Thread.sleep(1000);
 
-		assertTrue(-10 == of11.get());
-		assertTrue(10 == of12.get());
+		assertEquals(-10, (int) of11.get());
+		assertEquals(10, (int) of12.get());
 
 		client1.disconnect();
 		client2.disconnect();
@@ -429,7 +429,7 @@ public class ClientVariableTest {
 	public void testConnectReconnectVariableSubscriptions() throws InterruptedException {
 
 		OOCSIClient client1 = new OOCSIClient();
-		// client1.setReconnect(true);
+		client1.setReconnect(true);
 		client1.connect("localhost", 4444);
 		assertTrue(client1.isConnected());
 
@@ -454,6 +454,7 @@ public class ClientVariableTest {
 		assertEquals(11f, of21.get(), 0);
 
 		client1.reconnect();
+		assertTrue(!client1.isConnected());
 
 		of21.set(10.6f);
 		Thread.sleep(500);
