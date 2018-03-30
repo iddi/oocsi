@@ -41,21 +41,28 @@ public class SocketClient {
 	private static final int MULTICAST_PORT = 4448;
 	private static final String MULTICAST_GROUP = "224.0.0.144";
 
+	private String hostname;
+	private int port;
 	private String name;
+
 	private Map<String, Handler> channels;
 	private Map<String, Responder> services;
 	private Queue<String> tempIncomingMessages = new LinkedBlockingQueue<String>(1);
 	private List<OOCSICall> openCalls = new LinkedList<OOCSICall>();
 
+	// i/o
 	private Socket socket;
 	private BufferedReader input;
 	private PrintWriter output;
+
+	// connection flags
 	private boolean disconnected = false;
 	private boolean hasPrintedServerInfo = false;
 	private boolean connectionEstablished = false;
 	private boolean reconnect = false;
 	private int reconnectCountDown = 100;
 
+	// thread pool
 	private ExecutorService executor;
 
 	/**
@@ -72,6 +79,11 @@ public class SocketClient {
 		this.executor = Executors.newCachedThreadPool();
 	}
 
+	/**
+	 * start pinging for a multi-cast lookup
+	 * 
+	 * @return
+	 */
 	public boolean startMulticastLookup() {
 		try (MulticastSocket socket = new MulticastSocket(MULTICAST_PORT)) {
 			socket.setSoTimeout(10000);
@@ -98,19 +110,8 @@ public class SocketClient {
 	}
 
 	/**
-	 * let thread sleep for ms milliseconds
+	 * connection to a multi-cast server
 	 * 
-	 */
-	private void sleep(int ms) {
-		try {
-			// so, wait a bit before next trial
-			Thread.sleep(ms);
-		} catch (InterruptedException e) {
-			// do nothing
-		}
-	}
-
-	/**
 	 * @param socket
 	 * @throws IOException
 	 */
@@ -144,18 +145,21 @@ public class SocketClient {
 	 * @return
 	 */
 	public boolean connect(final String hostname, final int port) {
-		boolean result = false;
-		while (!disconnected && (!reconnect || reconnectCountDown-- > 0)) {
-			result = connectAttempt(hostname, port);
-			if (result) {
-				reconnectCountDown = 100;
-				break;
-			} else {
-				sleep(1000);
-			}
+
+		// store the connection details
+		this.hostname = hostname;
+		this.port = port;
+
+		// start connection thread
+		executor.submit(new SocketClientRunnable());
+
+		// check back on connection progress
+		while (!disconnected && !connectionEstablished && reconnectCountDown > 0) {
+			sleep(100);
 		}
 
-		return result;
+		// return connection status
+		return connectionEstablished;
 	}
 
 	/**
@@ -164,8 +168,9 @@ public class SocketClient {
 	 * @param hostname
 	 * @param port
 	 * @return
+	 * @throws OOCSIAuthenticationException
 	 */
-	private boolean connectAttempt(final String hostname, final int port) {
+	private boolean connectAttempt(final String hostname, final int port) throws OOCSIAuthenticationException {
 		try {
 			// configure and connect socket
 			connectSocket(hostname, port);
@@ -197,22 +202,34 @@ public class SocketClient {
 	}
 
 	/**
+	 * connection handshake after the socket connection has been established
+	 * 
 	 * @param hostname
 	 * @param port
 	 * @return
 	 * @throws IOException
+	 * @throws OOCSIAuthenticationException
 	 */
-	private boolean connectionHandshake(final String hostname, final int port) throws IOException {
+	private boolean connectionHandshake(final String hostname, final int port)
+			throws IOException, OOCSIAuthenticationException {
+		// short timeout when connecting
+		socket.setSoTimeout(5000);
+
 		// check if we are ok to connect
 		String serverWelcomeMessage;
 		if (!socket.isClosed() && (serverWelcomeMessage = input.readLine()) != null) {
+			// name is not ok
 			if (!serverWelcomeMessage.startsWith("welcome")) {
 				disconnect();
 				log(" - disconnected (client name not accepted)");
-				return false;
-			} else {
-				log(" - connected successfully");
+				throw new OOCSIAuthenticationException();
 			}
+
+			// name is ok
+			log(" - connected successfully");
+
+			// longer timeout after successful connection
+			socket.setSoTimeout(20000);
 
 			// first data has arrived = connection is ok
 			connectionEstablished = true;
@@ -222,16 +239,16 @@ public class SocketClient {
 				this.internalSubscribe(channelName);
 			}
 
-			// if ok, run the communication in a different thread
-			executor.submit(new SocketClientRunnable(hostname, port));
+			reconnectCountDown = 0;
+			return true;
 		}
 
 		reconnectCountDown = 0;
-		return true;
+		return false;
 	}
 
 	/**
-	 * connect a socket
+	 * configure and connect a socket
 	 * 
 	 * @param hostname
 	 * @param port
@@ -239,6 +256,8 @@ public class SocketClient {
 	 * @throws IOException
 	 */
 	private void connectSocket(final String hostname, final int port) throws SocketException, IOException {
+
+		// open and configure socket
 		socket = new Socket();
 		socket.setTcpNoDelay(true);
 		socket.setTrafficClass(0x10);
@@ -251,6 +270,7 @@ public class SocketClient {
 
 	/**
 	 * print server hint once
+	 * 
 	 */
 	private void printServerInfo() {
 		if (!hasPrintedServerInfo) {
@@ -289,8 +309,10 @@ public class SocketClient {
 	 * 
 	 */
 	public void disconnect() {
-		// disconnect from server with handshake and no reconnect
+		// disconnect from server with handshake
 		disconnected = true;
+
+		// and no reconnect
 		reconnect = false;
 		reconnectCountDown = 0;
 
@@ -318,18 +340,17 @@ public class SocketClient {
 	 */
 	public void reconnect() {
 		output.println("quit");
-
 		internalDisconnect();
 		log(" - disconnected (by reconnect)");
 	}
 
 	/**
-	 * close all resources safely
+	 * close all i/o resources safely
 	 * 
 	 */
 	private void internalDisconnect() {
 
-		// shutdown IO
+		// shutdown I/O
 		try {
 			if (output != null) {
 				output.close();
@@ -341,9 +362,9 @@ public class SocketClient {
 				socket.close();
 			}
 		} catch (IOException e) {
-			e.printStackTrace();
+			// do nothing
 		} catch (NullPointerException e) {
-			e.printStackTrace();
+			// do nothing
 		}
 	}
 
@@ -487,7 +508,7 @@ public class SocketClient {
 	}
 
 	/**
-	 * register a responder with a handle <callName>
+	 * register a responder with a handle "callName"
 	 * 
 	 * @param callName
 	 * @param responder
@@ -612,51 +633,104 @@ public class SocketClient {
 	}
 
 	/**
+	 * let thread sleep for ms milliseconds
+	 * 
+	 */
+	private void sleep(int ms) {
+		try {
+			// so, wait a bit before next trial
+			Thread.sleep(ms);
+		} catch (InterruptedException e) {
+			// do nothing
+		}
+	}
+
+	/**
 	 * logging of message on console (can be overridden by subclass)
 	 */
 	public void log(String message) {
 		// no logging by default
 	}
 
+	/**
+	 * communication handler (to be run in a separate thread)
+	 * 
+	 */
 	class SocketClientRunnable implements Runnable {
 
-		private String hostname;
-		private int port;
-
-		/**
-		 * 
-		 * 
-		 * @param hostname
-		 * @param port
-		 */
-		public SocketClientRunnable(String hostname, int port) {
-			this.hostname = hostname;
-			this.port = port;
+		public SocketClientRunnable() {
+			// TODO Auto-generated constructor stub
 		}
 
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see java.lang.Runnable#run()
-		 */
+		@Override
 		public void run() {
 			try {
-				String fromServer;
-				while (!socket.isClosed() && (fromServer = input.readLine()) != null) {
-					handleMessage(fromServer);
+				int connections = 0;
+
+				// SESSIONS
+				// only do if we either always reconnect, or it's the first connection
+				while (reconnect || connections == 0) {
+					connections++;
+
+					// ATTEMPTS
+					// try 100 times per (re-)connection attempt
+					reconnectCountDown = 100;
+					while (reconnectCountDown-- > 0) {
+						// try to connect
+						if (connectAttempt(hostname, port)) {
+							// connection is fine, stop trials
+							break;
+						}
+
+						// another trial, sleep before
+						sleep(1000);
+					}
+
+					if (isConnected()) {
+						// connection rest forever
+						runCommunication();
+					} else {
+						// take a rest before trying again
+						sleep(5000);
+					}
 				}
+			} catch (OOCSIAuthenticationException oae) {
+				disconnect();
+				// quit this thread...
+			}
+		}
 
-			} catch (IOException e) {
-				// do nothing
-			} finally {
+		/**
+		 * all communications after the initial handshake happen here
+		 * 
+		 */
+		private void runCommunication() {
+			try {
+				String fromServer;
+				int cyclesSinceRead = 0;
+				while (!socket.isClosed()) {
+
+					// main messaging loop
+					while (input.ready() && (fromServer = input.readLine()) != null) {
+						handleMessage(fromServer);
+						cyclesSinceRead = 0;
+					}
+
+					// sleep if there is nothing to read
+					sleep(1);
+
+					// if no data came in for 20 secs, kill connection and reconnect
+					if (cyclesSinceRead++ > 20000) {
+						internalDisconnect();
+						log(" - OOCSI disconnected (application level timeout)");
+						break;
+					}
+				}
+			} catch (Exception e) {
 				internalDisconnect();
-				log(" - OOCSI disconnected "
-						+ (!connectionEstablished ? "(client name not accepted)" : "(server unavailable)"));
-
-				sleep(200);
-
-				// try reconnect
-				connect(hostname, port);
+				if (connectionEstablished) {
+					log(" - OOCSI disconnected (server unavailable)");
+				}
 			}
 		}
 
@@ -742,7 +816,9 @@ public class SocketClient {
 								r.receive(sender, Handler.parseData(data), Handler.parseTimestamp(timestamp), channel,
 										name);
 							} catch (ClassNotFoundException e) {
+								// nothing
 							} catch (Exception e) {
+								// nothing
 							}
 						}
 					});
@@ -779,9 +855,12 @@ public class SocketClient {
 					}
 				});
 			}
+
 		}
 
 		/**
+		 * parse the message data
+		 * 
 		 * @param data
 		 * @return
 		 */
@@ -796,5 +875,11 @@ public class SocketClient {
 			}
 			return dataMap;
 		}
+	}
+
+	class OOCSIAuthenticationException extends Exception {
+
+		private static final long serialVersionUID = 5074228098705122200L;
+
 	}
 }
