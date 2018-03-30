@@ -34,10 +34,10 @@ public class OOCSIVariable<T> extends OOCSISystemCommunicator<T> {
 	// key of internal variable in the OOCSI network
 	private String key;
 
-	// reference or default value for variable in case nothing has been received for <timeout> milliseconds
+	// reference or default value for variable in case nothing has been received for "timeout" milliseconds
 	private T internalReference;
 
-	// amount of milliseconds to wait until the reference value is applied to <internalVariable>
+	// amount of milliseconds to wait until the reference value is applied to "internalVariable"
 	private int timeout;
 
 	// last time the variable was updated
@@ -338,7 +338,7 @@ public class OOCSIVariable<T> extends OOCSISystemCommunicator<T> {
 	}
 
 	/**
-	 * set the limiting of incoming events in terms of <rate> and <seconds> timeframe; supports chained invocation
+	 * set the limiting of incoming events in terms of "rate" and "seconds" timeframe; supports chained invocation
 	 * 
 	 * @param rate
 	 * @param seconds
@@ -379,7 +379,6 @@ public class OOCSIVariable<T> extends OOCSISystemCommunicator<T> {
 	 * during operation, however, this will reset the buffer); supports chained invocation
 	 * 
 	 * @param windowLength
-	 * @param sigma
 	 * @return
 	 */
 	public OOCSIVariable<T> smooth(int windowLength) {
@@ -417,7 +416,7 @@ public class OOCSIVariable<T> extends OOCSISystemCommunicator<T> {
 	/**
 	 * creates a periodic feedback loop that feed either the last input value or the reference value into the variable
 	 * (locally). If there is no reference value set, the former applies. The period is given in milliseconds. In
-	 * addition, the new value of the variable is sent out to the channel <outputChannel> with the given key <outputKey>
+	 * addition, the new value of the variable is sent out to the channel "outputChannel" with the given key "outputKey"
 	 * 
 	 * @param periodMS
 	 * @param outputChannel

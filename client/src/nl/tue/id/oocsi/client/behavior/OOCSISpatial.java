@@ -50,8 +50,7 @@ public class OOCSISpatial extends OOCSISystemCommunicator<Position> {
 	 * @param client
 	 * @param channelName
 	 * @param key
-	 * @param myPosition
-	 * @param neighbourThreshold
+	 * @param neighborDistance
 	 */
 	public OOCSISpatial(OOCSIClient client, String channelName, String key, Position<?> neighborDistance) {
 		this(client, channelName, key, (int) (Math.random() * REBALANCING_TIMEOUT), null);

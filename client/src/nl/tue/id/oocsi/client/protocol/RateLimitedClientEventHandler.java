@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * rate limited event handler for events with structured data that will only let through <rate> events per <second>
+ * rate limited event handler for events with structured data that will only let through "rate" events per "second"
  * secs; this counts for all incoming events per sender which protects against single senders overloading the system
  *
  * @author matsfunk
@@ -15,7 +15,7 @@ abstract public class RateLimitedClientEventHandler extends RateLimitedEventHand
 	private Map<String, Integer> counter = new HashMap<String, Integer>(100);
 
 	/**
-	 * creates a rate limited event handler that will at most let through <rate> event per <second> secs
+	 * creates a rate limited event handler that will at most let through "rate" event per "second" secs
 	 * 
 	 * @param rate
 	 * @param seconds

@@ -27,7 +27,7 @@ public class OOCSICall extends OOCSIMessage {
 	private OOCSIEvent response = null;
 
 	/**
-	 * create a new message to the channel <channelName>
+	 * create a new message to the channel "channelName"
 	 * 
 	 * @param oocsi
 	 * @param callName
@@ -39,7 +39,7 @@ public class OOCSICall extends OOCSIMessage {
 	}
 
 	/**
-	 * create a new message to the channel <channelName>
+	 * create a new message to the channel "channelName"
 	 * 
 	 * @param oocsi
 	 * @param channelName

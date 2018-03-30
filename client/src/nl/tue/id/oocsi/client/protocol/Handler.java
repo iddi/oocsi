@@ -51,7 +51,7 @@ abstract public class Handler {
 			String recipient);
 
 	/**
-	 * parse the given <data> String into a Map
+	 * parse the given "data" String into a Map
 	 * 
 	 * @param data
 	 * @return
@@ -69,7 +69,7 @@ abstract public class Handler {
 	}
 
 	/**
-	 * parse the given <timestamp> String into a long value
+	 * parse the given "timestamp" String into a long value
 	 * 
 	 * @param timestamp
 	 * @return

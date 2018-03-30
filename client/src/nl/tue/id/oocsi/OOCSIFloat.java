@@ -113,7 +113,7 @@ public class OOCSIFloat extends OOCSIVariable<Float> {
 	}
 
 	/**
-	 * set the limiting of incoming events in terms of <rate> and <seconds> timeframe; supports chained invocation
+	 * set the limiting of incoming events in terms of "rate" and "seconds" timeframe; supports chained invocation
 	 * 
 	 * @param rate
 	 * @param seconds
@@ -189,7 +189,7 @@ public class OOCSIFloat extends OOCSIVariable<Float> {
 	/**
 	 * creates a periodic feedback loop that feed either the last input value or the reference value into the variable
 	 * (locally). If there is no reference value set, the former applies. The period is given in milliseconds. In
-	 * addition, the new value of the variable is sent out to the channel <outputChannel> with the given key <outputKey>
+	 * addition, the new value of the variable is sent out to the channel "outputChannel" with the given key "outputKey"
 	 * 
 	 * @param periodMS
 	 * @param outputChannel

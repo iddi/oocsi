@@ -3,7 +3,7 @@ package nl.tue.id.oocsi.client.protocol;
 import java.util.Map;
 
 /**
- * rate limited event handler for events with structured data that will only let through <rate> events per <second>
+ * rate limited event handler for events with structured data that will only let through "rate" events per "second"
  * secs; this counts for all incoming events
  *
  * @author matsfunk
@@ -21,7 +21,7 @@ abstract public class RateLimitedEventHandler extends EventHandler {
 	private int counter = 0;
 
 	/**
-	 * creates a rate limited event handler that will at most let through <rate> event per <second> secs
+	 * creates a rate limited event handler that will at most let through "rate" event per "second" secs
 	 * 
 	 * @param rate
 	 * @param seconds
@@ -85,7 +85,7 @@ abstract public class RateLimitedEventHandler extends EventHandler {
 	}
 
 	/**
-	 * reconfigure the rate limitation to different <rate> and <seconds> timeframe
+	 * reconfigure the rate limitation to different "rate" and "seconds" timeframe
 	 * 
 	 * @param rate
 	 * @param seconds

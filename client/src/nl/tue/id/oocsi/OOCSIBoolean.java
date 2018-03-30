@@ -30,7 +30,7 @@ public class OOCSIBoolean extends OOCSIVariable<Boolean> {
 	}
 
 	/**
-	 * set the limiting of incoming events in terms of <rate> and <seconds> timeframe; supports chained invocation
+	 * set the limiting of incoming events in terms of "rate" and "seconds" timeframe; supports chained invocation
 	 * 
 	 * @param rate
 	 * @param seconds
