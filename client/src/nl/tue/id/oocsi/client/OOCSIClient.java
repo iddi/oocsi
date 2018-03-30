@@ -16,7 +16,7 @@ import nl.tue.id.oocsi.client.socket.SocketClient;
  */
 public class OOCSIClient {
 
-	public static final String VERSION = "1.3.6";
+	public static final String VERSION = "1.3.7";
 
 	private SocketClient sc;
 	protected String name;
@@ -46,8 +46,9 @@ public class OOCSIClient {
 
 		// check oocsi name
 		if (name.contains(" ")) {
-			log("OOCSI name cannot contain spaces");
-			System.exit(-1);
+			log("[ERROR] OOCSI name cannot contain spaces");
+			log(" - OOCSI connection aborted");
+			return;
 		}
 
 		this.name = name;
@@ -172,7 +173,7 @@ public class OOCSIClient {
 	}
 
 	/**
-	 * register a responder with the socket client with a given handle <callName>
+	 * register a responder with the socket client with a given handle "callName"
 	 * 
 	 * @param callName
 	 * @param responder
@@ -180,6 +181,19 @@ public class OOCSIClient {
 	public void register(String callName, Responder responder) {
 		responder.setCallName(callName);
 		sc.subscribe(callName, responder);
+		sc.register(callName, responder);
+	}
+
+	/**
+	 * register a responder with the socket client with a given handle "callName" on channel "channelName"
+	 * 
+	 * @param channelName
+	 * @param callName
+	 * @param responder
+	 */
+	public void register(String channelName, String callName, Responder responder) {
+		responder.setCallName(callName);
+		sc.subscribe(channelName, responder);
 		sc.register(callName, responder);
 	}
 
