@@ -86,13 +86,16 @@ public class Server extends Channel {
 				SocketClient socketClientNew = (SocketClient) client;
 				if (socketClientOld.getIPAddress() != null && socketClientNew.getIPAddress() != null) {
 					if (socketClientOld.getIPAddress().equals(socketClientNew.getIPAddress())) {
-						removeClient(existingClient);
-						OOCSIServer.logConnection(clientName, clientName, "replaced client at same IP", new Date());
+						// check mini-timeout (last action of old socket at least 2 seconds ago)
+						if (socketClientOld.lastAction < System.currentTimeMillis() - 2000) {
+							removeClient(existingClient);
+							OOCSIServer.logConnection(clientName, clientName, "replaced client at same IP", new Date());
 
-						addChannel(client);
-						clients.put(clientName, client);
+							addChannel(client);
+							clients.put(clientName, client);
 
-						return true;
+							return true;
+						}
 					}
 				}
 			}
