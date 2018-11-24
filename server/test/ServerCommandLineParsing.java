@@ -12,7 +12,7 @@ public class ServerCommandLineParsing {
 		assertEquals(OOCSIServer.port, 4445);
 
 		OOCSIServer.parseCommandlineArgs("-clients 24".split(" "));
-		assertEquals(OOCSIServer.maxClients, 24);
+		assertEquals(OOCSIServer.getMaxClients(), 24);
 
 		assertEquals(OOCSIServer.isLogging, false);
 		OOCSIServer.parseCommandlineArgs("-logging".split(" "));
@@ -20,24 +20,22 @@ public class ServerCommandLineParsing {
 
 		OOCSIServer.parseCommandlineArgs("-port 4446 -clients 26".split(" "));
 		assertEquals(OOCSIServer.port, 4446);
-		assertEquals(OOCSIServer.maxClients, 26);
+		assertEquals(OOCSIServer.getMaxClients(), 26);
 
 		OOCSIServer.parseCommandlineArgs("-clients 27 -port 4447".split(" "));
 		assertEquals(OOCSIServer.port, 4447);
-		assertEquals(OOCSIServer.maxClients, 27);
+		assertEquals(OOCSIServer.getMaxClients(), 27);
 
 		OOCSIServer.isLogging = false;
-		OOCSIServer.parseCommandlineArgs("-port 4446 -logging -clients 26"
-				.split(" "));
+		OOCSIServer.parseCommandlineArgs("-port 4446 -logging -clients 26".split(" "));
 		assertEquals(OOCSIServer.port, 4446);
-		assertEquals(OOCSIServer.maxClients, 26);
+		assertEquals(OOCSIServer.getMaxClients(), 26);
 		assertEquals(OOCSIServer.isLogging, true);
 
 		OOCSIServer.isLogging = false;
-		OOCSIServer.parseCommandlineArgs("-clients 27 -port 4447 -logging"
-				.split(" "));
+		OOCSIServer.parseCommandlineArgs("-clients 27 -port 4447 -logging".split(" "));
 		assertEquals(OOCSIServer.port, 4447);
-		assertEquals(OOCSIServer.maxClients, 27);
+		assertEquals(OOCSIServer.getMaxClients(), 27);
 		assertEquals(OOCSIServer.isLogging, true);
 	}
 

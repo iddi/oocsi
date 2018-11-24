@@ -70,22 +70,13 @@ public class SocketClient extends Client {
 	@Override
 	public void send(Message message) {
 		if (type == ClientType.OOCSI) {
-			send("send " + message.recipient + " " + serializeOOCSI(message.data) + " " + message.timestamp.getTime()
+			send("send " + message.recipient + " " + serializeJava(message.data) + " " + message.timestamp.getTime()
 					+ " " + message.sender);
-
-			// this is ok after serialization
-			message.addData("method", "OOCSI");
 		} else if (type == ClientType.PD) {
 			send(message.recipient + " " + serializePD(message.data) + " " + "timestamp=" + message.timestamp.getTime()
 					+ " sender=" + message.sender);
-
-			// this is ok after serialization
-			message.addData("method", "PD");
 		} else if (type == ClientType.JSON) {
 			send(serializeJSON(message.data, message.recipient, message.timestamp.getTime(), message.sender));
-
-			// this is ok after serialization
-			message.addData("method", "JSON");
 		}
 	}
 
@@ -114,30 +105,34 @@ public class SocketClient extends Client {
 	 * @param data
 	 * @return
 	 */
-	private String serializeOOCSI(Map<String, Object> data) {
+	private String serializeJava(Map<String, Object> data) {
 
-		// replace JSON objects
+		Map<String, Object> oocsiData = new HashMap<String, Object>();
+
+		// replace JSON objects if necessary
 		for (Entry<String, Object> e : data.entrySet()) {
 			if (e.getValue() instanceof JsonElement) {
 				JsonElement je = (JsonElement) e.getValue();
 				if (je.isJsonPrimitive()) {
+					// convert JSON primitives to Java primitives
 					if (je.getAsJsonPrimitive().isNumber()) {
-						e.setValue(je.getAsJsonPrimitive().getAsNumber());
-						continue;
+						oocsiData.put(e.getKey(), je.getAsJsonPrimitive().getAsNumber());
 					} else if (je.getAsJsonPrimitive().isString()) {
-						e.setValue(je.getAsJsonPrimitive().getAsString());
-						continue;
+						oocsiData.put(e.getKey(), je.getAsJsonPrimitive().getAsString());
 					} else if (je.getAsJsonPrimitive().isBoolean()) {
-						e.setValue(je.getAsJsonPrimitive().getAsBoolean());
-						continue;
-					} else {
-						e.setValue(new Gson().toJson(je));
+						oocsiData.put(e.getKey(), je.getAsJsonPrimitive().getAsBoolean());
 					}
+				} else {
+					// keep JSON object as is
+					oocsiData.put(e.getKey(), JSON_SERIALIZER.toJson(je));
 				}
+			} else {
+				// copy all other values as is
+				oocsiData.put(e.getKey(), e.getValue());
 			}
 		}
 
-		return serializeOOCSIOutput(data);
+		return serializeOOCSIOutput(oocsiData);
 	}
 
 	/**
@@ -230,6 +225,16 @@ public class SocketClient extends Client {
 						// update last action
 						lastAction = System.currentTimeMillis();
 
+						// do some filtering for SSH clients connecting and other abuse
+						if (inputLine.length() > 200) {
+							OOCSIServer.log("Killed client connection for [length]: " + inputLine);
+							return;
+						}
+						if (inputLine.contains("OpenSSH") || inputLine.contains("libssh")) {
+							OOCSIServer.log("Killed client connection for [suspicious client]: " + inputLine);
+							return;
+						}
+
 						// check for PD/raw-only socket client
 						if (inputLine.contains(";")) {
 							token = inputLine.replace(";", "");
@@ -291,6 +296,8 @@ public class SocketClient extends Client {
 							synchronized (output) {
 								if (SocketClient.this.isPrivate()) {
 									output.println("error (password wrong for name: " + getName() + ")");
+								} else if (getName().contains(" ")) {
+									output.println("error (name cannot contain spaces: " + getName() + ")");
 								} else {
 									output.println("error (name already registered: " + getName() + ")");
 								}

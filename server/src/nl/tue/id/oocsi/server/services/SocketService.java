@@ -28,8 +28,8 @@ public class SocketService extends AbstractService {
 	private static final int MULTICAST_PORT = 4448;
 	private static final String MULTICAST_GROUP = "224.0.0.144";
 
+	public int maxClients;
 	private int port;
-	private int maxClients;
 	private String[] users;
 
 	private ServerSocket serverSocket;
@@ -104,6 +104,7 @@ public class SocketService extends AbstractService {
 			OOCSIServer.log("[TCP socket server]: Started TCP service @ local address '" + hostname + "' on port "
 					+ port + " for TCP");
 
+			// configure periodic services
 			TimerTask task = new TimerTask() {
 
 				private DatagramSocket socket;
@@ -144,8 +145,8 @@ public class SocketService extends AbstractService {
 			periodicMaintenanceService = new Timer();
 			periodicMaintenanceService.schedule(task, 0, (long) (5 * 1000 + Math.random() * 1000));
 
+			// socket service operations
 			while (listening) {
-
 				if (!serverSocket.isBound()) {
 					Thread.yield();
 					continue;
@@ -164,11 +165,17 @@ public class SocketService extends AbstractService {
 
 			serverSocket.close();
 		} catch (SocketException e) {
-			e.printStackTrace();
+			// only report if still listening
+			if (listening) {
+				e.printStackTrace();
+			}
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
-			e.printStackTrace();
+			// only report if still listening
+			if (listening) {
+				e.printStackTrace();
+			}
 		}
 	}
 
