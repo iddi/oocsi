@@ -24,11 +24,11 @@ import nl.tue.id.oocsi.server.services.SocketService;
 public class OOCSIServer extends Server {
 
 	// constants
-	public static final String VERSION = "1.8";
+	public static final String VERSION = "1.11";
 
 	// defaults for different services
+	private static int maxClients = 100;
 	public static int port = 4444;
-	public static int maxClients = 30;
 	public static boolean isLogging = false;
 	public static String[] users = null;
 
@@ -136,13 +136,11 @@ public class OOCSIServer extends Server {
 		OOCSIServer.log("Started OOCSI server v" + OOCSIServer.VERSION + " for max. " + maxClients + " parallel clients"
 				+ (isLogging ? " and activated logging" : "") + ".");
 
-		// TODO check command line options
 		// start OSC server
-		OSCService osc = new OSCService(this, port + 1, Math.max(2, maxClients / 3));
+		OSCService osc = new OSCService(this, port + 1, 1);
 
-		// TODO check command line options
 		// start TCP/socket server
-		SocketService tcp = new SocketService(this, port, Math.max(2, 2 * maxClients / 3), users);
+		SocketService tcp = new SocketService(this, port, maxClients - 1, users);
 
 		// start services
 		start(new AbstractService[] { tcp, osc });
@@ -188,6 +186,11 @@ public class OOCSIServer extends Server {
 		}
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see nl.tue.id.oocsi.server.model.Channel#getChannel(java.lang.String)
+	 */
 	@Override
 	public Channel getChannel(String channelName) {
 		Channel c = super.getChannel(channelName);
@@ -198,6 +201,32 @@ public class OOCSIServer extends Server {
 		}
 
 		return c;
+	}
+
+	/**
+	 * retrieve the max number of clients on this server
+	 * 
+	 * @return
+	 */
+	public static int getMaxClients() {
+		return maxClients;
+	}
+
+	/**
+	 * set the max number of clients on this server
+	 * 
+	 * @param maxClients
+	 */
+	public static void setMaxClients(int maxClients) {
+		OOCSIServer.maxClients = maxClients;
+
+		for (AbstractService service : server.services) {
+			if (service instanceof SocketService) {
+				SocketService ss = (SocketService) service;
+				ss.maxClients = maxClients - 1;
+			}
+		}
+
 	}
 
 	/** STATIC METHODS *************************************************************/
@@ -335,13 +364,27 @@ public class OOCSIServer extends Server {
 			Channel metrics = server.getChannel(OOCSI_METRICS);
 			if (metrics != null) {
 				Message message = new Message("SERVER", OOCSI_METRICS);
-				message.addData("messagesTotal", messageTotal);
-				message.addData("messages", (int) Math.ceil(messageCount / 5.));
+
+				// millis since startup
 				message.addData("uptime", System.currentTimeMillis() - serverStart);
+
+				// total messages since startup
+				message.addData("messagesTotal", messageTotal);
+
+				// messages per second, averaged over 5 seconds
+				message.addData("messages", (int) Math.ceil(messageCount / 5.));
+
+				// channel count
 				message.addData("channels", server.subChannels.size());
+
+				// client count
 				message.addData("clients", server.clients.size());
+
+				// report!
 				metrics.send(message);
 			}
+
+			// reset message count
 			messageCount = 0;
 		}
 	}
