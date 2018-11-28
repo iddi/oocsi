@@ -6,7 +6,9 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import nl.tue.id.oocsi.OOCSIEvent;
 import nl.tue.id.oocsi.client.OOCSIClient;
+import nl.tue.id.oocsi.client.protocol.EventHandler;
 import nl.tue.id.oocsi.client.protocol.Handler;
 
 /**
@@ -61,30 +63,29 @@ public class OOCSIConsensus<T> extends OOCSISystemCommunicator<T> {
 		this.timeout = timeoutMS;
 
 		// first subscribe to sync channel
-		client.subscribe(this.channelName, new Handler() {
-
+		subscribe(new EventHandler() {
 			@Override
-			public void receive(String sender, Map<String, Object> data, long timestamp, String channel,
-					String recipient) {
-
-				if (data.containsKey(CALL)) {
+			public void receive(OOCSIEvent event) {
+				if (event.has(CALL)) {
 					// send our my vote
 					message(VOTE, myVote);
-				} else if (data.containsKey(VOTE)) {
+				} else if (event.has(VOTE)) {
 					// record vote
 					try {
 						@SuppressWarnings("unchecked")
-						T vote = (T) data.get(VOTE);
-						votes.put(sender, vote);
+						T vote = (T) event.getObject(VOTE);
+						votes.put(event.getSender(), vote);
 					} catch (ClassCastException e) {
+						// ignore class cast exceptions
 					}
-				} else if (data.containsKey(CONSENSUS)) {
+				} else if (event.has(CONSENSUS)) {
 					// store consensus
 					try {
 						@SuppressWarnings("unchecked")
-						T vote = (T) data.get(CONSENSUS);
+						T vote = (T) event.getObject(CONSENSUS);
 						consensus = vote;
 					} catch (ClassCastException e) {
+						// ignore class cast exceptions
 					}
 				}
 			}
@@ -287,7 +288,8 @@ public class OOCSIConsensus<T> extends OOCSISystemCommunicator<T> {
 
 	static public OOCSIConsensus<String> createStringConsensus(OOCSIClient client, String channelName, String key,
 			int timeoutMS, Handler handler) {
-		OOCSIConsensus<String> oocsiConsensus = new OOCSIConsensus<String>(client, channelName, key, timeoutMS, handler);
+		OOCSIConsensus<String> oocsiConsensus = new OOCSIConsensus<String>(client, channelName, key, timeoutMS,
+				handler);
 		oocsiConsensus.set("");
 		return oocsiConsensus;
 	}

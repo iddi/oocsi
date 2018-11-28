@@ -65,8 +65,7 @@ public class OOCSISpread extends OOCSISystemCommunicator<Integer> {
 
 		this.timeout = timeoutMS;
 
-		client.subscribe(this.channelName, new EventHandler() {
-
+		subscribe(new EventHandler() {
 			@Override
 			public void receive(OOCSIEvent event) {
 

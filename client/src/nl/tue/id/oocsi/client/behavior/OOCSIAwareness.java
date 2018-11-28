@@ -8,8 +8,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import nl.tue.id.oocsi.OOCSIEvent;
 import nl.tue.id.oocsi.client.OOCSIClient;
-import nl.tue.id.oocsi.client.protocol.Handler;
+import nl.tue.id.oocsi.client.protocol.EventHandler;
 
 /**
  * OOCSIAwareness is a system-level primitive that allows for local representations of different OOCSI clients on the
@@ -37,8 +38,7 @@ public class OOCSIAwareness extends OOCSISystemCommunicator<String> {
 	 * @param channelName
 	 */
 	public OOCSIAwareness(OOCSIClient client, String channelName) {
-		super(client, channelName);
-		init(client, channelName);
+		this(client, channelName, 0, new String[] {});
 	}
 
 	/**
@@ -49,13 +49,7 @@ public class OOCSIAwareness extends OOCSISystemCommunicator<String> {
 	 * @param keys
 	 */
 	public OOCSIAwareness(OOCSIClient client, String channelName, String... keys) {
-		super(client, channelName);
-
-		for (String key : keys) {
-			this.keys.add(key);
-		}
-
-		init(client, channelName);
+		this(client, channelName, 0, keys);
 	}
 
 	/**
@@ -68,31 +62,19 @@ public class OOCSIAwareness extends OOCSISystemCommunicator<String> {
 	 * @param keys
 	 */
 	public OOCSIAwareness(OOCSIClient client, String channelName, int timeout, String... keys) {
-		super(client, channelName);
+		super(client, channelName + "_awareness");
 		this.timeout = timeout;
 
 		for (String key : keys) {
 			this.keys.add(key);
 		}
 
-		init(client, channelName);
-	}
-
-	/**
-	 * initializes the awareness process
-	 * 
-	 * @param client
-	 * @param channelName
-	 */
-	private void init(OOCSIClient client, String channelName) {
-		client.subscribe(channelName, new Handler() {
-
+		subscribe(new EventHandler() {
 			@Override
-			public void receive(String sender, Map<String, Object> data, long timestamp, String channel,
-					String recipient) {
-
+			public void receive(OOCSIEvent event) {
 				// get or create data map for sender
 				Map<String, Object> map;
+				String sender = event.getSender();
 				if (!representation.containsKey(sender)) {
 					representation.put(sender, map = new HashMap<String, Object>());
 				} else {
@@ -104,16 +86,18 @@ public class OOCSIAwareness extends OOCSISystemCommunicator<String> {
 					map.put(OOCSIAwarenessTimeoutKey, System.currentTimeMillis());
 
 					// store all if no keys are given
-					if (keys.isEmpty()) {
-						map.putAll(data);
+					if (OOCSIAwareness.this.keys.isEmpty()) {
+						for (String key : event.keys()) {
+							map.put(key, event.getObject(key));
+						}
 					}
 					// store keys selectively
 					else {
-						for (String koi : keys) {
-							if (data.containsKey(koi)) {
-								Object o = data.get(koi);
-								if (o != null) {
-									map.put(koi, o);
+						for (String key : OOCSIAwareness.this.keys) {
+							if (event.has(key)) {
+								Object value = event.getObject(key);
+								if (value != null) {
+									map.put(key, value);
 								}
 							}
 						}

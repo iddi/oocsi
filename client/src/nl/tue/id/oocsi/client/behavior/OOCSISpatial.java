@@ -11,6 +11,7 @@ import nl.tue.id.oocsi.OOCSIData;
 import nl.tue.id.oocsi.OOCSIEvent;
 import nl.tue.id.oocsi.client.OOCSIClient;
 import nl.tue.id.oocsi.client.behavior.OOCSISpatial.Position;
+import nl.tue.id.oocsi.client.protocol.EventHandler;
 import nl.tue.id.oocsi.client.protocol.Handler;
 import nl.tue.id.oocsi.client.protocol.MultiMessage;
 import nl.tue.id.oocsi.client.protocol.OOCSIMessage;
@@ -78,14 +79,12 @@ public class OOCSISpatial extends OOCSISystemCommunicator<Position> {
 		this.timeout = timeoutMS;
 
 		// first subscribe to sync channel
-		client.subscribe(this.channelName, new Handler() {
-
+		subscribe(new EventHandler() {
 			@Override
-			public void receive(String sender, Map<String, Object> data, long timestamp, String channel,
-					String recipient) {
+			public void receive(OOCSIEvent event) {
 
 				// call coming in?
-				if (data.containsKey(CALL)) {
+				if (event.has(CALL)) {
 
 					// add my vote if it exists
 					if (metric != null) {
@@ -97,14 +96,15 @@ public class OOCSISpatial extends OOCSISystemCommunicator<Position> {
 							.data(HANDLE, getHandle()).send();
 				}
 				// vote coming in?
-				else if (data.containsKey(VOTE)) {
+				else if (event.has(VOTE)) {
 					// record vote an incoming vote
 					try {
-						Position<?> vote = metric.deserialise(data.get(VOTE).toString());
+						Position<?> vote = metric.deserialise(event.getString(VOTE));
 						if (vote != null) {
-							positions.put(sender, vote);
+							positions.put(event.getSender(), vote);
 						}
 					} catch (ClassCastException e) {
+						// ignore class cast exceptions
 					}
 				}
 			}

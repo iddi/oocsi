@@ -1,10 +1,11 @@
 package nl.tue.id.oocsi.client.behavior;
 
-import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import nl.tue.id.oocsi.OOCSIEvent;
 import nl.tue.id.oocsi.client.OOCSIClient;
+import nl.tue.id.oocsi.client.protocol.EventHandler;
 import nl.tue.id.oocsi.client.protocol.Handler;
 
 /**
@@ -17,7 +18,11 @@ public class OOCSISync extends OOCSISystemCommunicator<Integer> {
 
 	// call constants
 	private static final String SYNC = "sync";
-	private int PERIOD = 20;
+	private static final String CYCLE = "cycle";
+	// sync resolution
+	private static int PERIOD = 20;
+	// progress sync point (to avoid spikes in network communication)
+	private static int progressSync = (int) (Math.random() * (float) PERIOD);
 
 	// infrastructure, configuration
 	private int periodMS;
@@ -26,7 +31,7 @@ public class OOCSISync extends OOCSISystemCommunicator<Integer> {
 	private Timer timer;
 	private boolean isSynced = false;
 	private int progress = 0;
-	private int signalCount = 0;
+	private int cycle = 0;
 
 	/**
 	 * creates a synchronization process among OOCSI clients on the same channel with a default of 2 secs between
@@ -64,6 +69,34 @@ public class OOCSISync extends OOCSISystemCommunicator<Integer> {
 		super(client, channelName + "_sync", handler);
 		this.periodMS = periodMS;
 
+		// first subscribe to sync channel
+		subscribe(new EventHandler() {
+			@Override
+			public void receive(OOCSIEvent event) {
+				if (event.has(SYNC)) {
+					int progressSync = PERIOD - event.getInt(SYNC, 0);
+					int virtualProgress = (progress + progressSync) % PERIOD;
+
+					// compare the synchronizing from others to my own progress in the periodic sync cycle
+					if (virtualProgress < getPeriodFraction(0.05) || virtualProgress > getPeriodFraction(0.95)) {
+						isSynced = true;
+					} else if (virtualProgress <= getPeriodFraction(0.9)) {
+						long d = Math.round(getPeriodFraction(1. / PERIOD) * Math.random())
+								- Math.round((float) virtualProgress / PERIOD);
+						progress -= d;
+						isSynced = false;
+					} else {
+						isSynced = false;
+					}
+
+					// cycle update
+					if (event.has(CYCLE)) {
+						cycle = Math.max(cycle, event.getInt(CYCLE, 0));
+					}
+				}
+			}
+		});
+
 		start();
 	}
 
@@ -72,44 +105,22 @@ public class OOCSISync extends OOCSISystemCommunicator<Integer> {
 	 * 
 	 */
 	public void start() {
-
-		// first subscribe to sync channel
-		client.subscribe(channelName, new Handler() {
-
-			@Override
-			public void receive(String sender, Map<String, Object> data, long timestamp, String channel,
-					String recipient) {
-
-				// compare the synchronizing from others to my own progress in the periodic sync cycle
-				if (progress < getPeriodFraction(0.05) || progress > getPeriodFraction(0.95)) {
-					isSynced = true;
-				} else if (progress < getPeriodFraction(0.6)) {
-					progress -= getPeriodFraction(0.1);
-					isSynced = false;
-				} else if (progress > getPeriodFraction(0.4)) {
-					progress += getPeriodFraction(0.05);
-					isSynced = false;
-				} else {
-					progress -= getPeriodFraction(0.05);
-					isSynced = false;
-				}
-				signalCount++;
-			}
-		});
-
 		// send out sync signal myself periodically
 		(timer = new Timer(true)).schedule(new TimerTask() {
 			@Override
 			public void run() {
-				if (progress-- <= 0) {
-					// send sync signal to channel
-					if (Math.round(Math.random() * signalCount / 2) == 0) {
-						message(SYNC);
-					}
-					signalCount = 1;
+				// send sync signal to channel
+				if (progress == progressSync) {
+					message().data(SYNC, progress).data(CYCLE, cycle).send();
+				}
 
+				// reset progress
+				if (progress-- <= 0) {
 					// trigger pulse
 					triggerHandler();
+
+					// increase cycle
+					cycle++;
 
 					// reset progress
 					progress = PERIOD;
@@ -152,6 +163,15 @@ public class OOCSISync extends OOCSISystemCommunicator<Integer> {
 	 */
 	public int getProgress() {
 		return progress;
+	}
+
+	/**
+	 * return the current cycle count
+	 * 
+	 * @return
+	 */
+	public int getCycle() {
+		return cycle;
 	}
 
 	/**

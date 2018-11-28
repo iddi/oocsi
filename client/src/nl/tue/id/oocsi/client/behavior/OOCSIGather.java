@@ -5,7 +5,9 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import nl.tue.id.oocsi.OOCSIEvent;
 import nl.tue.id.oocsi.client.OOCSIClient;
+import nl.tue.id.oocsi.client.protocol.EventHandler;
 import nl.tue.id.oocsi.client.protocol.Handler;
 
 /**
@@ -56,13 +58,10 @@ public class OOCSIGather<T> extends OOCSISystemCommunicator<T> {
 		this.timeout = timeoutMS;
 
 		// first subscribe to sync channel
-		client.subscribe(this.channelName, new Handler() {
-
+		subscribe(new EventHandler() {
 			@Override
-			public void receive(String sender, Map<String, Object> data, long timestamp, String channel,
-					String recipient) {
-
-				if (data.containsKey(CALL)) {
+			public void receive(OOCSIEvent event) {
+				if (event.has(CALL)) {
 					// new gathering, reset all votes
 					votes.clear();
 					// add my vote if it exists
@@ -72,15 +71,16 @@ public class OOCSIGather<T> extends OOCSISystemCommunicator<T> {
 
 					// send out my vote
 					message(VOTE, myVote);
-				} else if (data.containsKey(VOTE)) {
+				} else if (event.has(VOTE)) {
 					// record vote an incoming vote
 					try {
 						@SuppressWarnings("unchecked")
-						T vote = (T) data.get(VOTE);
+						T vote = (T) event.getObject(VOTE);
 						if (vote != null) {
-							votes.put(sender, vote);
+							votes.put(event.getSender(), vote);
 						}
 					} catch (ClassCastException e) {
+						// ignore class cast exceptions
 					}
 				}
 			}
