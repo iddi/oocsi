@@ -5,9 +5,12 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import nl.tue.id.oocsi.server.OOCSIServer;
 import nl.tue.id.oocsi.server.protocol.Protocol;
+import nl.tue.id.oocsi.server.services.PresenceTracker;
 import nl.tue.id.oocsi.server.services.SocketClient;
 
 /**
@@ -19,14 +22,18 @@ import nl.tue.id.oocsi.server.services.SocketClient;
  */
 public class Server extends Channel {
 
-	protected Map<String, Client> clients = new ConcurrentHashMap<String, Client>();
-	protected Protocol protocol;
+	protected final Map<String, Client> clients = new ConcurrentHashMap<String, Client>();
+	protected final Protocol protocol;
+	protected final PresenceTracker presence;
 
 	/**
 	 * create new server data structure
 	 */
-	public Server() {
-		super("SERVER");
+	public Server(PresenceTracker presence) {
+		super("SERVER", presence);
+
+		// add presence tracker as such
+		this.presence = presence;
 
 		// start protocol controller
 		protocol = new Protocol(this);
@@ -88,11 +95,18 @@ public class Server extends Channel {
 					if (socketClientOld.getIPAddress().equals(socketClientNew.getIPAddress())) {
 						// check mini-timeout (last action of old socket at least 2 seconds ago)
 						if (socketClientOld.lastAction < System.currentTimeMillis() - 2000) {
+
+							// kill old socket
+							presence.leave(clientName, clientName);
 							removeClient(existingClient);
+
+							// log
 							OOCSIServer.logConnection(clientName, clientName, "replaced client at same IP", new Date());
 
+							// add new socket
 							addChannel(client);
 							clients.put(clientName, client);
+							presence.join(client, client);
 
 							return true;
 						}
@@ -106,6 +120,7 @@ public class Server extends Channel {
 				&& clientName != OOCSIServer.OOCSI_CONNECTIONS && clientName != OOCSIServer.OOCSI_EVENTS) {
 			addChannel(client);
 			clients.put(clientName, client);
+			presence.join(client, client);
 
 			return true;
 		}
@@ -127,6 +142,9 @@ public class Server extends Channel {
 			removeChannel(client, true);
 			clients.remove(clientName);
 
+			// remove from presence tracking if tracking
+			presence.remove(client);
+
 			// disconnect client
 			client.disconnect();
 
@@ -136,16 +154,41 @@ public class Server extends Channel {
 	}
 
 	/**
+	 * check whether the server can accept this client
+	 * 
+	 * @param c
+	 * @return
+	 */
+	public boolean canAcceptClient(Client c) {
+		return true;
+	}
+
+	/**
 	 * check all current clients for last activity
 	 * 
 	 */
-	private void closeStaleClients() {
+	protected void closeStaleClients() {
 		long now = System.currentTimeMillis();
 		for (Client existingClient : clients.values()) {
 			if (now - existingClient.lastAction() > 120000 || !existingClient.isConnected()) {
+				OOCSIServer.log("Client " + existingClient.getName()
+						+ " has not responded for 120 secs and will be disconnected");
+
+				// remove from presence tracking if tracking
+				presence.timeout(existingClient.getName(), existingClient.getName());
+
 				removeClient(existingClient);
 			}
 		}
+	}
+
+	/**
+	 * retrieve the change listener
+	 * 
+	 * @return
+	 */
+	public ChangeListener getChangeListener() {
+		return presence;
 	}
 
 	/**
@@ -155,7 +198,43 @@ public class Server extends Channel {
 	 * @param channel
 	 */
 	public void subscribe(Channel subscriber, String channel) {
-		String channelName = channel.replaceFirst(":.*", "");
+		String channelName = channel.replaceFirst(":.*", "").trim();
+
+		// check for presence subscription
+		Pattern presenceMatcher = Pattern.compile("presence\\(([\\w_-]+)\\)");
+		Matcher m = presenceMatcher.matcher(channelName);
+		if (m.find()) {
+			String presenceChannelName = m.group(1);
+			if (presenceChannelName == null || presenceChannelName.trim().length() == 0) {
+				return;
+			}
+
+			// add to tracking
+			presence.add(presenceChannelName, subscriber);
+
+			// record presence within channel
+			Channel ch = getChannel(presenceChannelName);
+			if (ch != null) {
+				for (Channel sch : ch.getChannels()) {
+					presence.join(ch, sch);
+				}
+
+				return;
+			}
+
+			// record presence of client
+			Client client = getClient(presenceChannelName);
+			if (client != null) {
+				presence.join(client, client);
+			} else {
+				// // record absence
+				// presence.absent(presenceChannelName, presenceChannelName);
+			}
+
+			return;
+		}
+
+		// non-presence tracking behavior
 		Channel c = getChannel(channelName);
 		if (c != null) {
 			if (c.validate(channel)) {
@@ -163,7 +242,8 @@ public class Server extends Channel {
 				OOCSIServer.logConnection(subscriber.getName(), channelName, "subscribed", new Date());
 			}
 		} else {
-			Channel newChannel = new Channel(subscriber.getName().equals(channelName) ? channelName : channel);
+			Channel newChannel = new Channel(subscriber.getName().equals(channelName) ? channelName : channel,
+					presence);
 			addChannel(newChannel);
 			newChannel.addChannel(subscriber);
 			OOCSIServer.logConnection(subscriber.getName(), channelName, "subscribed", new Date());
@@ -195,4 +275,5 @@ public class Server extends Channel {
 	public String processInput(Channel sender, String input) {
 		return protocol.processInput(sender, input);
 	}
+
 }

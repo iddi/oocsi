@@ -1,5 +1,6 @@
 package nl.tue.id.oocsi.server.services;
 
+import nl.tue.id.oocsi.server.model.Channel.ChangeListener;
 import nl.tue.id.oocsi.server.model.Client;
 import nl.tue.id.oocsi.server.model.Server;
 
@@ -11,10 +12,12 @@ import nl.tue.id.oocsi.server.model.Server;
  */
 abstract public class AbstractService {
 
-	protected Server server;
+	protected final Server server;
+	protected final ChangeListener presence;
 
 	public AbstractService(Server server) {
 		this.server = server;
+		this.presence = server.getChangeListener();
 	}
 
 	abstract public void start();
@@ -37,6 +40,7 @@ abstract public class AbstractService {
 	 * @param client
 	 */
 	public void unregister(Client client) {
+		presence.leave(client.getName(), client.getName());
 		server.removeClient(client);
 	}
 

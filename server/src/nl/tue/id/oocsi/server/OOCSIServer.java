@@ -3,16 +3,18 @@ package nl.tue.id.oocsi.server;
 import java.io.IOException;
 import java.util.Date;
 import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import com.google.gson.Gson;
 
 import nl.tue.id.oocsi.server.model.Channel;
+import nl.tue.id.oocsi.server.model.Client;
 import nl.tue.id.oocsi.server.model.Server;
 import nl.tue.id.oocsi.server.protocol.Message;
 import nl.tue.id.oocsi.server.services.AbstractService;
 import nl.tue.id.oocsi.server.services.OSCService;
+import nl.tue.id.oocsi.server.services.PresenceTracker;
 import nl.tue.id.oocsi.server.services.SocketService;
 
 /**
@@ -24,7 +26,7 @@ import nl.tue.id.oocsi.server.services.SocketService;
 public class OOCSIServer extends Server {
 
 	// constants
-	public static final String VERSION = "1.11";
+	public static final String VERSION = "1.12";
 
 	// defaults for different services
 	private static int maxClients = 100;
@@ -57,6 +59,9 @@ public class OOCSIServer extends Server {
 	 * @throws IOException
 	 */
 	public OOCSIServer() {
+
+		super(new PresenceTracker());
+
 		// singleton assignment
 		server = this;
 	}
@@ -127,26 +132,24 @@ public class OOCSIServer extends Server {
 
 		// add OOCSI channels that will deliver meta-data to potentially
 		// connected clients
-		Channel channel = new Channel(OOCSIServer.OOCSI_CONNECTIONS);
-		addChannel(channel);
-		channel = new Channel(OOCSIServer.OOCSI_EVENTS);
-		addChannel(channel);
+		addChannel(new Channel(OOCSIServer.OOCSI_CONNECTIONS, PresenceTracker.nullListener));
+		addChannel(new Channel(OOCSIServer.OOCSI_EVENTS, PresenceTracker.nullListener));
 
 		// output status message
 		OOCSIServer.log("Started OOCSI server v" + OOCSIServer.VERSION + " for max. " + maxClients + " parallel clients"
 				+ (isLogging ? " and activated logging" : "") + ".");
 
 		// start OSC server
-		OSCService osc = new OSCService(this, port + 1, 1);
+		OSCService osc = new OSCService(this, port + 1);
 
 		// start TCP/socket server
-		SocketService tcp = new SocketService(this, port, maxClients - 1, users);
+		SocketService tcp = new SocketService(this, port, users);
 
 		// start services
 		start(new AbstractService[] { tcp, osc });
 
 		// start timer for posting channel and client information to the respective channels
-		new Timer(true).schedule(new StatusTimeTask(), 1000, 5000);
+		Executors.newSingleThreadScheduledExecutor().schedule(new StatusTimeTask(), 5, TimeUnit.SECONDS);
 	}
 
 	/**
@@ -219,14 +222,16 @@ public class OOCSIServer extends Server {
 	 */
 	public static void setMaxClients(int maxClients) {
 		OOCSIServer.maxClients = maxClients;
+	}
 
-		for (AbstractService service : server.services) {
-			if (service instanceof SocketService) {
-				SocketService ss = (SocketService) service;
-				ss.maxClients = maxClients - 1;
-			}
-		}
-
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see nl.tue.id.oocsi.server.model.Server#canAcceptClient(nl.tue.id.oocsi.server.model.Client)
+	 */
+	@Override
+	public boolean canAcceptClient(Client c) {
+		return getClients().size() < maxClients;
 	}
 
 	/** STATIC METHODS *************************************************************/
@@ -341,9 +346,14 @@ public class OOCSIServer extends Server {
 		}
 	}
 
-	class StatusTimeTask extends TimerTask {
+	class StatusTimeTask implements Runnable {
 		@Override
 		public void run() {
+
+			// clean up first
+			closeStaleClients();
+			closeEmptyChannels();
+
 			// check if we have a subscriber for public channel information
 			Channel channels = server.getChannel(OOCSI_CHANNELS);
 			if (channels != null) {

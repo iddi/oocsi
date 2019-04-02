@@ -31,7 +31,7 @@ public class OSCService extends AbstractService {
 	private int oscOutPort;
 	private OSCPortOut opOut;
 
-	public OSCService(final Server server, int port, int maxClients) {
+	public OSCService(final Server server, int port) {
 		super(server);
 
 		// configure OSC server
@@ -82,7 +82,7 @@ public class OSCService extends AbstractService {
 			// OSC output channel
 			// ------------------------------------
 			opOut = new OSCPortOut(new InetSocketAddress(oscOutPort).getAddress());
-			Channel oscOutPortChannel = new Channel(OSC) {
+			Channel oscOutPortChannel = new Channel(OSC, presence) {
 
 				@Override
 				public void send(Message message) {

@@ -32,13 +32,11 @@ import nl.tue.id.oocsi.server.protocol.Message;
 public class SocketClient extends Client {
 
 	private static final Gson JSON_SERIALIZER = new Gson();
-
-	private SocketService protocol;
-
-	private Socket socket = null;
-	private PrintWriter output;
+	private final SocketService protocol;
+	private final Socket socket;
 
 	private ClientType type = ClientType.OOCSI;
+	private PrintWriter output;
 
 	/**
 	 * create a new client for the socket protocol
@@ -47,7 +45,7 @@ public class SocketClient extends Client {
 	 * @param socket
 	 */
 	public SocketClient(SocketService protocol, Socket socket) {
-		super("");
+		super("", protocol.presence);
 		this.protocol = protocol;
 		this.socket = socket;
 	}
@@ -349,14 +347,22 @@ public class SocketClient extends Client {
 	 */
 	public void disconnect() {
 
+		// check whether we are done already
+		if (output == null) {
+			return;
+		}
+
 		// close sockets and writers
 		try {
 			if (output != null) {
 				output.close();
 			}
+
 			socket.close();
 		} catch (IOException e) {
 			e.printStackTrace();
+		} finally {
+			output = null;
 		}
 
 		// log connection close

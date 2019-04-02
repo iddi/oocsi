@@ -10,8 +10,8 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import nl.tue.id.oocsi.server.OOCSIServer;
 import nl.tue.id.oocsi.server.model.Client;
@@ -28,12 +28,10 @@ public class SocketService extends AbstractService {
 	private static final int MULTICAST_PORT = 4448;
 	private static final String MULTICAST_GROUP = "224.0.0.144";
 
-	public int maxClients;
-	private int port;
-	private String[] users;
+	private final int port;
+	private final String[] users;
 
 	private ServerSocket serverSocket;
-	private Timer periodicMaintenanceService;
 	private boolean listening = true;
 
 	/**
@@ -41,13 +39,11 @@ public class SocketService extends AbstractService {
 	 * 
 	 * @param server
 	 * @param port
-	 * @param maxClients
 	 */
-	public SocketService(Server server, int port, int maxClients, String[] users) {
+	public SocketService(Server server, int port, String[] users) {
 		super(server);
 
 		this.port = port;
-		this.maxClients = maxClients;
 		this.users = users;
 	}
 
@@ -105,8 +101,7 @@ public class SocketService extends AbstractService {
 					+ port + " for TCP");
 
 			// configure periodic services
-			TimerTask task = new TimerTask() {
-
+			Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(new Runnable() {
 				private DatagramSocket socket;
 
 				@Override
@@ -130,20 +125,10 @@ public class SocketService extends AbstractService {
 
 					// keep-alive ping-pong with socket clients
 					for (Client client : server.getClients()) {
-						long timeout = System.currentTimeMillis() - client.lastAction();
-						if (timeout > 120000) {
-							OOCSIServer.log("Client " + client.getName()
-									+ " has not responded for 120 secs and will be disconnected");
-							server.removeClient(client);
-							break;
-						} else {
-							client.ping();
-						}
+						client.ping();
 					}
 				};
-			};
-			periodicMaintenanceService = new Timer();
-			periodicMaintenanceService.schedule(task, 0, (long) (5 * 1000 + Math.random() * 1000));
+			}, 1000, (long) (5 * 1000 + Math.random() * 1000), TimeUnit.MILLISECONDS);
 
 			// socket service operations
 			while (listening) {
@@ -156,7 +141,7 @@ public class SocketService extends AbstractService {
 				Socket acceptedSocket = serverSocket.accept();
 
 				// then check if we can accept a new client
-				if (server.getClients().size() < maxClients) {
+				if (server.canAcceptClient(null)) {
 					new SocketClient(this, acceptedSocket).start();
 				} else {
 					acceptedSocket.close();

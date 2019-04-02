@@ -16,11 +16,15 @@ import nl.tue.id.oocsi.server.protocol.Message;
  */
 public class Channel {
 
-	protected String token;
-	protected Map<String, Channel> subChannels = new ConcurrentHashMap<String, Channel>();
+	protected final Date created = new Date();
+	protected final ChangeListener presence;
+	protected final Map<String, Channel> subChannels = new ConcurrentHashMap<String, Channel>();
 
-	public Channel(String token) {
+	protected String token;
+
+	public Channel(String token, ChangeListener changeListener) {
 		this.token = token;
+		this.presence = changeListener;
 	}
 
 	/**
@@ -80,20 +84,24 @@ public class Channel {
 	public void send(Message message) {
 		OOCSIServer.logEvent(message.sender, message.recipient, message.data, message.timestamp);
 		for (Channel subChannel : subChannels.values()) {
-			if (!message.sender.equals(subChannel.getName())) {
-				subChannel.send(message);
+			// no echo in channels; use ECHO channel for that
+			if (message.sender.equals(subChannel.getName())) {
+				continue;
+			}
 
-				// log event
-				if (!subChannel.isPrivate()) {
-					if (!message.recipient.equals(subChannel.getName())) {
-						if (!message.sender.equals("SERVER") && !message.recipient.equals("OOCSI_events")) {
-							OOCSIServer.logEvent(message.recipient, subChannel.getName(), message.data,
-									message.timestamp);
-						}
+			// send event
+			subChannel.send(message);
+
+			// log event
+			if (!subChannel.isPrivate()) {
+				if (!message.recipient.equals(subChannel.getName())) {
+					if (!message.sender.equals("SERVER") && !message.recipient.equals("OOCSI_events")) {
+						OOCSIServer.logEvent(message.recipient, subChannel.getName(), message.data, message.timestamp);
 					}
 				}
 			}
 		}
+
 	}
 
 	/**
@@ -141,6 +149,7 @@ public class Channel {
 		if (!getName().equals(channel.getName()) && !subChannels.containsKey(channel.getName())) {
 			subChannels.put(channel.getName(), channel);
 			if (!channel.isPrivate()) {
+				presence.join(this, channel);
 				OOCSIServer.logConnection(getName(), channel.getName(), "added channel", new Date());
 			}
 		}
@@ -164,6 +173,7 @@ public class Channel {
 	public void removeChannel(Channel channel, boolean recursive) {
 		if (subChannels.remove(channel.getName()) != null) {
 			if (!channel.isPrivate()) {
+				presence.leave(this.getName(), channel.getName());
 				OOCSIServer.logConnection(getName(), channel.getName(), "removed channel", new Date());
 			}
 		}
@@ -193,5 +203,20 @@ public class Channel {
 				}
 			}
 		}
+	}
+
+	public static interface ChangeListener {
+		public void created(Channel host);
+
+		public void closed(Channel host);
+
+		public void join(Channel host, Channel guest);
+
+		public void refresh(Channel host, Channel guest);
+
+		public void leave(String host, String guest);
+
+		public void timeout(String host, String guest);
+
 	}
 }

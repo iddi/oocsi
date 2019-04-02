@@ -21,8 +21,8 @@ abstract public class Client extends Channel {
 	 * 
 	 * @param token
 	 */
-	public Client(String token) {
-		super(token);
+	public Client(String token, ChangeListener presence) {
+		super(token, presence);
 	}
 
 	/*

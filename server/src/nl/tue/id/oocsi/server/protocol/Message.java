@@ -72,14 +72,15 @@ public class Message implements Serializable {
 	}
 
 	/**
-	 * convenience method to add data (as a key/value pair) to an existing
-	 * message
+	 * convenience method to add data (as a key/value pair) to an existing message
 	 * 
 	 * @param key
 	 * @param value
+	 * @return
 	 */
-	public void addData(String key, Object value) {
+	public Message addData(String key, Object value) {
 		this.data.put(key, value);
+		return this;
 	}
 
 	/*

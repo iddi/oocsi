@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import nl.tue.id.oocsi.OOCSIEvent;
@@ -16,6 +17,17 @@ import nl.tue.id.oocsi.client.protocol.RateLimitedClientEventHandler;
 import nl.tue.id.oocsi.client.protocol.RateLimitedEventHandler;
 
 public class ClientConnectionTest {
+
+	@BeforeClass
+	public static void checkClientList() {
+		OOCSIClient o = new OOCSIClient("pre_checks");
+		o.connect("localhost", 4444);
+		assertTrue(o.isConnected());
+
+		assertEquals("pre_checks", o.clients());
+
+		o.disconnect();
+	}
 
 	@Test
 	public void testConnectionToServer() {
@@ -56,7 +68,7 @@ public class ClientConnectionTest {
 
 		assertTrue(o.isConnected());
 
-		Thread.sleep(500);
+		Thread.sleep(2500);
 
 		{
 			OOCSIClient o1 = new OOCSIClient("test_client_0_kill");
@@ -84,6 +96,8 @@ public class ClientConnectionTest {
 		OOCSIClient o3 = new OOCSIClient("test_priv_client_1:345");
 		o3.connect("localhost", 4444);
 		assertTrue(!o3.isConnected());
+
+		Thread.sleep(2500);
 
 		OOCSIClient o4 = new OOCSIClient("test_priv_client_1:12345");
 		o4.connect("localhost", 4444);
@@ -464,6 +478,135 @@ public class ClientConnectionTest {
 
 		assertEquals(1, list.size());
 		assertEquals("test_priv_client_2", list.get(0));
+
+		o1.disconnect();
+		o2.disconnect();
+	}
+
+	@Test
+	public void testChannelNameParsing() throws InterruptedException {
+		final List<String> list = new ArrayList<String>();
+
+		OOCSIClient o1 = new OOCSIClient("test_client_cnameparser_1");
+		o1.connect("localhost", 4444);
+		assertTrue(o1.isConnected());
+		o1.subscribe("testpattern_-AZ09<>!#$@%$*^", new DataHandler() {
+			public void receive(String sender, Map<String, Object> data, long timestamp) {
+				list.add(sender);
+			}
+		});
+
+		OOCSIClient o2 = new OOCSIClient("test_client_cnameparser_2");
+		o2.connect("localhost", 4444);
+		assertTrue(o2.isConnected());
+
+		// baseline
+		assertEquals(0, list.size());
+
+		// test correct password
+		o2.send("testpattern_-AZ09<>!#$@%$*^", "hello1");
+		Thread.sleep(100);
+		assertEquals(1, list.size());
+
+		o2.send("testpattern", "hello2");
+		Thread.sleep(100);
+		assertEquals(1, list.size());
+
+		o2.send("AZ09<>!#$@%$*^", "hello1");
+		Thread.sleep(100);
+		assertEquals(1, list.size());
+
+		o2.send("testpattern_-AZ09<>!#$@%$*^", "hello1");
+		Thread.sleep(100);
+		assertEquals(2, list.size());
+
+		o1.disconnect();
+		o2.disconnect();
+	}
+
+	@Test
+	public void testClientPresence() throws InterruptedException {
+		final List<String> list = new ArrayList<String>();
+
+		OOCSIClient o1 = new OOCSIClient("test_client_presence_1");
+		o1.connect("localhost", 4444);
+		assertTrue(o1.isConnected());
+
+		// baseline
+		assertEquals(0, list.size());
+
+		o1.subscribe("presence(test_client_presence_2)", new DataHandler() {
+			public void receive(String sender, Map<String, Object> data, long timestamp) {
+				list.add(sender + data.toString());
+			}
+		});
+
+		Thread.sleep(100);
+
+		// test _client_presence_2 is not yet registered, so absent
+		assertEquals(0, list.size());
+
+		OOCSIClient o2 = new OOCSIClient("test_client_presence_2");
+		o2.connect("localhost", 4444);
+		assertTrue(o2.isConnected());
+
+		Thread.sleep(100);
+
+		assertEquals(1, list.size());
+
+		o2.disconnect();
+
+		Thread.sleep(100);
+
+		assertEquals(2, list.size());
+
+		o1.disconnect();
+	}
+
+	@Test
+	public void testChannelPresence() throws InterruptedException {
+		final List<String> list = new ArrayList<String>();
+
+		OOCSIClient o1 = new OOCSIClient("test_channel_presence_1");
+		o1.connect("localhost", 4444);
+		assertTrue(o1.isConnected());
+
+		o1.subscribe("presence(test_presence)", new DataHandler() {
+			public void receive(String sender, Map<String, Object> data, long timestamp) {
+				list.add(sender + data.toString());
+			}
+		});
+
+		Thread.sleep(100);
+
+		// baseline
+		assertEquals(0, list.size());
+
+		OOCSIClient o2 = new OOCSIClient("test_channel_presence_2");
+		o2.connect("localhost", 4444);
+		assertTrue(o2.isConnected());
+
+		Thread.sleep(200);
+
+		assertEquals(0, list.size());
+
+		o2.subscribe("test_presence", null);
+
+		Thread.sleep(100);
+
+		assertEquals(1, list.size());
+
+		o2.subscribe("test_presence_wrong", null);
+
+		Thread.sleep(100);
+
+		assertEquals(1, list.size());
+
+		o2.unsubscribe("test_presence");
+
+		Thread.sleep(100);
+
+		assertEquals(2, list.size());
 
 		o1.disconnect();
 		o2.disconnect();

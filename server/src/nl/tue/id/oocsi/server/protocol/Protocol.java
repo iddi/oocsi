@@ -73,6 +73,7 @@ public class Protocol {
 		}
 		// respond to ping
 		else if (inputLine.equals("ping")) {
+			server.getChangeListener().refresh(sender, sender);
 			return ".";
 		}
 		// client subscribes to channel
@@ -126,6 +127,8 @@ public class Protocol {
 					}
 				}
 			}
+		} else {
+			server.getChangeListener().refresh(sender, sender);
 		}
 
 		// default response
