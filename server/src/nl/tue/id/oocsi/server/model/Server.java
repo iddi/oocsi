@@ -197,14 +197,16 @@ public class Server extends Channel {
 	 * @param subscriber
 	 * @param channel
 	 */
-	public void subscribe(Channel subscriber, String channel) {
+	public void subscribe(Client subscriber, String channel) {
+
+		// remove password for private channel
 		String channelName = channel.replaceFirst(":.*", "").trim();
 
 		// check for presence subscription
-		Pattern presenceMatcher = Pattern.compile("presence\\(([\\w_-]+)\\)");
-		Matcher m = presenceMatcher.matcher(channelName);
-		if (m.find()) {
-			String presenceChannelName = m.group(1);
+		Pattern presencePattern = Pattern.compile("presence\\(([\\w_-]+)\\)");
+		Matcher presenceMatcher = presencePattern.matcher(channelName);
+		if (presenceMatcher.find()) {
+			String presenceChannelName = presenceMatcher.group(1);
 			if (presenceChannelName == null || presenceChannelName.trim().length() == 0) {
 				return;
 			}
@@ -234,18 +236,48 @@ public class Server extends Channel {
 			return;
 		}
 
-		// non-presence tracking behavior
-		Channel c = getChannel(channelName);
-		if (c != null) {
-			if (c.validate(channel)) {
-				c.addChannel(subscriber);
-				OOCSIServer.logConnection(subscriber.getName(), channelName, "subscribed", new Date());
-			}
+		// non-presence tracking behavior /////////////////////////////////////////////
+
+		// functions for filtering and transformation
+		String functions = null;
+		Pattern functionPattern = Pattern.compile("([\\w_-]+)\\[(.*)\\]");
+		Matcher functionMatcher = functionPattern.matcher(channelName);
+		if (functionMatcher.find()) {
+			channelName = functionMatcher.group(1);
+			functions = functionMatcher.group(2);
 		} else {
-			Channel newChannel = new Channel(subscriber.getName().equals(channelName) ? channelName : channel,
-					presence);
-			addChannel(newChannel);
-			newChannel.addChannel(subscriber);
+			// check the functions part
+			Pattern brokenPattern = Pattern.compile("\\[[^\\]]*");
+			Matcher brokenMatcher = brokenPattern.matcher(channelName);
+			if (brokenMatcher.find()) {
+				// if function extension is broken, quit
+				return;
+			}
+		}
+
+		// find channel
+		Channel c = getChannel(channelName);
+
+		// create channel if not existing
+		if (c == null) {
+			if (functions != null) {
+				// TODO assumption that functions are used without password
+				// and vice versa
+				c = new Channel(channelName, presence);
+			} else {
+				c = new Channel(subscriber.getName().equals(channelName) ? channelName : channel, presence);
+			}
+			addChannel(c);
+		}
+
+		// add subscriber to channel
+		if (functions != null || c.validate(channel)) {
+			if (functions != null) {
+				c.addChannel(new FunctionClient(subscriber, channelName, functions, presence));
+			} else {
+
+				c.addChannel(subscriber);
+			}
 			OOCSIServer.logConnection(subscriber.getName(), channelName, "subscribed", new Date());
 		}
 	}
@@ -272,7 +304,7 @@ public class Server extends Channel {
 	 * @param input
 	 * @return
 	 */
-	public String processInput(Channel sender, String input) {
+	public String processInput(Client sender, String input) {
 		return protocol.processInput(sender, input);
 	}
 

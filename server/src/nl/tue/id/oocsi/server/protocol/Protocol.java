@@ -16,6 +16,7 @@ import com.google.gson.JsonSyntaxException;
 
 import nl.tue.id.oocsi.server.OOCSIServer;
 import nl.tue.id.oocsi.server.model.Channel;
+import nl.tue.id.oocsi.server.model.Client;
 import nl.tue.id.oocsi.server.model.Server;
 
 /**
@@ -45,7 +46,7 @@ public class Protocol {
 	 * @param inputLine
 	 * @return
 	 */
-	public String processInput(Channel sender, String inputLine) {
+	public String processInput(Client sender, String inputLine) {
 
 		if (inputLine == null) {
 			return "";
