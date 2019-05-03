@@ -15,10 +15,6 @@ public class PresenceTracker implements ChangeListener {
 	private static final String TIMEOUT = "timeout";
 	protected ConcurrentMap<String, Channel> presenceTracking = new ConcurrentHashMap<String, Channel>();
 
-	public void hasPresenceTracking(String channelName) {
-
-	}
-
 	/**
 	 * add a listening client <code>subscriber</code> for presence on channel <code>presenceChannelName</code>
 	 * 

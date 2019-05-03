@@ -90,9 +90,8 @@ public class OSCService extends AbstractService {
 						String recipient = message.recipient;
 						if (recipient.startsWith("osc://")) {
 							recipient = recipient.replaceFirst("osc:/", "");
+							opOut.send(new OSCMessage(recipient, message.data.values()));
 						}
-
-						opOut.send(new OSCMessage(recipient, message.data.values()));
 					} catch (IOException e) {
 						// do nothing
 					}

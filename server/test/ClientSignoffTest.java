@@ -4,10 +4,10 @@ import static org.junit.Assert.assertNotEquals;
 import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 
+import org.junit.Test;
+
 import nl.tue.id.oocsi.client.OOCSIClient;
 import nl.tue.id.oocsi.server.OOCSIServer;
-
-import org.junit.Test;
 
 public class ClientSignoffTest {
 

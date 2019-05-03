@@ -61,6 +61,7 @@ public class SocketClient {
 	private boolean connectionEstablished = false;
 	private boolean reconnect = false;
 	private int reconnectCountDown = 100;
+	private boolean relinquished = false;
 
 	// thread pool
 	private ExecutorService executor;
@@ -315,6 +316,7 @@ public class SocketClient {
 		// and no reconnect
 		reconnect = false;
 		reconnectCountDown = 0;
+		relinquished = true;
 
 		output.println("quit");
 		internalDisconnect();
@@ -382,6 +384,16 @@ public class SocketClient {
 			}
 			executor.shutdownNow();
 		}
+	}
+
+	/**
+	 * retrieve whether we are still trying to reconnect, or whether we have given up on this connection (server,
+	 * handle, etc.)
+	 * 
+	 * @return
+	 */
+	public boolean isReconnect() {
+		return this.reconnect && !this.relinquished;
 	}
 
 	/**
@@ -697,6 +709,8 @@ public class SocketClient {
 			} catch (OOCSIAuthenticationException oae) {
 				disconnect();
 				// quit this thread...
+			} finally {
+				relinquished = true;
 			}
 		}
 

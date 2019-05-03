@@ -82,7 +82,10 @@ public class Channel {
 	 * @param message
 	 */
 	public void send(Message message) {
-		OOCSIServer.logEvent(message.sender, message.recipient, message.data, message.timestamp);
+		if (!message.sender.equals("SERVER") && !message.recipient.equals("OOCSI_events")) {
+			OOCSIServer.logEvent(message.sender, message.recipient, message.data, message.timestamp);
+		}
+
 		for (Channel subChannel : subChannels.values()) {
 			// no echo in channels; use ECHO channel for that
 			if (message.sender.equals(subChannel.getName())) {
