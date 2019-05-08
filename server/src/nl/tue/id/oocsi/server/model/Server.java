@@ -9,6 +9,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import nl.tue.id.oocsi.server.OOCSIServer;
+import nl.tue.id.oocsi.server.protocol.Message;
 import nl.tue.id.oocsi.server.protocol.Protocol;
 import nl.tue.id.oocsi.server.services.PresenceTracker;
 import nl.tue.id.oocsi.server.services.SocketClient;
@@ -37,6 +38,11 @@ public class Server extends Channel {
 
 		// start protocol controller
 		protocol = new Protocol(this);
+	}
+
+	@Override
+	public void send(Message message) {
+		// disable direct send
 	}
 
 	/**
