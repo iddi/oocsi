@@ -26,7 +26,7 @@ import nl.tue.id.oocsi.server.services.SocketService;
 public class OOCSIServer extends Server {
 
 	// constants
-	public static final String VERSION = "1.13";
+	public static final String VERSION = "1.14";
 
 	// defaults for different services
 	private static int maxClients = 100;
@@ -35,6 +35,7 @@ public class OOCSIServer extends Server {
 	public static String[] users = null;
 
 	// default channels
+	public static final String SERVER = "SERVER";
 	public static final String OOCSI_EVENTS = "OOCSI_events";
 	public static final String OOCSI_CONNECTIONS = "OOCSI_connections";
 	public static final String OOCSI_CHANNELS = "OOCSI_channels";
@@ -132,8 +133,8 @@ public class OOCSIServer extends Server {
 
 		// add OOCSI channels that will deliver meta-data to potentially
 		// connected clients
-		addChannel(new Channel(OOCSIServer.OOCSI_CONNECTIONS, PresenceTracker.nullListener));
-		addChannel(new Channel(OOCSIServer.OOCSI_EVENTS, PresenceTracker.nullListener));
+		addChannel(new Channel(OOCSI_CONNECTIONS, PresenceTracker.nullListener));
+		addChannel(new Channel(OOCSI_EVENTS, PresenceTracker.nullListener));
 
 		// output status message
 		OOCSIServer.log("Started OOCSI server v" + OOCSIServer.VERSION + " for max. " + maxClients + " parallel clients"
@@ -149,7 +150,7 @@ public class OOCSIServer extends Server {
 		start(new AbstractService[] { tcp, osc });
 
 		// start timer for posting channel and client information to the respective channels
-		Executors.newSingleThreadScheduledExecutor().schedule(new StatusTimeTask(), 5, TimeUnit.SECONDS);
+		Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(new StatusTimeTask(), 5, 5, TimeUnit.SECONDS);
 	}
 
 	/**
@@ -279,26 +280,32 @@ public class OOCSIServer extends Server {
 	 * @param data
 	 * @param timestamp
 	 */
-	public static void logEvent(String sender, String recipient, Map<String, Object> data, Date timestamp) {
+	public static void logEvent(String sender, String channel, String recipient, Map<String, Object> data,
+			Date timestamp) {
 
-		if (!OOCSIServer.OOCSI_EVENTS.equals(sender) && !OOCSIServer.OOCSI_EVENTS.equals(recipient)
-				&& !OOCSIServer.OOCSI_METRICS.equals(recipient) && !OOCSIServer.OOCSI_CONNECTIONS.equals(recipient)) {
+		if (SERVER.equals(sender) || OOCSI_EVENTS.equals(sender) || OOCSI_EVENTS.equals(recipient)
+				|| OOCSI_METRICS.equals(recipient) || OOCSI_CONNECTIONS.equals(recipient)) {
+			return;
+		}
 
-			// log metrics
-			messageCount++;
-			messageTotal++;
+		// log metrics
+		messageCount++;
+		messageTotal++;
 
-			if (isLogging) {
-				log(OOCSI_EVENTS + " " + sender + "->" + recipient);
+		if (isLogging) {
+			if (channel.length() == 0) {
+				log(OOCSI_EVENTS + " " + sender + " --> " + recipient);
+			} else {
+				log(OOCSI_EVENTS + " " + sender + " --( " + channel + " )--> " + recipient);
+			}
 
-				Channel logChannel = server.getChannel(OOCSI_EVENTS);
-				if (logChannel != null) {
-					Message message = new Message(sender, OOCSI_EVENTS, timestamp, data);
-					message.addData("sender", sender);
-					message.addData("recipient", recipient);
-
-					logChannel.send(message);
-				}
+			Channel logChannel = server.getChannel(OOCSI_EVENTS);
+			if (logChannel != null) {
+				Message message = new Message(SERVER, OOCSI_EVENTS, timestamp, data);
+				message.addData("PUB", sender);
+				message.addData("CHANNEL", channel);
+				message.addData("SUB", recipient);
+				logChannel.send(message);
 			}
 		}
 	}
@@ -309,15 +316,20 @@ public class OOCSIServer extends Server {
 	 * @param message
 	 */
 	public static void logConnection(String client, String channel, String operation, Date timestamp) {
-		if (isLogging && !OOCSIServer.OOCSI_EVENTS.equals(channel) && !OOCSIServer.OOCSI_CONNECTIONS.equals(channel)) {
+
+		if (OOCSI_EVENTS.equals(channel) || OOCSI_CONNECTIONS.equals(channel)) {
+			return;
+		}
+
+		if (isLogging) {
 			log(OOCSI_CONNECTIONS + " " + client + "->" + channel + " (" + operation + ")");
 
-			Message message = new Message(client, OOCSI_CONNECTIONS, timestamp);
-			message.addData("client", client);
-			message.addData("channel", channel);
-			message.addData("operation", operation);
 			Channel logChannel = server.getChannel(OOCSI_CONNECTIONS);
 			if (logChannel != null) {
+				Message message = new Message(SERVER, OOCSI_CONNECTIONS, timestamp);
+				message.addData("CLIENT", client);
+				message.addData("CHANNEL", channel);
+				message.addData("OP", operation);
 				logChannel.send(message);
 			}
 		}
@@ -357,7 +369,7 @@ public class OOCSIServer extends Server {
 			// check if we have a subscriber for public channel information
 			Channel channels = server.getChannel(OOCSI_CHANNELS);
 			if (channels != null) {
-				Message message = new Message("SERVER", OOCSI_CHANNELS);
+				Message message = new Message(SERVER, OOCSI_CHANNELS);
 				message.addData("channels", server.getChannelList());
 				channels.send(message);
 			}
@@ -365,15 +377,25 @@ public class OOCSIServer extends Server {
 			// check if we have a subscriber for public client information
 			Channel clients = server.getChannel(OOCSI_CLIENTS);
 			if (clients != null) {
-				Message message = new Message("SERVER", OOCSI_CLIENTS);
+				Message message = new Message(SERVER, OOCSI_CLIENTS);
 				message.addData("clients", server.getClientList());
 				clients.send(message);
+			}
+
+			// check first-level channels for channel subscribers
+			for (Channel channel : server.getChannels()) {
+				Channel channelSubscription = server.getChannel(channel.getName() + "/?");
+				if (channelSubscription != null) {
+					Message message = new Message(SERVER, channelSubscription.getName());
+					message.addData("channels", channel.getChannelList());
+					channelSubscription.send(message);
+				}
 			}
 
 			// check if we have a subscriber for public client information
 			Channel metrics = server.getChannel(OOCSI_METRICS);
 			if (metrics != null) {
-				Message message = new Message("SERVER", OOCSI_METRICS);
+				Message message = new Message(SERVER, OOCSI_METRICS);
 
 				// millis since startup
 				message.addData("uptime", System.currentTimeMillis() - serverStart);

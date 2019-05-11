@@ -53,7 +53,7 @@ public class Channel {
 	 * @return
 	 */
 	public boolean isPrivate() {
-		return token.contains(":");
+		return token.contains(":") || token.contains("/?");
 	}
 
 	/**
@@ -82,10 +82,6 @@ public class Channel {
 	 * @param message
 	 */
 	public void send(Message message) {
-		if (!message.sender.equals("SERVER") && !message.recipient.equals("OOCSI_events")) {
-			OOCSIServer.logEvent(message.sender, message.recipient, message.data, message.timestamp);
-		}
-
 		for (Channel subChannel : subChannels.values()) {
 			// no echo in channels; use ECHO channel for that
 			if (message.sender.equals(subChannel.getName())) {
@@ -95,12 +91,11 @@ public class Channel {
 			// send event
 			subChannel.send(message);
 
-			// log event
+			// log event unless channel is private
 			if (!subChannel.isPrivate()) {
 				if (!message.recipient.equals(subChannel.getName())) {
-					if (!message.sender.equals("SERVER") && !message.recipient.equals("OOCSI_events")) {
-						OOCSIServer.logEvent(message.recipient, subChannel.getName(), message.data, message.timestamp);
-					}
+					OOCSIServer.logEvent(message.sender, message.recipient, subChannel.getName(), message.data,
+							message.timestamp);
 				}
 			}
 		}

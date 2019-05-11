@@ -13,6 +13,7 @@ import com.udojava.evalex.AbstractLazyFunction;
 import com.udojava.evalex.Expression;
 import com.udojava.evalex.Expression.LazyNumber;
 
+import nl.tue.id.oocsi.server.OOCSIServer;
 import nl.tue.id.oocsi.server.protocol.Message;
 
 public class FunctionClient extends Client {
@@ -102,6 +103,11 @@ public class FunctionClient extends Client {
 
 		message.recipient += "[" + functionString + "]";
 		delegate.send(message);
+
+		// log this if recipient is this client exactly
+		if (message.recipient.equals(getName())) {
+			OOCSIServer.logEvent(message.sender, "", message.recipient, message.data, message.timestamp);
+		}
 	}
 
 	/**

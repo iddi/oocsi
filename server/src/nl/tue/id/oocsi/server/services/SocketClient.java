@@ -76,6 +76,11 @@ public class SocketClient extends Client {
 		} else if (type == ClientType.JSON) {
 			send(serializeJSON(message.data, message.recipient, message.timestamp.getTime(), message.sender));
 		}
+
+		// log this if recipient is this client exactly
+		if (message.recipient.equals(getName())) {
+			OOCSIServer.logEvent(message.sender, "", message.recipient, message.data, message.timestamp);
+		}
 	}
 
 	/**
