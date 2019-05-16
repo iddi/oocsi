@@ -118,6 +118,8 @@ public class OSCService extends AbstractService {
 
 	@Override
 	public void stop() {
-		opOut.close();
+		if (opOut != null) {
+			opOut.close();
+		}
 	}
 }

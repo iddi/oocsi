@@ -119,13 +119,8 @@ public class SocketService extends AbstractService {
 
 						DatagramPacket packet = new DatagramPacket(buf, buf.length, group, MULTICAST_PORT);
 						socket.send(packet);
-					} catch (IOException e) {
+					} catch (Exception e) {
 						// e.printStackTrace();
-					}
-
-					// keep-alive ping-pong with socket clients
-					for (Client client : server.getClients()) {
-						client.ping();
 					}
 				};
 			}, 1000, (long) (5 * 1000 + Math.random() * 1000), TimeUnit.MILLISECONDS);

@@ -26,7 +26,7 @@ import nl.tue.id.oocsi.server.services.SocketService;
 public class OOCSIServer extends Server {
 
 	// constants
-	public static final String VERSION = "1.14";
+	public static final String VERSION = "1.15";
 
 	// defaults for different services
 	private static int maxClients = 100;
@@ -361,6 +361,11 @@ public class OOCSIServer extends Server {
 	class StatusTimeTask implements Runnable {
 		@Override
 		public void run() {
+
+			// keep-alive ping-pong with socket clients
+			for (Client client : server.getClients()) {
+				client.ping();
+			}
 
 			// clean up first
 			closeStaleClients();
