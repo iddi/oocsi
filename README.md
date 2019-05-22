@@ -28,6 +28,7 @@ Find more information on client support [here](https://github.com/iddi/oocsi/wik
 Funk, Mathias. (2019, May). OOCSI. Zenodo. http://doi.org/10.5281/zenodo.1321220
 
 ![Zenodo badge](https://zenodo.org/badge/DOI/10.5281/zenodo.1321220.svg)
+[![License: CC BY-SA 4.0](https://licensebuttons.net/l/by-sa/4.0/80x15.png)](https://creativecommons.org/licenses/by-sa/4.0/)
 
 ### BibTex
 
