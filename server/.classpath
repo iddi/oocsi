@@ -7,5 +7,6 @@
 	<classpathentry kind="lib" path="libs/javaosc-core-0.3.jar"/>
 	<classpathentry kind="lib" path="libs/gson-2.8.2.jar"/>
 	<classpathentry kind="lib" path="libs/EvalEx/EvalEx-2.1.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/oocsi-client"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

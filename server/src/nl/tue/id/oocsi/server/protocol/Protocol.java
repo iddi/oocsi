@@ -73,7 +73,7 @@ public class Protocol {
 			return server.getClientList();
 		}
 		// respond to ping
-		else if (inputLine.equals("ping")) {
+		else if (inputLine.equals("ping") || inputLine.equals(".")) {
 			server.getChangeListener().refresh(sender, sender);
 			return ".";
 		}

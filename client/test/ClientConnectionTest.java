@@ -24,7 +24,7 @@ public class ClientConnectionTest {
 		o.connect("localhost", 4444);
 		assertTrue(o.isConnected());
 
-		assertEquals("pre_checks", o.clients());
+		assertTrue(o.clients().contains("pre_checks"));
 
 		o.disconnect();
 	}

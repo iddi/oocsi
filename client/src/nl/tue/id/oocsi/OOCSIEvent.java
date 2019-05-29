@@ -192,7 +192,8 @@ public class OOCSIEvent {
 	 * @return
 	 */
 	public String getString(String key) {
-		return this.data.get(key).toString();
+		Object result = this.data.get(key);
+		return result != null ? result.toString() : null;
 	}
 
 	/**

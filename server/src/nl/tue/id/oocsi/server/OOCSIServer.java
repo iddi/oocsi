@@ -26,7 +26,7 @@ import nl.tue.id.oocsi.server.services.SocketService;
 public class OOCSIServer extends Server {
 
 	// constants
-	public static final String VERSION = "1.15";
+	public static final String VERSION = "1.16";
 
 	// defaults for different services
 	private static int maxClients = 100;
@@ -150,7 +150,13 @@ public class OOCSIServer extends Server {
 		start(new AbstractService[] { tcp, osc });
 
 		// start timer for posting channel and client information to the respective channels
-		Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(new StatusTimeTask(), 5, 5, TimeUnit.SECONDS);
+		try {
+			Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(new StatusTimeTask(), 5, 5,
+					TimeUnit.SECONDS);
+		} catch (Exception e) {
+			e.printStackTrace();
+			OOCSIServer.log("Exception on StatusTimeTask: " + e.getMessage());
+		}
 	}
 
 	/**
@@ -359,9 +365,25 @@ public class OOCSIServer extends Server {
 	}
 
 	class StatusTimeTask implements Runnable {
+
+		public StatusTimeTask() {
+			OOCSIServer.log("StatusTimeTask launched");
+		}
+
 		@Override
 		public void run() {
+			try {
+				statusTask();
+			} catch (Exception e) {
+				OOCSIServer.log("Exception in StatusTimeTask: " + e.getMessage());
+			}
+		}
 
+		/**
+		 * run the status task
+		 * 
+		 */
+		public void statusTask() {
 			// keep-alive ping-pong with socket clients
 			for (Client client : server.getClients()) {
 				client.ping();
