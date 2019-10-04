@@ -53,7 +53,10 @@ public class Message implements Serializable {
 	 * @param timestamp
 	 */
 	public Message(String sender, String recipient, Date timestamp) {
-		this(sender, recipient, timestamp, new HashMap<String, Object>());
+		this.sender = sender;
+		this.recipient = recipient;
+		this.timestamp = timestamp;
+		this.data = new HashMap<String, Object>();
 	}
 
 	/**
@@ -65,10 +68,10 @@ public class Message implements Serializable {
 	 * @param data
 	 */
 	public Message(String sender, String recipient, Date timestamp, Map<String, Object> data) {
-		this.sender = sender;
-		this.recipient = recipient;
-		this.timestamp = timestamp;
-		this.data = data;
+		this(sender, recipient, timestamp);
+		if (data != null) {
+			this.data.putAll(data);
+		}
 	}
 
 	/**

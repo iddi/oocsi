@@ -151,7 +151,7 @@ public class OOCSIServer extends Server {
 
 		// start timer for posting channel and client information to the respective channels
 		try {
-			Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(new StatusTimeTask(), 5, 5,
+			Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(new StatusTimeTask(), 5, 1,
 					TimeUnit.SECONDS);
 		} catch (Exception e) {
 			e.printStackTrace();
