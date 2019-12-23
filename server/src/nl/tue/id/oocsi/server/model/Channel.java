@@ -114,6 +114,16 @@ public class Channel {
 	}
 
 	/**
+	 * check whether a channel is private
+	 * 
+	 * @param channelName
+	 * @return
+	 */
+	public static boolean isPrivate(String channelName) {
+		return !channelName.equals(channelName.replaceFirst(":.*", ""));
+	}
+
+	/**
 	 * list all channels
 	 * 
 	 * @return

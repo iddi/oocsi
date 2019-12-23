@@ -55,7 +55,7 @@ public class SocketService extends AbstractService {
 	@Override
 	public boolean register(Client client) {
 		// for private clients, first check whether it needs to comply to existing users
-		String name = client.getName();
+		final String name = client.getName();
 		if (users != null) {
 			for (String user : users) {
 				if (user != null && user.replaceFirst(":.*", "").equals(name)) {

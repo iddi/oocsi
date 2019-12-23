@@ -95,9 +95,14 @@ public class Protocol {
 				String message = tokens[2];
 
 				Channel c = server.getChannel(recipient);
-				if (c != null && c.accept(recipient)) {
 					Map<String, Object> map = parseJSONMessage(message);
+				if (c != null && c.accept(recipient)) {
 					c.send(new Message(sender.getName(), recipient, new Date(), map));
+				} else {
+					// log if not private message
+					if (!Channel.isPrivate(recipient)) {
+						OOCSIServer.logEvent(sender.getName(), recipient, "?", map, new Date());
+					}
 				}
 			}
 		}
@@ -106,18 +111,23 @@ public class Protocol {
 			String[] tokens = inputLine.split(" ", 3);
 			if (tokens.length == 3) {
 				String recipient = tokens[1];
-				String data = tokens[2];
+				String message = tokens[2];
 
 				Channel c = server.getChannel(recipient);
-				if (c != null && c.accept(recipient)) {
+				if (message.length() > 0) {
 					try {
-						Object outputObject = parseJavaMessage(data);
-
-						@SuppressWarnings("unchecked")
-						Map<String, Object> map = (Map<String, Object>) outputObject;
+						Map<String, Object> map = parseJavaMessage(message);
+						if (c != null && c.accept(recipient)) {
 						c.send(new Message(sender.getName(), recipient, new Date(), map));
+						} else {
+							// log if not private message
+							if (!Channel.isPrivate(recipient)) {
+								OOCSIServer.logEvent(sender.getName(), recipient, "?", map, new Date());
+							}
+						}
 					} catch (IOException e) {
-						OOCSIServer.log("[MsgParser] I/O problem: " + e.getMessage());
+						OOCSIServer.log("[MsgParser] I/O problem: " + e.getMessage() + "\n\nSender:\n"
+								+ sender.getName() + "\nRecipient:\n" + recipient + "\nData:\n" + message);
 					} catch (IllegalArgumentException e) {
 						OOCSIServer.log("[MsgParser] Base64 encoder problem: " + e.getMessage());
 					} catch (ClassNotFoundException e) {
@@ -143,7 +153,7 @@ public class Protocol {
 	 * @return
 	 */
 	public static Map<String, Object> parseJSONMessage(String message) {
-		Map<String, Object> map = new HashMap<String, Object>();
+		final Map<String, Object> map = new HashMap<String, Object>();
 
 		// try to parse input as JSON
 		try {
@@ -219,11 +229,12 @@ public class Protocol {
 	 * @throws IOException
 	 * @throws ClassNotFoundException
 	 */
-	public static Object parseJavaMessage(String data) throws IOException, ClassNotFoundException {
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> parseJavaMessage(String data) throws IOException, ClassNotFoundException {
 		// serialized object parsing
 		ByteArrayInputStream bais = new ByteArrayInputStream(Base64Coder.decode(data));
 		ObjectInputStream ois = new ObjectInputStream(bais);
 		Object outputObject = ois.readObject();
-		return outputObject;
+		return (Map<String, Object>) outputObject;
 	}
 }
