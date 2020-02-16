@@ -73,7 +73,7 @@ public class Protocol {
 			return server.getClientList();
 		}
 		// respond to ping
-		else if (inputLine.equals("ping") || inputLine.equals(".")) {
+		else if (inputLine.equals("ping")) {
 			server.getChangeListener().refresh(sender, sender);
 			return ".";
 		}
@@ -95,7 +95,7 @@ public class Protocol {
 				String message = tokens[2];
 
 				Channel c = server.getChannel(recipient);
-					Map<String, Object> map = parseJSONMessage(message);
+				Map<String, Object> map = parseJSONMessage(message);
 				if (c != null && c.accept(recipient)) {
 					c.send(new Message(sender.getName(), recipient, new Date(), map));
 				} else {
@@ -118,7 +118,7 @@ public class Protocol {
 					try {
 						Map<String, Object> map = parseJavaMessage(message);
 						if (c != null && c.accept(recipient)) {
-						c.send(new Message(sender.getName(), recipient, new Date(), map));
+							c.send(new Message(sender.getName(), recipient, new Date(), map));
 						} else {
 							// log if not private message
 							if (!Channel.isPrivate(recipient)) {

@@ -29,7 +29,7 @@ public class SocketService extends AbstractService {
 	private static final String MULTICAST_GROUP = "224.0.0.144";
 
 	private final int port;
-	private final String[] users;
+	private final String[] registeredUsers;
 
 	private ServerSocket serverSocket;
 	private boolean listening = true;
@@ -40,11 +40,11 @@ public class SocketService extends AbstractService {
 	 * @param server
 	 * @param port
 	 */
-	public SocketService(Server server, int port, String[] users) {
+	public SocketService(Server server, int port, String[] registeredUsers) {
 		super(server);
 
 		this.port = port;
-		this.users = users;
+		this.registeredUsers = registeredUsers;
 	}
 
 	/*
@@ -54,17 +54,25 @@ public class SocketService extends AbstractService {
 	 */
 	@Override
 	public boolean register(Client client) {
+
+		// non-private clients, normal procedure
+		if (!client.isPrivate()) {
+			return super.register(client);
+		}
+
 		// for private clients, first check whether it needs to comply to existing users
 		final String name = client.getName();
-		if (users != null) {
-			for (String user : users) {
-				if (user != null && user.replaceFirst(":.*", "").equals(name)) {
-					if (client.validate(user)) {
-						return super.register(client);
-					} else {
-						return false;
-					}
+		if (registeredUsers != null) {
+			for (String user : registeredUsers) {
+				if (user == null || !user.replaceFirst(":.*", "").equals(name)) {
+					continue;
+				}
 
+				// if there is a match, replace client
+				if (client.validate(user)) {
+					return super.register(client);
+				} else {
+					return false;
 				}
 			}
 		}
