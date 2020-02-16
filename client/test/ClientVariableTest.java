@@ -213,7 +213,7 @@ public class ClientVariableTest {
 
 		Thread.sleep(500);
 
-		assertEquals(5f, of21.get(), 0);
+		assertTrue(6f > of21.get());
 
 		client1.disconnect();
 		client2.disconnect();
@@ -260,9 +260,12 @@ public class ClientVariableTest {
 		// back ---
 
 		of21.set(-10.2f);
+
+		Thread.sleep(100);
+
 		of21.set(10.2f);
 
-		Thread.sleep(500);
+		Thread.sleep(100);
 
 		assertEquals(0f, of11.get(), 0);
 

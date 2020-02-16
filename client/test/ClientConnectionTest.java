@@ -68,13 +68,16 @@ public class ClientConnectionTest {
 
 		assertTrue(o.isConnected());
 
+		// this is necessary, so the old client does not respond to server pings anymore
+		o.kill();
+
 		Thread.sleep(2500);
 
 		{
 			OOCSIClient o1 = new OOCSIClient("test_client_0_kill");
 			o1.connect("localhost", 4444);
 
-			Thread.sleep(500);
+			Thread.sleep(100);
 
 			assertTrue(o1.isConnected());
 			o1.disconnect();
@@ -87,27 +90,34 @@ public class ClientConnectionTest {
 	public void testConnectAndKillWithPassword() throws InterruptedException {
 		OOCSIClient o1 = new OOCSIClient("test_priv_client_1:12345");
 		o1.connect("localhost", 4444);
+		Thread.sleep(200);
 		assertTrue(o1.isConnected());
 
 		OOCSIClient o2 = new OOCSIClient("test_priv_client_1");
 		o2.connect("localhost", 4444);
+		Thread.sleep(200);
 		assertTrue(!o2.isConnected());
 
 		OOCSIClient o3 = new OOCSIClient("test_priv_client_1:345");
 		o3.connect("localhost", 4444);
+		Thread.sleep(200);
 		assertTrue(!o3.isConnected());
-
-		Thread.sleep(2500);
 
 		OOCSIClient o4 = new OOCSIClient("test_priv_client_1:12345");
 		o4.connect("localhost", 4444);
-		assertTrue(o4.isConnected());
+		Thread.sleep(200);
+		assertTrue(!o4.isConnected());
 
 		o1.disconnect();
 		o2.disconnect();
 		o3.disconnect();
 		o4.disconnect();
 
+		OOCSIClient o5 = new OOCSIClient("test_priv_client_1:12345");
+		o5.connect("localhost", 4444);
+		Thread.sleep(200);
+		assertTrue(o5.isConnected());
+		o5.disconnect();
 	}
 
 	@Test
@@ -552,13 +562,14 @@ public class ClientConnectionTest {
 
 		Thread.sleep(100);
 
-		assertEquals(1, list.size());
+		assertTrue(list.get(0).contains("join"));
 
 		o2.disconnect();
 
 		Thread.sleep(100);
 
-		assertEquals(2, list.size());
+		assertTrue(list.size() > 1);
+		assertTrue(list.get(list.size() - 1).contains("leave"));
 
 		o1.disconnect();
 	}

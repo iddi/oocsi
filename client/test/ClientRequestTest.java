@@ -16,14 +16,18 @@ import org.junit.Test;
 public class ClientRequestTest {
 
 	@Test
-	public void testClientAvailable() {
+	public void testClientAvailable() throws InterruptedException {
 		String clientName = "test_client_client_available_1";
 
 		OOCSIClient o = new OOCSIClient(clientName);
 		o.connect("localhost", 4444);
 
+		Thread.sleep(200);
+
 		assertTrue(o.isConnected());
 		assertTrue(o.clients().contains(clientName));
+
+		Thread.sleep(200);
 
 		o.disconnect();
 	}
@@ -31,10 +35,12 @@ public class ClientRequestTest {
 	@Test
 	public void testChannelAvailable() throws InterruptedException {
 		String clientName = "test_client_channel_available_2";
-		String channelName = "test_channel";
+		String channelName = "test_channel_123";
 
 		OOCSIClient o = new OOCSIClient(clientName);
 		o.connect("localhost", 4444);
+
+		Thread.sleep(200);
 
 		assertTrue(o.isConnected());
 		assertTrue(o.channels().contains(clientName));
@@ -45,8 +51,12 @@ public class ClientRequestTest {
 			}
 		});
 
-		assertTrue(o.channels().contains(clientName));
+		Thread.sleep(200);
+
 		assertTrue(o.channels().contains(channelName));
+		assertTrue(o.channels().contains(clientName));
+
+		Thread.sleep(200);
 
 		o.disconnect();
 	}
