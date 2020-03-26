@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<project default="create_run_jar" name="Create Runnable Jar for Project oocsi-server with Jar-in-Jar Loader">
+<project default="create_run_jar" name="Create Runnable Jar for Project oocsi-server">
     <!--this file was created by Eclipse Runnable JAR Export Wizard-->
     <!--ANT 1.7 is required                                        -->
+    <!--define folder properties-->
+    <property name="dir.buildfile" value="."/>
+    <property name="dir.workspace" value="${dir.buildfile}/../../../../.."/>
+    <property name="dir.jarfile" value="${dir.buildfile}"/>
     <target name="create_run_jar">
-        <jar destfile="../dist/OOCSI_server.jar">
+        <jar destfile="${dir.jarfile}/../dist/OOCSI_server.jar" filesetmanifest="mergewithoutmain">
             <manifest>
-                <attribute name="Main-Class" value="org.eclipse.jdt.internal.jarinjarloader.JarRsrcLoader"/>
-                <attribute name="Rsrc-Main-Class" value="nl.tue.id.oocsi.server.OOCSIServer"/>
+                <attribute name="Main-Class" value="nl.tue.id.oocsi.server.OOCSIServer"/>
                 <attribute name="Class-Path" value="."/>
-                <attribute name="Rsrc-Class-Path" value="./ gson-2.8.2.jar javaosc-core-0.3.jar EvalEx/EvalEx-2.1.jar"/>
             </manifest>
-            <zipfileset src="jar-in-jar-loader.zip"/>
-            <fileset dir="../bin">
-                <exclude name="**/*ServerCommandLineParsing*"/>
-                <exclude name="**/*ClientSignoffTest*"/>
-                <exclude name="**/*MessageParsingTest*"/>
-          	</fileset>
-            <fileset dir="../libs"/>
+            <fileset dir="${dir.workspace}/Making/iddi/oocsi/server/bin"/>
+        	<zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/Making/iddi/oocsi/server/libs/javaosc-core-0.3.jar"/>
+           	<zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/Making/iddi/oocsi/server/libs/gson-2.8.2.jar"/>
+           	<zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/Making/iddi/oocsi/server/libs/EvalEx/EvalEx-2.1.jar"/>
+           	<fileset dir="${dir.workspace}/Making/iddi/oocsi/client/bin"/>
         </jar>
     </target>
 </project>
