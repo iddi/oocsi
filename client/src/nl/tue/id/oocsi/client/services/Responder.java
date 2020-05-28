@@ -6,6 +6,7 @@ import nl.tue.id.oocsi.OOCSIData;
 import nl.tue.id.oocsi.OOCSIEvent;
 import nl.tue.id.oocsi.client.OOCSIClient;
 import nl.tue.id.oocsi.client.protocol.Handler;
+import nl.tue.id.oocsi.client.protocol.OOCSIDataImpl;
 import nl.tue.id.oocsi.client.protocol.OOCSIMessage;
 
 /**
@@ -79,7 +80,7 @@ abstract public class Responder extends Handler {
 		}
 
 		// correct call to respond to
-		OOCSIData response = new OOCSIData();
+		OOCSIData response = new OOCSIDataImpl();
 		respond(new OOCSIEvent(channel, data, sender, timestamp) {
 
 			@Override
@@ -89,7 +90,7 @@ abstract public class Responder extends Handler {
 		}, response);
 
 		// send response
-		response.put(OOCSICall.MESSAGE_ID, data.get(OOCSICall.MESSAGE_ID));
+		response.data(OOCSICall.MESSAGE_ID, data.get(OOCSICall.MESSAGE_ID));
 		new OOCSIMessage(oocsi, sender).data(response).send();
 	}
 

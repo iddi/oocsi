@@ -4,7 +4,7 @@ import org.junit.runners.Suite.SuiteClasses;
 
 @RunWith(Suite.class)
 @SuiteClasses({ ClientCallTest.class, ClientConnectionTest.class, ClientLoadTest.class, ClientRequestTest.class,
-		ClientSpatialTest.class, ClientVariableTest.class })
+        ClientSpatialTest.class, ClientVariableTest.class, ClientDataTest.class })
 public class AllTests {
 
 }

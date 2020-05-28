@@ -19,12 +19,9 @@ public class OOCSIEvent {
 	/**
 	 * constructor (implicit timestamp upon creation)
 	 * 
-	 * @param channelName
-	 *            where to?
-	 * @param data
-	 *            what data?
-	 * @param sender
-	 *            who sends it?
+	 * @param channelName where to?
+	 * @param data        what data?
+	 * @param sender      who sends it?
 	 */
 	public OOCSIEvent(String channelName, Map<String, Object> data, String sender) {
 		this(channelName, data, sender, new Date());
@@ -33,14 +30,10 @@ public class OOCSIEvent {
 	/**
 	 * constructor
 	 * 
-	 * @param channelName
-	 *            where to?
-	 * @param data
-	 *            what data?
-	 * @param sender
-	 *            who sends it?
-	 * @param timestamp
-	 *            when? (as UNIX timestamp, long value)
+	 * @param channelName where to?
+	 * @param data        what data?
+	 * @param sender      who sends it?
+	 * @param timestamp   when? (as UNIX timestamp, long value)
 	 */
 	public OOCSIEvent(String channelName, Map<String, Object> data, String sender, long timestamp) {
 		this(channelName, data, sender, new Date(timestamp));
@@ -49,14 +42,10 @@ public class OOCSIEvent {
 	/**
 	 * constructor
 	 * 
-	 * @param channelName
-	 *            where to?
-	 * @param data
-	 *            what data?
-	 * @param sender
-	 *            who sends it?
-	 * @param timestamp
-	 *            when? (as Date object)
+	 * @param channelName where to?
+	 * @param data        what data?
+	 * @param sender      who sends it?
+	 * @param timestamp   when? (as Date object)
 	 */
 	public OOCSIEvent(String channelName, Map<String, Object> data, String sender, Date timestamp) {
 		this.channelName = channelName;
@@ -208,6 +197,120 @@ public class OOCSIEvent {
 		return result != null ? result.toString() : defaultValue;
 	}
 
+	////////////////////////////////////////////////////////////////////
+
+	/**
+	 * get the value for the given key as boolean array (boolean[])
+	 * 
+	 * @param key
+	 * @param defaultValue
+	 * @return
+	 */
+	public boolean[] getBooleanArray(String key, boolean[] defaultValue) {
+		try {
+			return (boolean[]) getObject(key);
+		} catch (Exception e) {
+			return defaultValue;
+		}
+	}
+
+	/**
+	 * get the value for the given key as int array (int[])
+	 * 
+	 * @param key
+	 * @param defaultValue
+	 * @return
+	 */
+	public int[] getIntArray(String key, int[] defaultValue) {
+		try {
+			return (int[]) getObject(key);
+		} catch (Exception e) {
+			return defaultValue;
+		}
+	}
+
+	/**
+	 * get the value for the given key as float array (float[])
+	 * 
+	 * @param key
+	 * @param defaultValue
+	 * @return
+	 */
+	public float[] getFloatArray(String key, float[] defaultValue) {
+		try {
+			return (float[]) getObject(key);
+		} catch (Exception e) {
+			return defaultValue;
+		}
+	}
+
+	/**
+	 * get the value for the given key as long array (long[])
+	 * 
+	 * @param key
+	 * @param defaultValue
+	 * @return
+	 */
+	public long[] getLongArray(String key, long[] defaultValue) {
+		try {
+			return (long[]) getObject(key);
+		} catch (Exception e) {
+			return defaultValue;
+		}
+	}
+
+	/**
+	 * get the value for the given key as double array (double[])
+	 * 
+	 * @param key
+	 * @param defaultValue
+	 * @return
+	 */
+	public double[] getDoubleArray(String key, double[] defaultValue) {
+		try {
+			return (double[]) getObject(key);
+		} catch (Exception e) {
+			return defaultValue;
+		}
+	}
+
+	/**
+	 * get the value for the given key as String array (String[])
+	 * 
+	 * @param key
+	 * @param defaultValue
+	 * @return
+	 */
+	public String[] getStringArray(String key, String[] defaultValue) {
+		try {
+			return (String[]) getObject(key);
+		} catch (Exception e) {
+			return defaultValue;
+		}
+	}
+
+	/**
+	 * get the array value for the given key as array of type T. note that you need to call this with the type T
+	 * specified.
+	 * 
+	 * example: getArray<Float>()
+	 * 
+	 * @param <T>
+	 * @param key
+	 * @param defaultValue
+	 * @return
+	 */
+	@SuppressWarnings("unchecked")
+	public <T> T[] getArray(String key, T[] defaultValue) {
+		try {
+			return (T[]) getObject(key);
+		} catch (Exception e) {
+			return defaultValue;
+		}
+	}
+
+	////////////////////////////////////////////////////////////////////
+
 	/**
 	 * get the value for the given key as Object
 	 * 
@@ -280,5 +383,24 @@ public class OOCSIEvent {
 	 */
 	public long getTime() {
 		return timestamp.getTime();
+	}
+
+	/**
+	 * get a String representation of this event
+	 * 
+	 */
+	@Override
+	public String toString() {
+
+		StringBuilder sb = new StringBuilder();
+		sb.append("Sender: " + getSender());
+		sb.append("Recipient: " + getRecipient() + ", ");
+		sb.append("Timestamp: " + getTimestamp() + ", ");
+		sb.append("\n");
+		for (String key : keys()) {
+			sb.append(key + ": " + getString(key) + ", ");
+		}
+		sb.append("\n");
+		return sb.toString();
 	}
 }

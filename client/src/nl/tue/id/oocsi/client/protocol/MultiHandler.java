@@ -25,6 +25,14 @@ public class MultiHandler extends Handler {
 		subscribers.add(handler);
 	}
 
+	public void remove(Handler handler) {
+		subscribers.remove(handler);
+	}
+
+	public boolean isEmpty() {
+		return subscribers.isEmpty();
+	}
+
 	@Override
 	public void receive(String sender, Map<String, Object> data, long timestamp, String channel, String recipient) {
 		for (Handler handler : subscribers) {

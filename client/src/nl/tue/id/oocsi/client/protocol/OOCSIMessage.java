@@ -3,6 +3,7 @@ package nl.tue.id.oocsi.client.protocol;
 import java.util.HashMap;
 import java.util.Map;
 
+import nl.tue.id.oocsi.OOCSIData;
 import nl.tue.id.oocsi.OOCSIEvent;
 import nl.tue.id.oocsi.client.OOCSIClient;
 
@@ -11,7 +12,7 @@ import nl.tue.id.oocsi.client.OOCSIClient;
  * 
  * @author matsfunk
  */
-public class OOCSIMessage extends OOCSIEvent {
+public class OOCSIMessage extends OOCSIEvent implements OOCSIData {
 
 	protected OOCSIClient oocsi;
 	private boolean isSent = false;
@@ -147,15 +148,34 @@ public class OOCSIMessage extends OOCSIEvent {
 	}
 
 	/**
+	 * store bulk data in message
+	 * 
+	 * @param bulkData
+	 * @return
+	 */
+	public OOCSIMessage data(OOCSIData bulkData) {
+
+		// store data
+		this.data.putAll(bulkData.internal());
+
+		return this;
+	}
+
+	/**
 	 * send message
 	 * 
 	 */
-	public void send() {
+	public synchronized void send() {
 
 		// but send only once
 		if (!isSent) {
 			isSent = true;
 			oocsi.send(channelName, data);
 		}
+	}
+
+	@Override
+	public Map<String, Object> internal() {
+		return this.data;
 	}
 }

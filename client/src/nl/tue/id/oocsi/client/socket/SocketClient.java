@@ -494,7 +494,7 @@ public class SocketClient {
 		send("unsubscribe " + channelName);
 
 		// remove handler
-		channels.remove(channelName);
+		internalRemoveHandler(channelName, null);
 	}
 
 	/**
@@ -507,7 +507,30 @@ public class SocketClient {
 		send("unsubscribe " + name);
 
 		// remove handler
-		channels.remove(SELF);
+		internalRemoveHandler(SELF, null);
+	}
+
+	/**
+	 * manage internal multi-handler for this channel: will remove the given handler from an existing multi-handler's
+	 * internal list, or just remove the channel directly
+	 * 
+	 * @param channelName
+	 * @param handler
+	 */
+	private void internalRemoveHandler(String channelName, Handler handler) {
+		if (channels.containsKey(channelName) && handler != null) {
+			Handler h = channels.get(channelName);
+			if (h instanceof MultiHandler) {
+				MultiHandler mh = (MultiHandler) h;
+				mh.remove(handler);
+
+				if (mh.isEmpty()) {
+					channels.remove(channelName);
+				}
+			}
+		} else {
+			channels.remove(channelName);
+		}
 	}
 
 	/**
@@ -527,6 +550,15 @@ public class SocketClient {
 	 */
 	public void register(String callName, Responder responder) {
 		services.put(callName, responder);
+	}
+
+	/**
+	 * unregister a responder with a handle "callName"
+	 * 
+	 * @param callName
+	 */
+	public void unregister(String callName) {
+		services.remove(callName);
 	}
 
 	/**

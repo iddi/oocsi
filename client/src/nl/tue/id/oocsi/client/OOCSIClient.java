@@ -210,6 +210,27 @@ public class OOCSIClient {
 	}
 
 	/**
+	 * unregister a responder with the socket client with a given handle "callName"
+	 * 
+	 * @param callName
+	 */
+	public void unregister(String callName) {
+		sc.unsubscribe(callName);
+		sc.unregister(callName);
+	}
+
+	/**
+	 * unregister a responder with the socket client with a given handle "callName" on channel "channelName"
+	 * 
+	 * @param channelName
+	 * @param callName
+	 */
+	public void unregister(String channelName, String callName) {
+		sc.unsubscribe(channelName);
+		sc.unregister(callName);
+	}
+
+	/**
 	 * send a string message to the channel with the given name
 	 * 
 	 * @param channelName
