@@ -26,13 +26,13 @@ import nl.tue.id.oocsi.server.services.SocketService;
 public class OOCSIServer extends Server {
 
 	// constants
-	public static final String VERSION = "1.17";
+	public static final String VERSION = "1.18";
 
 	// defaults for different services
-	private static int maxClients = 100;
-	public static int port = 4444;
-	public static boolean isLogging = false;
-	public static String[] users = null;
+	private int maxClients = 100;
+	public int port = 4444;
+	public boolean isLogging = false;
+	public String[] users = null;
 
 	// default channels
 	public static final String SERVER = "SERVER";
@@ -47,8 +47,8 @@ public class OOCSIServer extends Server {
 	private static int messageTotal = 0;
 	private static final long serverStart = System.currentTimeMillis();
 
-	// singleton
-	private static OOCSIServer server;
+	// singleton server instance
+	private volatile static OOCSIServer INSTANCE;
 
 	// services
 	AbstractService[] services;
@@ -63,8 +63,14 @@ public class OOCSIServer extends Server {
 
 		super(new PresenceTracker());
 
-		// singleton assignment
-		server = this;
+		// thread-safe singleton assignment
+		if (INSTANCE == null) {
+			synchronized (OOCSIServer.class) {
+				if (INSTANCE == null) {
+					INSTANCE = this;
+				}
+			}
+		}
 	}
 
 	/**
@@ -95,9 +101,9 @@ public class OOCSIServer extends Server {
 		this();
 
 		// assign argument
-		OOCSIServer.port = port;
-		maxClients = clients;
-		isLogging = logging;
+		this.port = port;
+		this.maxClients = clients;
+		this.isLogging = logging;
 
 		init();
 	}
@@ -115,12 +121,25 @@ public class OOCSIServer extends Server {
 		this();
 
 		// assign argument
-		OOCSIServer.port = port;
-		maxClients = clients;
-		isLogging = logging;
-		users = userList;
+		this.port = port;
+		this.maxClients = clients;
+		this.isLogging = logging;
+		this.users = userList;
 
 		init();
+	}
+
+	/**
+	 * return instance of server
+	 * 
+	 * @return
+	 */
+	public static OOCSIServer getInstance() {
+		return INSTANCE;
+	}
+
+	public void destroyInstance() {
+		INSTANCE = null;
 	}
 
 	/**
@@ -138,7 +157,7 @@ public class OOCSIServer extends Server {
 
 		// output status message
 		OOCSIServer.log("Started OOCSI server v" + OOCSIServer.VERSION + " for max. " + maxClients + " parallel clients"
-				+ (isLogging ? " and activated logging" : "") + ".");
+		        + (isLogging ? " and activated logging" : "") + ".");
 
 		// start OSC server
 		OSCService osc = new OSCService(this, port + 1);
@@ -147,12 +166,12 @@ public class OOCSIServer extends Server {
 		SocketService tcp = new SocketService(this, port, users);
 
 		// start services
-		start(new AbstractService[] { tcp, osc });
+		startServices(new AbstractService[] { tcp, osc });
 
 		// start timer for posting channel and client information to the respective channels
 		try {
 			Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(new StatusTimeTask(), 5, 1,
-					TimeUnit.SECONDS);
+			        TimeUnit.SECONDS);
 		} catch (Exception e) {
 			e.printStackTrace();
 			OOCSIServer.log("Exception on StatusTimeTask: " + e.getMessage());
@@ -164,7 +183,7 @@ public class OOCSIServer extends Server {
 	 * 
 	 * @param services
 	 */
-	public void start(AbstractService[] services) {
+	private void startServices(AbstractService[] services) {
 
 		// first stop all running services
 		stop();
@@ -218,8 +237,8 @@ public class OOCSIServer extends Server {
 	 * 
 	 * @return
 	 */
-	public static int getMaxClients() {
-		return maxClients;
+	public int getMaxClients() {
+		return this.maxClients;
 	}
 
 	/**
@@ -227,8 +246,8 @@ public class OOCSIServer extends Server {
 	 * 
 	 * @param maxClients
 	 */
-	public static void setMaxClients(int maxClients) {
-		OOCSIServer.maxClients = maxClients;
+	public void setMaxClients(int maxClients) {
+		this.maxClients = maxClients;
 	}
 
 	/*
@@ -264,8 +283,8 @@ public class OOCSIServer extends Server {
 	 * @param message
 	 */
 	public static void log(String message) {
-		if (isLogging) {
-			server.internalLog(message);
+		if (INSTANCE.isLogging) {
+			INSTANCE.internalLog(message);
 		}
 	}
 
@@ -287,10 +306,10 @@ public class OOCSIServer extends Server {
 	 * @param timestamp
 	 */
 	public static void logEvent(String sender, String channel, String recipient, Map<String, Object> data,
-			Date timestamp) {
+	        Date timestamp) {
 
 		if (SERVER.equals(sender) || OOCSI_EVENTS.equals(sender) || OOCSI_EVENTS.equals(recipient)
-				|| OOCSI_METRICS.equals(recipient) || OOCSI_CONNECTIONS.equals(recipient)) {
+		        || OOCSI_METRICS.equals(recipient) || OOCSI_CONNECTIONS.equals(recipient)) {
 			return;
 		}
 
@@ -298,14 +317,14 @@ public class OOCSIServer extends Server {
 		messageCount++;
 		messageTotal++;
 
-		if (isLogging) {
+		if (INSTANCE.isLogging) {
 			if (channel.length() == 0) {
 				log(OOCSI_EVENTS + " " + sender + " --> " + recipient);
 			} else {
 				log(OOCSI_EVENTS + " " + sender + " --( " + channel + " )--> " + recipient);
 			}
 
-			Channel logChannel = server.getChannel(OOCSI_EVENTS);
+			Channel logChannel = INSTANCE.getChannel(OOCSI_EVENTS);
 			if (logChannel != null) {
 				Message message = new Message(SERVER, OOCSI_EVENTS, timestamp, data);
 				message.addData("PUB", sender);
@@ -327,10 +346,10 @@ public class OOCSIServer extends Server {
 			return;
 		}
 
-		if (isLogging) {
+		if (INSTANCE.isLogging) {
 			log(OOCSI_CONNECTIONS + " " + client + "->" + channel + " (" + operation + ")");
 
-			Channel logChannel = server.getChannel(OOCSI_CONNECTIONS);
+			Channel logChannel = INSTANCE.getChannel(OOCSI_CONNECTIONS);
 			if (logChannel != null) {
 				Message message = new Message(SERVER, OOCSI_CONNECTIONS, timestamp);
 				message.addData("CLIENT", client);
@@ -344,20 +363,20 @@ public class OOCSIServer extends Server {
 	/**
 	 * parses the command line arguments
 	 */
-	public static void parseCommandlineArgs(String[] args) {
+	public void parseCommandlineArgs(String[] args) {
 		for (int i = 0; i < args.length; i++) {
 			String argument = args[i];
 
 			if (argument.equals("-port") && args.length >= i + 2) {
-				port = Integer.parseInt(args[i + 1]);
+				this.port = Integer.parseInt(args[i + 1]);
 			} else if (argument.equals("-clients") && args.length >= i + 2) {
-				maxClients = Integer.parseInt(args[i + 1]);
+				this.maxClients = Integer.parseInt(args[i + 1]);
 			} else if (argument.equals("-logging")) {
-				isLogging = true;
+				this.isLogging = true;
 			} else if (argument.equals("-users") && args.length >= i + 2) {
 				String userList = args[i + 1];
 				if (userList.matches(
-						"^([a-zA-Z0-9_\\-.]+:[a-zA-Z0-9_\\-.%$]+;)*([a-zA-Z0-9_\\-.]+:[a-zA-Z0-9_\\-.%$]+);*$")) {
+				        "^([a-zA-Z0-9_\\-.]+:[a-zA-Z0-9_\\-.%$]+;)*([a-zA-Z0-9_\\-.]+:[a-zA-Z0-9_\\-.%$]+);*$")) {
 					users = userList.split(";");
 				}
 			}
@@ -376,6 +395,7 @@ public class OOCSIServer extends Server {
 				statusTask();
 			} catch (Exception e) {
 				OOCSIServer.log("Exception in StatusTimeTask: " + e.getMessage());
+				e.printStackTrace();
 			}
 		}
 
@@ -384,34 +404,40 @@ public class OOCSIServer extends Server {
 		 * 
 		 */
 		public void statusTask() {
-			// keep-alive ping-pong with socket clients
-			for (Client client : server.getClients()) {
-				client.ping();
-			}
+			long start = System.currentTimeMillis();
 
 			// clean up first
 			closeStaleClients();
 			closeEmptyChannels();
 
+			long afterCleans = System.currentTimeMillis();
+
+			// keep-alive ping-pong with socket clients
+			for (Client client : INSTANCE.getClients()) {
+				client.ping();
+			}
+
+			long afterPings = System.currentTimeMillis();
+
 			// check if we have a subscriber for public channel information
-			Channel channels = server.getChannel(OOCSI_CHANNELS);
+			Channel channels = INSTANCE.getChannel(OOCSI_CHANNELS);
 			if (channels != null) {
 				Message message = new Message(SERVER, OOCSI_CHANNELS);
-				message.addData("channels", server.getChannelList());
+				message.addData("channels", INSTANCE.getChannelList());
 				channels.send(message);
 			}
 
 			// check if we have a subscriber for public client information
-			Channel clients = server.getChannel(OOCSI_CLIENTS);
+			Channel clients = INSTANCE.getChannel(OOCSI_CLIENTS);
 			if (clients != null) {
 				Message message = new Message(SERVER, OOCSI_CLIENTS);
-				message.addData("clients", server.getClientList());
+				message.addData("clients", INSTANCE.getClientList());
 				clients.send(message);
 			}
 
 			// check first-level channels for channel subscribers
-			for (Channel channel : server.getChannels()) {
-				Channel channelSubscription = server.getChannel(channel.getName() + "/?");
+			for (Channel channel : INSTANCE.getChannels()) {
+				Channel channelSubscription = INSTANCE.getChannel(channel.getName() + "/?");
 				if (channelSubscription != null) {
 					Message message = new Message(SERVER, channelSubscription.getName());
 					message.addData("channels", channel.getChannelList());
@@ -419,8 +445,10 @@ public class OOCSIServer extends Server {
 				}
 			}
 
+			long afterFirstMetrics = System.currentTimeMillis();
+
 			// check if we have a subscriber for public client information
-			Channel metrics = server.getChannel(OOCSI_METRICS);
+			Channel metrics = INSTANCE.getChannel(OOCSI_METRICS);
 			if (metrics != null) {
 				Message message = new Message(SERVER, OOCSI_METRICS);
 
@@ -434,10 +462,10 @@ public class OOCSIServer extends Server {
 				message.addData("messages", (int) Math.ceil(messageCount / 5.));
 
 				// channel count
-				message.addData("channels", server.subChannels.size());
+				message.addData("channels", INSTANCE.subChannels.size());
 
 				// client count
-				message.addData("clients", server.clients.size());
+				message.addData("clients", INSTANCE.clients.size());
 
 				// report!
 				metrics.send(message);
@@ -445,6 +473,15 @@ public class OOCSIServer extends Server {
 
 			// reset message count
 			messageCount = 0;
+
+			// log out if status task took too long
+			if (System.currentTimeMillis() - start > 100) {
+				OOCSIServer.log("Status task took longer than 100ms: " + (System.currentTimeMillis() - start));
+				OOCSIServer.log("Also cleans took: " + (afterCleans - start));
+				OOCSIServer.log("Also pings took: " + (afterPings - afterCleans));
+				OOCSIServer.log("Also 1st metrics took: " + (afterFirstMetrics - afterPings));
+				OOCSIServer.log("Also 2nd metrics took: " + (System.currentTimeMillis() - afterFirstMetrics));
+			}
 		}
 	}
 

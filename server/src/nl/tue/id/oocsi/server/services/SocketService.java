@@ -106,7 +106,7 @@ public class SocketService extends AbstractService {
 			final String hostname = addr.getHostName();
 
 			OOCSIServer.log("[TCP socket server]: Started TCP service @ local address '" + hostname + "' on port "
-					+ port + " for TCP");
+			        + port + " for TCP");
 
 			// configure periodic services
 			Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(new Runnable() {

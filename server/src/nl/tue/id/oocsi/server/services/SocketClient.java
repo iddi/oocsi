@@ -13,6 +13,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.Semaphore;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
@@ -37,6 +38,7 @@ public class SocketClient extends Client {
 
 	private ClientType type = ClientType.OOCSI;
 	private PrintWriter output;
+	private Semaphore pingQueue = new Semaphore(10);
 
 	/**
 	 * create a new client for the socket protocol
@@ -68,11 +70,11 @@ public class SocketClient extends Client {
 	@Override
 	public synchronized void send(Message message) {
 		if (type == ClientType.OOCSI) {
-			send("send " + message.recipient + " " + serializeJava(message.data) + " " + message.timestamp.getTime()
-					+ " " + message.sender);
+				send("send " + message.recipient + " " + serializeJava(message.data) + " " + message.timestamp.getTime()
+				        + " " + message.sender);
 		} else if (type == ClientType.PD) {
 			send(message.recipient + " " + serializePD(message.data) + " " + "timestamp=" + message.timestamp.getTime()
-					+ " sender=" + message.sender);
+			        + " sender=" + message.sender);
 		} else if (type == ClientType.JSON) {
 			send(serializeJSON(message.data, message.recipient, message.timestamp.getTime(), message.sender));
 		}
@@ -206,7 +208,18 @@ public class SocketClient extends Client {
 	 * 
 	 */
 	public void ping() {
-		send("ping");
+		// don't send a ping if this might block the output stream
+		if (pingQueue.tryAcquire()) {
+			send("ping");
+		}
+	}
+
+	/**
+	 * send a ping message to client
+	 * 
+	 */
+	public void pong() {
+		pingQueue.release();
 	}
 
 	/**
@@ -232,6 +245,10 @@ public class SocketClient extends Client {
 						// do some filtering for SSH clients connecting and other abuse
 						if (inputLine.length() > 200) {
 							OOCSIServer.log("Killed client connection for [length]: " + inputLine);
+							return;
+						}
+						if (!inputLine.matches("\\p{ASCII}+$")) {
+							OOCSIServer.log("Killed client connection for [non-ASCII chars]: " + inputLine);
 							return;
 						}
 						if (inputLine.contains("OpenSSH") || inputLine.contains("libssh")) {

@@ -51,6 +51,11 @@ abstract public class Client extends Channel {
 	abstract public void ping();
 
 	/**
+	 * acknowledge that a ping was responded to by the remote client
+	 */
+	abstract public void pong();
+
+	/**
 	 * retrieves time stamp of last action from the connected client
 	 * 
 	 * @return

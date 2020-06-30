@@ -152,6 +152,11 @@ public class FunctionClient extends Client {
 		delegate.ping();
 	}
 
+	@Override
+	public void pong() {
+		delegate.pong();
+	}
+
 	abstract class WindowFunction extends AbstractFunction {
 
 		private Queue<BigDecimal> queue = new ConcurrentLinkedQueue<BigDecimal>();

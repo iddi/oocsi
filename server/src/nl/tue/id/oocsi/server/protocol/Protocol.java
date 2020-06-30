@@ -72,11 +72,6 @@ public class Protocol {
 		else if (inputLine.equals("clients")) {
 			return server.getClientList();
 		}
-		// respond to ping
-		else if (inputLine.equals("ping")) {
-			server.getChangeListener().refresh(sender, sender);
-			return ".";
-		}
 		// client subscribes to channel
 		else if (inputLine.startsWith("subscribe") && inputLine.contains(" ")) {
 			String channel = inputLine.split(" ")[1];
@@ -127,7 +122,7 @@ public class Protocol {
 						}
 					} catch (IOException e) {
 						OOCSIServer.log("[MsgParser] I/O problem: " + e.getMessage() + "\n\nSender:\n"
-								+ sender.getName() + "\nRecipient:\n" + recipient + "\nData:\n" + message);
+						        + sender.getName() + "\nRecipient:\n" + recipient + "\nData:\n" + message);
 					} catch (IllegalArgumentException e) {
 						OOCSIServer.log("[MsgParser] Base64 encoder problem: " + e.getMessage());
 					} catch (ClassNotFoundException e) {
@@ -138,7 +133,17 @@ public class Protocol {
 					}
 				}
 			}
-		} else {
+		// respond to ping
+		else if (inputLine.equals("ping")) {
+			server.getChangeListener().refresh(sender, sender);
+			return ".";
+		}
+		// record ping acknowledgement
+		else if (inputLine.startsWith(".")) {
+			sender.pong();
+		}
+		// no catch
+		else {
 			server.getChangeListener().refresh(sender, sender);
 		}
 
