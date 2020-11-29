@@ -28,7 +28,7 @@ public class ClientSpatialTest {
 		OOCSISpatial os1 = OOCSISpatial.createSpatial(client1, "spatialChannel", "integer_distance", 4, 2);
 
 		Map<String, OOCSIClient> clients = getClients(
-				new String[] { "os_spatial_2", "os_spatial_3", "os_spatial_4", "os_spatial_5", "os_spatial_6" });
+		        new String[] { "os_spatial_2", "os_spatial_3", "os_spatial_4", "os_spatial_5", "os_spatial_6" });
 
 		{
 			OOCSIClient client2 = clients.get("os_spatial_2");
@@ -86,7 +86,7 @@ public class ClientSpatialTest {
 		OOCSISpatial os1 = OOCSISpatial.createSpatial(client1, "spatialChannel", "integer_distance", 4, 2);
 
 		Map<String, OOCSIClient> clients = getClients(
-				new String[] { "os_spatial_2", "os_spatial_3", "os_spatial_4", "os_spatial_5", "os_spatial_6" });
+		        new String[] { "os_spatial_2", "os_spatial_3", "os_spatial_4", "os_spatial_5", "os_spatial_6" });
 
 		{
 			OOCSIClient client2 = clients.get("os_spatial_2");
@@ -94,7 +94,7 @@ public class ClientSpatialTest {
 			OOCSISpatial.createSpatial(client2, "spatialChannel", "integer_distance", 3, 2);
 			client2.subscribe(new Handler() {
 				public void receive(String sender, Map<String, Object> data, long timestamp, String channel,
-						String recipient) {
+				        String recipient) {
 					eventSink.add("ok 2");
 				}
 			});
@@ -106,7 +106,7 @@ public class ClientSpatialTest {
 			OOCSISpatial.createSpatial(client2, "spatialChannel", "integer_distance", 1, 2);
 			client2.subscribe(new Handler() {
 				public void receive(String sender, Map<String, Object> data, long timestamp, String channel,
-						String recipient) {
+				        String recipient) {
 					eventSink.add("not ok 3");
 				}
 			});
@@ -118,7 +118,7 @@ public class ClientSpatialTest {
 			OOCSISpatial.createSpatial(client2, "spatialChannel", "integer_distance", 5, 2);
 			client2.subscribe(new Handler() {
 				public void receive(String sender, Map<String, Object> data, long timestamp, String channel,
-						String recipient) {
+				        String recipient) {
 					eventSink.add("ok 4");
 				}
 			});
@@ -130,7 +130,7 @@ public class ClientSpatialTest {
 			OOCSISpatial.createSpatial(client2, "spatialChannel", "integer_distance", 6, 2);
 			client2.subscribe(new Handler() {
 				public void receive(String sender, Map<String, Object> data, long timestamp, String channel,
-						String recipient) {
+				        String recipient) {
 					eventSink.add("ok 5");
 				}
 			});
@@ -142,7 +142,7 @@ public class ClientSpatialTest {
 			OOCSISpatial.createSpatial(client2, "spatialChannel", "integer_distance", 7, 2);
 			client2.subscribe(new Handler() {
 				public void receive(String sender, Map<String, Object> data, long timestamp, String channel,
-						String recipient) {
+				        String recipient) {
 					eventSink.add("not ok 6");
 				}
 			});
@@ -178,7 +178,7 @@ public class ClientSpatialTest {
 		OOCSISpatial os1 = OOCSISpatial.createSpatial(client1, "spatialChannel", "integer_distance", 4, 2);
 
 		Map<String, OOCSIClient> clients = getClients(
-				new String[] { "os_rt_2", "os_rt_3", "os_rt_4", "os_rt_5", "os_rt_6" });
+		        new String[] { "os_rt_2", "os_rt_3", "os_rt_4", "os_rt_5", "os_rt_6" });
 
 		{
 			OOCSIClient client2 = clients.get("os_rt_2");
@@ -186,7 +186,7 @@ public class ClientSpatialTest {
 			OOCSISpatial.createSpatial(client2, "spatialChannel", "integer_distance", 3, 2);
 			client2.subscribe(new Handler() {
 				public void receive(String sender, Map<String, Object> data, long timestamp, String channel,
-						String recipient) {
+				        String recipient) {
 					eventSink.add("ok 2");
 				}
 			});
@@ -198,7 +198,7 @@ public class ClientSpatialTest {
 			OOCSISpatial.createSpatial(client2, "spatialChannel", "integer_distance", 1, 2);
 			client2.subscribe(new Handler() {
 				public void receive(String sender, Map<String, Object> data, long timestamp, String channel,
-						String recipient) {
+				        String recipient) {
 					eventSink.add("not ok 3");
 				}
 			});
@@ -210,7 +210,7 @@ public class ClientSpatialTest {
 			OOCSISpatial.createSpatial(client2, "spatialChannel", "integer_distance", 5, 2);
 			client2.subscribe(new Handler() {
 				public void receive(String sender, Map<String, Object> data, long timestamp, String channel,
-						String recipient) {
+				        String recipient) {
 					eventSink.add("ok 4");
 				}
 			});
@@ -222,7 +222,7 @@ public class ClientSpatialTest {
 			OOCSISpatial.createSpatial(client2, "spatialChannel", "integer_distance", 6, 2);
 			client2.subscribe(new Handler() {
 				public void receive(String sender, Map<String, Object> data, long timestamp, String channel,
-						String recipient) {
+				        String recipient) {
 					eventSink.add("ok 5");
 				}
 			});
@@ -234,7 +234,7 @@ public class ClientSpatialTest {
 			OOCSISpatial.createSpatial(client2, "spatialChannel", "integer_distance", 7, 2);
 			client2.subscribe(new Handler() {
 				public void receive(String sender, Map<String, Object> data, long timestamp, String channel,
-						String recipient) {
+				        String recipient) {
 					eventSink.add("not ok 6");
 				}
 			});
@@ -256,58 +256,58 @@ public class ClientSpatialTest {
 		OOCSIClient client1 = new OOCSIClient();
 		client1.connect("localhost", 4444);
 
-		OOCSISpatial os1 = OOCSISpatial.createSpatial(client1, "spatialChannel", "integer_distance", 4, 2);
+		OOCSISpatial os1 = OOCSISpatial.createSpatial(client1, "spatialChannel2", "integer_distance", 4, 2);
 
 		Map<String, OOCSIClient> clients = getClients(
-				new String[] { "os_rt_2", "os_rt_3", "os_rt_4", "os_rt_5", "os_rt_6", "os_rt_7", "os_rt_8" });
+		        new String[] { "os1_rt_2", "os1_rt_3", "os1_rt_4", "os1_rt_5", "os1_rt_6", "os1_rt_7", "os1_rt_8" });
 
 		{
-			OOCSIClient client2 = clients.get("os_rt_2");
+			OOCSIClient client2 = clients.get("os1_rt_2");
 			client2.connect("localhost", 4444);
-			OOCSISpatial.createSpatial(client2, "spatialChannel", "integer_distance", 2, 2);
+			OOCSISpatial.createSpatial(client2, "spatialChannel2", "integer_distance", 2, 2);
 		}
 
 		{
-			OOCSIClient client2 = clients.get("os_rt_3");
+			OOCSIClient client2 = clients.get("os1_rt_3");
 			client2.connect("localhost", 4444);
-			OOCSISpatial.createSpatial(client2, "spatialChannel", "integer_distance", 0, 2);
+			OOCSISpatial.createSpatial(client2, "spatialChannel2", "integer_distance", 0, 2);
 		}
 
 		{
-			OOCSIClient client2 = clients.get("os_rt_4");
+			OOCSIClient client2 = clients.get("os1_rt_4");
 			client2.connect("localhost", 4444);
-			OOCSISpatial.createSpatial(client2, "spatialChannel", "integer_distance", 5, 2);
+			OOCSISpatial.createSpatial(client2, "spatialChannel2", "integer_distance", 5, 2);
 		}
 
 		{
-			OOCSIClient client2 = clients.get("os_rt_5");
+			OOCSIClient client2 = clients.get("os1_rt_5");
 			client2.connect("localhost", 4444);
-			OOCSISpatial.createSpatial(client2, "spatialChannel", "integer_distance", 7, 2);
+			OOCSISpatial.createSpatial(client2, "spatialChannel2", "integer_distance", 7, 2);
 		}
 
 		{
-			OOCSIClient client2 = clients.get("os_rt_6");
+			OOCSIClient client2 = clients.get("os1_rt_6");
 			client2.connect("localhost", 4444);
-			OOCSISpatial.createSpatial(client2, "spatialChannel", "integer_distance", 7, 2);
+			OOCSISpatial.createSpatial(client2, "spatialChannel2", "integer_distance", 7, 2);
 		}
 
 		{
-			OOCSIClient client2 = clients.get("os_rt_7");
+			OOCSIClient client2 = clients.get("os1_rt_7");
 			client2.connect("localhost", 4444);
-			OOCSISpatial.createSpatial(client2, "spatialChannel", "integer_distance", 8, 2);
+			OOCSISpatial.createSpatial(client2, "spatialChannel2", "integer_distance", 8, 2);
 		}
 
 		{
-			OOCSIClient client2 = clients.get("os_rt_8");
+			OOCSIClient client2 = clients.get("os1_rt_8");
 			client2.connect("localhost", 4444);
-			OOCSISpatial.createSpatial(client2, "spatialChannel", "integer_distance", 9, 2);
+			OOCSISpatial.createSpatial(client2, "spatialChannel2", "integer_distance", 9, 2);
 		}
 
 		// starting routing...
 
 		{
 			// do a call test with chance of success (right direction; not neighbor)
-			OOCSICall oc = new OOCSICall(client1, "os_rt_5", DESTINATION, 2000, 10).data(DESTINATION, "os_rt_6");
+			OOCSICall oc = new OOCSICall(client1, "os1_rt_5", DESTINATION, 2000, 10).data(DESTINATION, "os1_rt_6");
 			oc.sendAndWait();
 			assertTrue(oc.hasResponse());
 			assertEquals(0, oc.getFirstResponse().getFloat(DESTINATION_RESPONSE, -1), 0);
@@ -315,7 +315,7 @@ public class ClientSpatialTest {
 
 		{
 			// do a call test with chance of success (right direction; direct neighbor)
-			OOCSICall oc = new OOCSICall(client1, "os_rt_4", DESTINATION, 2000, 10).data(DESTINATION, "os_rt_6");
+			OOCSICall oc = new OOCSICall(client1, "os1_rt_4", DESTINATION, 2000, 10).data(DESTINATION, "os1_rt_6");
 			oc.sendAndWait();
 			assertTrue(oc.hasResponse());
 			assertEquals(2, oc.getFirstResponse().getFloat(DESTINATION_RESPONSE, -1), 0);
@@ -323,7 +323,7 @@ public class ClientSpatialTest {
 
 		{
 			// do a call test with success chance (asking a direct neighbor; right direction)
-			OOCSICall oc = new OOCSICall(client1, "os_rt_4", DESTINATION, 2000, 10).data(DESTINATION, "os_rt_5");
+			OOCSICall oc = new OOCSICall(client1, "os1_rt_4", DESTINATION, 2000, 10).data(DESTINATION, "os1_rt_5");
 			oc.sendAndWait();
 			assertTrue(oc.hasResponse());
 			assertEquals(2, oc.getFirstResponse().getFloat(DESTINATION_RESPONSE, -1), 0);
@@ -331,7 +331,7 @@ public class ClientSpatialTest {
 
 		{
 			// do a call test without chance of success (asking a direct neighbor; wrong direction)
-			OOCSICall oc = new OOCSICall(client1, "os_rt_2", DESTINATION, 2000, 10).data(DESTINATION, "os_rt_6");
+			OOCSICall oc = new OOCSICall(client1, "os1_rt_2", DESTINATION, 2000, 10).data(DESTINATION, "os1_rt_6");
 			oc.sendAndWait();
 			assertTrue(oc.hasResponse());
 			assertEquals(5, oc.getFirstResponse().getFloat(DESTINATION_RESPONSE, -1), 0);
@@ -339,24 +339,24 @@ public class ClientSpatialTest {
 
 		{
 			// do a call test without chance of success (asking a direct neighbor; wrong direction)
-			OOCSICall oc = new OOCSICall(client1, "os_rt_2", DESTINATION, 2000, 10).data(DESTINATION, "os_rt_6")
-					.data(ROUTING_PATH, client1.getName() + ",");
+			OOCSICall oc = new OOCSICall(client1, "os1_rt_2", DESTINATION, 2000, 10).data(DESTINATION, "os1_rt_6")
+			        .data(ROUTING_PATH, client1.getName() + ",");
 			oc.sendAndWait();
 			assertTrue(oc.hasResponse());
 			assertEquals(Float.MAX_VALUE, oc.getFirstResponse().getFloat(DESTINATION_RESPONSE, -1), 0);
 		}
 
 		// send a message to all neighbors (one hop)
-		assertEquals("os_rt_2", os1.routing("os_rt_2"));
+		assertEquals("os1_rt_2", os1.routing("os1_rt_2"));
 
 		// send a message to all neighbors (two hops)
-		assertEquals("os_rt_2", os1.routing("os_rt_3"));
+		assertEquals("os1_rt_2", os1.routing("os1_rt_3"));
 
 		// send a message to all neighbors (two hops)
-		assertEquals("os_rt_2", os1.routing("os_rt_3"));
+		assertEquals("os1_rt_2", os1.routing("os1_rt_3"));
 
 		// send a message to all neighbors (two hops)
-		assertEquals("os_rt_4", os1.routing("os_rt_8"));
+		assertEquals("os1_rt_4", os1.routing("os1_rt_8"));
 
 		// clean up
 		client1.disconnect();
@@ -374,57 +374,57 @@ public class ClientSpatialTest {
 		OOCSISpatial os1 = OOCSISpatial.createSpatial(client1, "spatialChannel", "integer_distance", 4, 2);
 
 		Map<String, OOCSIClient> clients = getClients(
-				new String[] { "os_rt_2", "os_rt_3", "os_rt_4", "os_rt_5", "os_rt_6", "os_rt_7", "os_rt_8" });
+		        new String[] { "os2_rt_2", "os2_rt_3", "os2_rt_4", "os2_rt_5", "os2_rt_6", "os2_rt_7", "os2_rt_8" });
+
+//		{
+//			OOCSIClient client2 = clients.get("os2_rt_2");
+//			client2.connect("localhost", 4444);
+//			OOCSISpatial.createSpatial(client2, "spatialChannel", "integer_distance", 2, 2);
+//		}
+//
+//		{
+//			OOCSIClient client2 = clients.get("os2_rt_3");
+//			client2.connect("localhost", 4444);
+//			OOCSISpatial.createSpatial(client2, "spatialChannel", "integer_distance", 0, 2);
+//		}
 
 		{
-			OOCSIClient client2 = clients.get("os_rt_2");
-			client2.connect("localhost", 4444);
-			OOCSISpatial.createSpatial(client2, "spatialChannel", "integer_distance", 2, 2);
-		}
-
-		{
-			OOCSIClient client2 = clients.get("os_rt_3");
-			client2.connect("localhost", 4444);
-			OOCSISpatial.createSpatial(client2, "spatialChannel", "integer_distance", 0, 2);
-		}
-
-		{
-			OOCSIClient client2 = clients.get("os_rt_4");
+			OOCSIClient client2 = clients.get("os2_rt_4");
 			client2.connect("localhost", 4444);
 			OOCSISpatial.createSpatial(client2, "spatialChannel", "integer_distance", 5, 2);
 		}
 
 		{
-			OOCSIClient client2 = clients.get("os_rt_5");
+			OOCSIClient client2 = clients.get("os2_rt_5");
 			client2.connect("localhost", 4444);
 			OOCSISpatial.createSpatial(client2, "spatialChannel", "integer_distance", 6, 2);
 		}
 
 		{
-			OOCSIClient client2 = clients.get("os_rt_6");
+			OOCSIClient client2 = clients.get("os2_rt_6");
 			client2.connect("localhost", 4444);
 			OOCSISpatial.createSpatial(client2, "spatialChannel", "integer_distance", 7, 2);
 		}
 
 		{
-			OOCSIClient client2 = clients.get("os_rt_7");
+			OOCSIClient client2 = clients.get("os2_rt_7");
 			client2.connect("localhost", 4444);
 			OOCSISpatial.createSpatial(client2, "spatialChannel", "integer_distance", 8, 2);
 		}
 
 		{
-			OOCSIClient client2 = clients.get("os_rt_8");
+			OOCSIClient client2 = clients.get("os2_rt_8");
 			client2.connect("localhost", 4444);
 			OOCSISpatial.createSpatial(client2, "spatialChannel", "integer_distance", 9, 2);
 		}
 
 		// send a message to all neighbors (two hops)
-		assertEquals("os_rt_4", os1.routing("os_rt_8"));
+		assertEquals("os2_rt_4", os1.routing("os2_rt_8"));
 
-		clients.get("os_rt_4").disconnect();
+		clients.get("os2_rt_4").disconnect();
 
 		// send a message to all neighbors (two hops)
-		assertEquals("os_rt_5", os1.routing("os_rt_8"));
+		assertEquals("os2_rt_5", os1.routing("os2_rt_8"));
 
 		// clean up
 		client1.disconnect();
@@ -472,7 +472,7 @@ public class ClientSpatialTest {
 		{
 			// one hop
 			OOCSICall oc = new OOCSICall(client1, "os_rt_2", DESTINATION, 2000, 10).data(DESTINATION, "os_rt_3")
-					.data(ROUTING_PATH, client1.getName() + ",");
+			        .data(ROUTING_PATH, client1.getName() + ",");
 			oc.sendAndWait();
 			// no response, because of timeout
 			assertTrue(oc.hasResponse());
@@ -523,39 +523,39 @@ public class ClientSpatialTest {
 		OOCSIClient client1 = new OOCSIClient();
 		client1.connect("localhost", 4444);
 
-		OOCSISpatial os1 = OOCSISpatial.createSpatial(client1, "spatialChannel2", "integer_distance2", 0, 0, 1.4f);
+		OOCSISpatial os1 = OOCSISpatial.createSpatial(client1, "spatialChannel3", "integer_distance2", 0, 0, 1.4f);
 
-		Map<String, OOCSIClient> clients = getClients(new String[] { "os_rt_2", "os_rt_3", "os_rt_4" });
+		Map<String, OOCSIClient> clients = getClients(new String[] { "os3_rt_2", "os3_rt_3", "os3_rt_4" });
 
 		{
-			OOCSIClient client2 = clients.get("os_rt_2");
+			OOCSIClient client2 = clients.get("os3_rt_2");
 			client2.connect("localhost", 4444);
-			OOCSISpatial.createSpatial(client2, "spatialChannel2", "integer_distance2", 0, 0.9f, 1.4f);
+			OOCSISpatial.createSpatial(client2, "spatialChannel3", "integer_distance2", 0, 0.9f, 1.4f);
 		}
 
 		{
-			OOCSIClient client2 = clients.get("os_rt_3");
+			OOCSIClient client2 = clients.get("os3_rt_3");
 			client2.connect("localhost", 4444);
-			OOCSISpatial.createSpatial(client2, "spatialChannel2", "integer_distance2", 1, 0, 1.4f);
+			OOCSISpatial.createSpatial(client2, "spatialChannel3", "integer_distance2", 1, 0, 1.4f);
 		}
 
 		{
-			OOCSIClient client2 = clients.get("os_rt_4");
+			OOCSIClient client2 = clients.get("os3_rt_4");
 			client2.connect("localhost", 4444);
-			OOCSISpatial.createSpatial(client2, "spatialChannel2", "integer_distance2", 1.5f, 1, 1.4f);
+			OOCSISpatial.createSpatial(client2, "spatialChannel3", "integer_distance2", 1.5f, 1, 1.4f);
 		}
 
 		// start routing...
 
 		// send a message to all neighbors (one hop)
-		assertEquals("os_rt_2", os1.routing("os_rt_2"));
+		assertEquals("os3_rt_2", os1.routing("os3_rt_2"));
 
 		// send a message to all neighbors (two hops)
-		assertEquals("os_rt_3", os1.routing("os_rt_3"));
+		assertEquals("os3_rt_3", os1.routing("os3_rt_3"));
 
 		// routing from _2: 0.9 + 1.86
 		// routing from _3: 1.0 + 1.11
-		assertEquals("os_rt_3", os1.routing("os_rt_4"));
+		assertEquals("os3_rt_3", os1.routing("os3_rt_4"));
 
 		// clean up
 		client1.disconnect();
@@ -573,7 +573,7 @@ public class ClientSpatialTest {
 		OOCSISpatial os1 = OOCSISpatial.createSpatial(client1, "spatialChannel2", "double_distance2", 0f, 0f, 1.4f);
 
 		Map<String, OOCSIClient> clients = getClients(
-				new String[] { "os_rt_2", "os_rt_3", "os_rt_4", "os_rt_5", "os_rt_6" });
+		        new String[] { "os_rt_2", "os_rt_3", "os_rt_4", "os_rt_5", "os_rt_6" });
 
 		OOCSIClient client2 = clients.get("os_rt_2");
 		client2.connect("localhost", 4444);

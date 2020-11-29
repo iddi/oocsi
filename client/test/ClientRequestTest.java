@@ -5,13 +5,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.Test;
+
 import nl.tue.id.oocsi.OOCSIEvent;
 import nl.tue.id.oocsi.client.OOCSIClient;
 import nl.tue.id.oocsi.client.protocol.DataHandler;
 import nl.tue.id.oocsi.client.protocol.EventHandler;
 import nl.tue.id.oocsi.client.protocol.OOCSIMessage;
-
-import org.junit.Test;
 
 public class ClientRequestTest {
 

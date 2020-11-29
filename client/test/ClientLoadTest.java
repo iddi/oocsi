@@ -5,11 +5,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.Test;
+
 import nl.tue.id.oocsi.client.OOCSIClient;
 import nl.tue.id.oocsi.client.protocol.DataHandler;
 import nl.tue.id.oocsi.client.protocol.OOCSIMessage;
-
-import org.junit.Test;
 
 public class ClientLoadTest {
 
@@ -97,8 +97,8 @@ public class ClientLoadTest {
 		Thread.sleep(1000);
 
 		assertEquals(1, list.size());
-		assertTrue(((int[][]) list.get(0)).length == 10000);
-		assertEquals(3, ((int[][]) list.get(0))[0][2]);
+		assertTrue(((ArrayList) list.get(0)).size() == 10000);
+		assertEquals(3l, ((ArrayList) ((ArrayList) list.get(0)).get(0)).get(2));
 
 		o1.disconnect();
 		o2.disconnect();

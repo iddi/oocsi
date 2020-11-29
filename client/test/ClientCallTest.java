@@ -66,9 +66,9 @@ public class ClientCallTest {
 			assertTrue(call.hasResponse());
 			if (call.hasResponse()) {
 				int responseValue = call.getFirstResponse().getInt(serviceMethod2.output.get(0).name,
-						0/*
-							 * (Integer) serviceMethod2 .output .get(0 ).defaultValue
-							 */);
+				        0/*
+				          * (Integer) serviceMethod2 .output .get(0 ).defaultValue
+				          */);
 				assertEquals(30, responseValue);
 			}
 		}
@@ -116,11 +116,11 @@ public class ClientCallTest {
 
 	@Test
 	public void testResponseChannel() throws InterruptedException {
-		OOCSIClient o1 = new OOCSIClient("pingResponse");
+		OOCSIClient o1 = new OOCSIClient("pingResponse2");
 		o1.connect("localhost", 4444);
 		assertTrue(o1.isConnected());
 
-		OOCSIClient o2 = new OOCSIClient("pongResponse");
+		OOCSIClient o2 = new OOCSIClient("pongResponse2");
 		o2.connect("localhost", 4444);
 		assertTrue(o2.isConnected());
 		o2.register("addnineteen", new Responder(o2) {
@@ -133,14 +133,14 @@ public class ClientCallTest {
 		});
 
 		{
-			OOCSICall call = new OOCSICall(o1, "pongResponse", "addnineteen", 500, 1).data("addnineteen", 1);
+			OOCSICall call = new OOCSICall(o1, "pongResponse2", "addnineteen", 500, 1).data("addnineteen", 1);
 			call.sendAndWait();
 			assertTrue(call.hasResponse());
 			OOCSIEvent response = call.getFirstResponse();
 			assertEquals(20, response.getInt("addedthat", -1));
 		}
 		{
-			OOCSICall call = new OOCSICall(o1, "pongResponse", "addnineteen", 500, 1).data("addnineteen", 100);
+			OOCSICall call = new OOCSICall(o1, "pongResponse2", "addnineteen", 500, 1).data("addnineteen", 100);
 			call.sendAndWait();
 			assertTrue(call.hasResponse());
 			OOCSIEvent response = call.getFirstResponse();

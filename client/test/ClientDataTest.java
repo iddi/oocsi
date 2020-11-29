@@ -72,12 +72,12 @@ public class ClientDataTest {
 
 		// test double array
 		{
-			double[] ba = { 1.1d, 2.9f, 3.12345d, -1.43d, -2.211111d, -3.58809d, Math.PI };
+			double[] ba = { 1.1d, 2.9d, 3.12345d, -1.43d, -2.211111d, -3.58809d, Math.PI };
 			new OOCSIMessage(o1, "arrayTesting").data("array", ba).send();
 			Thread.sleep(150);
 			assertEquals(1, events.size());
 			double[] bb = events.get(0).getDoubleArray("array", new double[] {});
-			assertArrayEquals(ba, bb, 0);
+			assertArrayEquals(ba, bb, 0.001);
 			events.clear();
 		}
 
