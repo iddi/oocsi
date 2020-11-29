@@ -7,7 +7,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -110,8 +109,35 @@ public class Protocol {
 
 				Channel c = server.getChannel(recipient);
 				if (message.length() > 0) {
-					try {
-						Map<String, Object> map = parseJavaMessage(message);
+					Map<String, Object> map = null;
+					if (message.startsWith("{")) {
+						map = parseJSONMessage(message);
+					} else {
+						try {
+							map = parseJavaMessage(message);
+							if (c != null && c.accept(recipient)) {
+								c.send(new Message(sender.getName(), recipient, new Date(), map));
+							} else {
+								// log if not private message
+								if (!Channel.isPrivate(recipient)) {
+									OOCSIServer.logEvent(sender.getName(), recipient, "?", map, new Date());
+								}
+							}
+						} catch (IOException e) {
+							OOCSIServer.log("[MsgParser] I/O problem: " + e.getMessage() + "\n\nSender:\n"
+							        + sender.getName() + "\nRecipient:\n" + recipient + "\nData:\n" + message);
+						} catch (IllegalArgumentException e) {
+							OOCSIServer.log("[MsgParser] Base64 encoder problem: " + e.getMessage());
+						} catch (ClassNotFoundException e) {
+							OOCSIServer.log("[MsgParser] Unknown class: " + e.getMessage());
+						} catch (Exception e) {
+							// just in case
+							OOCSIServer.log("[MsgParser] Unknown problem: " + e.getMessage());
+						}
+					}
+
+					// only send if there is useful data
+					if (map != null) {
 						if (c != null && c.accept(recipient)) {
 							c.send(new Message(sender.getName(), recipient, new Date(), map));
 						} else {
@@ -120,19 +146,10 @@ public class Protocol {
 								OOCSIServer.logEvent(sender.getName(), recipient, "?", map, new Date());
 							}
 						}
-					} catch (IOException e) {
-						OOCSIServer.log("[MsgParser] I/O problem: " + e.getMessage() + "\n\nSender:\n"
-						        + sender.getName() + "\nRecipient:\n" + recipient + "\nData:\n" + message);
-					} catch (IllegalArgumentException e) {
-						OOCSIServer.log("[MsgParser] Base64 encoder problem: " + e.getMessage());
-					} catch (ClassNotFoundException e) {
-						OOCSIServer.log("[MsgParser] Unknown class: " + e.getMessage());
-					} catch (Exception e) {
-						// just in case
-						OOCSIServer.log("[MsgParser] Unknown problem: " + e.getMessage());
 					}
 				}
 			}
+		}
 		// respond to ping
 		else if (inputLine.equals("ping")) {
 			server.getChangeListener().refresh(sender, sender);
@@ -162,8 +179,7 @@ public class Protocol {
 
 		// try to parse input as JSON
 		try {
-			Gson serializer = new Gson();
-			JsonElement je = new JsonParser().parse(message);
+			JsonElement je = JsonParser.parseString(message);
 			if (je.isJsonObject()) {
 				JsonObject jo = je.getAsJsonObject();
 				for (Map.Entry<String, JsonElement> element : jo.entrySet()) {
@@ -213,8 +229,10 @@ public class Protocol {
 								}
 								map.put(element.getKey(), array);
 							}
-						} else if (!value.isJsonNull()) {
-							map.put(element.getKey(), serializer.toJson(value));
+						}
+						// no primitives included on first level, so we include the JSON array directly
+						else if (!value.isJsonNull()) {
+							map.put(element.getKey(), value/* serializer.toJson(value) */);
 						}
 					}
 				}

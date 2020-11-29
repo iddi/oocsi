@@ -14,7 +14,7 @@
             </manifest>
             <fileset dir="${dir.workspace}/Making/iddi/oocsi/server/bin"/>
         	<zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/Making/iddi/oocsi/server/libs/javaosc-core-0.3.jar"/>
-           	<zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/Making/iddi/oocsi/server/libs/gson-2.8.2.jar"/>
+           	<zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/Making/iddi/oocsi/server/libs/gson-2.8.6.jar"/>
            	<zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/Making/iddi/oocsi/server/libs/EvalEx/EvalEx-2.1.jar"/>
            	<fileset dir="${dir.workspace}/Making/iddi/oocsi/client/bin"/>
         </jar>
