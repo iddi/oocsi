@@ -42,6 +42,12 @@ public class OOCSIDouble extends OOCSIVariable<Double> {
 		return super.get();
 	}
 
+	@Override
+	protected Double extractValue(OOCSIEvent event, String key) {
+		double doubleValue = event.getDouble(key, Double.MIN_VALUE);
+		return doubleValue != Double.MIN_VALUE ? doubleValue : null;
+	}
+
 	/*
 	 * (non-Javadoc)
 	 * 

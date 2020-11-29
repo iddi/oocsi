@@ -1,11 +1,9 @@
 package nl.tue.id.oocsi.client.protocol;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.util.Map;
 
-import nl.tue.id.oocsi.client.socket.Base64Coder;
+import nl.tue.id.oocsi.client.data.JSONReader;
 
 /**
  * event handler for events with structured data
@@ -25,8 +23,8 @@ abstract public class Handler {
 	 */
 	public void send(String sender, String data, String timestamp, String channel, String recipient) {
 		try {
-			Map<String, Object> map = parseData(data);
-			long ts = parseTimestamp(timestamp);
+			final Map<String, Object> map = parseData(data);
+			final long ts = parseTimestamp(timestamp);
 
 			// forward event
 			receive(sender, map, ts, channel, recipient);
@@ -48,7 +46,7 @@ abstract public class Handler {
 	 * @param recipient
 	 */
 	abstract public void receive(String sender, Map<String, Object> data, long timestamp, String channel,
-			String recipient);
+	        String recipient);
 
 	/**
 	 * parse the given "data" String into a Map
@@ -58,14 +56,9 @@ abstract public class Handler {
 	 * @throws IOException
 	 * @throws ClassNotFoundException
 	 */
+	@SuppressWarnings("unchecked")
 	public static Map<String, Object> parseData(String data) throws IOException, ClassNotFoundException {
-		// parse data from string
-		ByteArrayInputStream bais = new ByteArrayInputStream(Base64Coder.decode(data));
-		ObjectInputStream ois = new ObjectInputStream(bais);
-		Object outputObject = ois.readObject();
-		@SuppressWarnings("unchecked")
-		Map<String, Object> map = (Map<String, Object>) outputObject;
-		return map;
+		return (Map<String, Object>) new JSONReader().read(data);
 	}
 
 	/**

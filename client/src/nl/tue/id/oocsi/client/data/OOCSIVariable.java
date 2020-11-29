@@ -113,27 +113,27 @@ public class OOCSIVariable<T> extends OOCSISystemCommunicator<T> {
 
 		this.eventHandler = new nl.tue.id.oocsi.client.protocol.RateLimitedEventHandler(0, 0) {
 
-			@SuppressWarnings("unchecked")
 			@Override
 			public void receive(OOCSIEvent event) {
-				Object object = event.getObject(OOCSIVariable.this.key);
+				T object = extractValue(event, OOCSIVariable.this.key);
 				if (object != null) {
 					try {
 						// set variable from the network
-						OOCSIVariable.this.internalSet((T) object);
+						OOCSIVariable.this.internalSet(object);
 
 						// update timeout
 						lastWrite = System.currentTimeMillis();
 						remoteUpdate();
 					} catch (Exception e) {
 						// do nothing
+						e.printStackTrace();
 					}
 				}
 			}
 
 			@Override
 			public void exceeded(String sender, Map<String, Object> data, long timestamp, String channel,
-					String recipient) {
+			        String recipient) {
 				System.out.println(data.toString());
 			}
 		};
@@ -200,6 +200,17 @@ public class OOCSIVariable<T> extends OOCSISystemCommunicator<T> {
 		if (this.internalVariable != this.internalReference) {
 			message(key, internalVariable);
 		}
+	}
+
+	/**
+	 * safely extract the message value in the right type
+	 * 
+	 * @param event
+	 * @return
+	 */
+	@SuppressWarnings("unchecked")
+	protected T extractValue(OOCSIEvent event, String key) {
+		return (T) event.getObject(key);
 	}
 
 	/**
@@ -438,7 +449,7 @@ public class OOCSIVariable<T> extends OOCSISystemCommunicator<T> {
 
 				// send out
 				if (outputChannel != null && outputChannel.trim().length() > 0 && outputKey != null
-						&& outputKey.trim().length() > 0)
+				        && outputKey.trim().length() > 0)
 					new OOCSIMessage(client, outputChannel).data(outputKey, get()).send();
 
 			}

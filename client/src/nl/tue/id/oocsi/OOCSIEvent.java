@@ -1,5 +1,6 @@
 package nl.tue.id.oocsi;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Map;
 
@@ -208,7 +209,17 @@ public class OOCSIEvent {
 	 */
 	public boolean[] getBooleanArray(String key, boolean[] defaultValue) {
 		try {
-			return (boolean[]) getObject(key);
+			Object object = getObject(key);
+			if (object instanceof ArrayList) {
+				@SuppressWarnings("unchecked")
+				ArrayList<Boolean> list = (ArrayList<Boolean>) object;
+				boolean[] array = new boolean[list.size()];
+				for (int i = 0; i < list.size(); i++) {
+					array[i] = list.get(i);
+				}
+				return array;
+			}
+			return (boolean[]) object;
 		} catch (Exception e) {
 			return defaultValue;
 		}
@@ -223,7 +234,17 @@ public class OOCSIEvent {
 	 */
 	public int[] getIntArray(String key, int[] defaultValue) {
 		try {
-			return (int[]) getObject(key);
+			Object object = getObject(key);
+			if (object instanceof ArrayList) {
+				@SuppressWarnings("unchecked")
+				ArrayList<Double> list = (ArrayList<Double>) object;
+				int[] array = new int[list.size()];
+				for (int i = 0; i < list.size(); i++) {
+					array[i] = ((Double) list.get(i)).intValue();
+				}
+				return array;
+			}
+			return (int[]) object;
 		} catch (Exception e) {
 			return defaultValue;
 		}
@@ -238,7 +259,17 @@ public class OOCSIEvent {
 	 */
 	public float[] getFloatArray(String key, float[] defaultValue) {
 		try {
-			return (float[]) getObject(key);
+			Object object = getObject(key);
+			if (object instanceof ArrayList) {
+				@SuppressWarnings("unchecked")
+				ArrayList<Double> list = (ArrayList<Double>) object;
+				float[] array = new float[list.size()];
+				for (int i = 0; i < list.size(); i++) {
+					array[i] = ((Double) list.get(i)).floatValue();
+				}
+				return array;
+			}
+			return (float[]) object;
 		} catch (Exception e) {
 			return defaultValue;
 		}
@@ -253,7 +284,17 @@ public class OOCSIEvent {
 	 */
 	public long[] getLongArray(String key, long[] defaultValue) {
 		try {
-			return (long[]) getObject(key);
+			Object object = getObject(key);
+			if (object instanceof ArrayList) {
+				@SuppressWarnings("unchecked")
+				ArrayList<Double> list = (ArrayList<Double>) object;
+				long[] array = new long[list.size()];
+				for (int i = 0; i < list.size(); i++) {
+					array[i] = ((Double) list.get(i)).longValue();
+				}
+				return array;
+			}
+			return (long[]) object;
 		} catch (Exception e) {
 			return defaultValue;
 		}
@@ -268,7 +309,17 @@ public class OOCSIEvent {
 	 */
 	public double[] getDoubleArray(String key, double[] defaultValue) {
 		try {
-			return (double[]) getObject(key);
+			Object object = getObject(key);
+			if (object instanceof ArrayList) {
+				@SuppressWarnings("unchecked")
+				ArrayList<Double> list = (ArrayList<Double>) object;
+				double[] array = new double[list.size()];
+				for (int i = 0; i < list.size(); i++) {
+					array[i] = list.get(i);
+				}
+				return array;
+			}
+			return (double[]) object;
 		} catch (Exception e) {
 			return defaultValue;
 		}
@@ -283,7 +334,17 @@ public class OOCSIEvent {
 	 */
 	public String[] getStringArray(String key, String[] defaultValue) {
 		try {
-			return (String[]) getObject(key);
+			Object object = getObject(key);
+			if (object instanceof ArrayList) {
+				@SuppressWarnings("unchecked")
+				ArrayList<String> list = (ArrayList<String>) object;
+				String[] array = new String[list.size()];
+				for (int i = 0; i < list.size(); i++) {
+					array[i] = list.get(i);
+				}
+				return array;
+			}
+			return (String[]) object;
 		} catch (Exception e) {
 			return defaultValue;
 		}

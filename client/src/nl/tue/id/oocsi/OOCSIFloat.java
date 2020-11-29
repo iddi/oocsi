@@ -42,6 +42,12 @@ public class OOCSIFloat extends OOCSIVariable<Float> {
 		return super.get();
 	}
 
+	@Override
+	protected Float extractValue(OOCSIEvent event, String key) {
+		float floatValue = event.getFloat(key, Float.MIN_VALUE);
+		return floatValue != Float.MIN_VALUE ? floatValue : null;
+	}
+
 	/*
 	 * (non-Javadoc)
 	 * 

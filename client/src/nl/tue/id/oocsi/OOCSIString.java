@@ -25,6 +25,11 @@ public class OOCSIString extends OOCSIVariable<String> {
 		super(client, channelName, key, referenceValue, timeout);
 	}
 
+	@Override
+	protected String extractValue(OOCSIEvent event, String key) {
+		return event.getString(key);
+	}
+
 	/**
 	 * set the limiting of incoming events in terms of "rate" and "seconds" timeframe; supports chained invocation
 	 * 

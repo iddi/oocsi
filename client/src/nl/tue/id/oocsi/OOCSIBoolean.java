@@ -29,6 +29,24 @@ public class OOCSIBoolean extends OOCSIVariable<Boolean> {
 		super(referenceValue, timeout);
 	}
 
+	@Override
+	protected Boolean extractValue(OOCSIEvent event, String key) {
+		Object result = event.getObject(key);
+		if (result != null) {
+			if (result instanceof Boolean) {
+				return ((Boolean) result).booleanValue();
+			} else {
+				try {
+					return Boolean.parseBoolean(result.toString());
+				} catch (NumberFormatException nfe) {
+					return null;
+				}
+			}
+		} else {
+			return null;
+		}
+	}
+
 	/**
 	 * set the limiting of incoming events in terms of "rate" and "seconds" timeframe; supports chained invocation
 	 * 

@@ -46,6 +46,12 @@ public class OOCSIInt extends OOCSIVariable<Integer> {
 		return super.get();
 	}
 
+	@Override
+	protected Integer extractValue(OOCSIEvent event, String key) {
+		int intValue = event.getInt(key, Integer.MIN_VALUE);
+		return intValue != Integer.MIN_VALUE ? intValue : null;
+	}
+
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -65,7 +71,7 @@ public class OOCSIInt extends OOCSIVariable<Integer> {
 			// return null if value outside sigma deviation from mean
 			if ((float) Math.abs(mean - var) > sigma) {
 				var = (int) (mean - var > 0 ? mean - sigma / (float) values.size()
-						: mean + sigma / (float) values.size());
+				        : mean + sigma / (float) values.size());
 			}
 		}
 

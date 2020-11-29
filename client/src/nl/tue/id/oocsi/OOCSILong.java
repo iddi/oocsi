@@ -42,6 +42,12 @@ public class OOCSILong extends OOCSIVariable<Long> {
 		return super.get();
 	}
 
+	@Override
+	protected Long extractValue(OOCSIEvent event, String key) {
+		long longValue = event.getLong(key, Long.MIN_VALUE);
+		return longValue != Long.MIN_VALUE ? longValue : null;
+	}
+
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -61,7 +67,7 @@ public class OOCSILong extends OOCSIVariable<Long> {
 			// return null if value outside sigma deviation from mean
 			if ((double) Math.abs(mean - var) > sigma) {
 				var = (long) (mean - var > 0 ? mean - sigma / (float) values.size()
-						: mean + sigma / (float) values.size());
+				        : mean + sigma / (float) values.size());
 			}
 		}
 
