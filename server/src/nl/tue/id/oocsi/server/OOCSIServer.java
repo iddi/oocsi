@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import com.google.gson.Gson;
 
@@ -326,7 +327,12 @@ public class OOCSIServer extends Server {
 
 			Channel logChannel = INSTANCE.getChannel(OOCSI_EVENTS);
 			if (logChannel != null) {
-				Message message = new Message(SERVER, OOCSI_EVENTS, timestamp, data);
+
+				// strip secret data items starting with '_'
+				Map<String, Object> cleanData = data.entrySet().stream().filter(e -> !e.getKey().startsWith("_"))
+				        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+				Message message = new Message(SERVER, OOCSI_EVENTS, timestamp, cleanData);
 				message.addData("PUB", sender);
 				message.addData("CHANNEL", channel);
 				message.addData("SUB", recipient);
