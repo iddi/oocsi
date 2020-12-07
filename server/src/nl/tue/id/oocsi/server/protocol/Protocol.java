@@ -73,12 +73,12 @@ public class Protocol {
 		}
 		// client subscribes to channel
 		else if (inputLine.startsWith("subscribe") && inputLine.contains(" ")) {
-			String channel = inputLine.split(" ")[1];
+			String channel = inputLine.split(" ", 2)[1];
 			server.subscribe(sender, channel);
 		}
 		// client unsubscribes from channel
 		else if (inputLine.startsWith("unsubscribe") && inputLine.contains(" ")) {
-			String channel = inputLine.split(" ")[1];
+			String channel = inputLine.split(" ", 2)[1];
 			server.unsubscribe(sender, channel);
 		}
 		// create new message from raw text input

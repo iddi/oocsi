@@ -123,7 +123,7 @@ public class Server extends Channel {
 
 		// add client to client list and sub channels
 		if (!clients.containsKey(clientName) && !subChannels.containsKey(clientName) && getClient(clientName) == null
-				&& clientName != OOCSIServer.OOCSI_CONNECTIONS && clientName != OOCSIServer.OOCSI_EVENTS) {
+		        && clientName != OOCSIServer.OOCSI_CONNECTIONS && clientName != OOCSIServer.OOCSI_EVENTS) {
 			addChannel(client);
 			clients.put(clientName, client);
 			presence.join(client, client);
@@ -178,7 +178,7 @@ public class Server extends Channel {
 		for (Client existingClient : clients.values()) {
 			if (now - existingClient.lastAction() > 120000 || !existingClient.isConnected()) {
 				OOCSIServer.log("Client " + existingClient.getName()
-						+ " has not responded for 120 secs and will be disconnected");
+				        + " has not responded for 120 secs and will be disconnected");
 
 				// remove from presence tracking if tracking
 				presence.timeout(existingClient.getName(), existingClient.getName());
@@ -207,6 +207,11 @@ public class Server extends Channel {
 
 		// remove password for private channel
 		String channelName = channel.replaceFirst(":.*", "").trim();
+
+		// check channel length first
+		if (channelName.length() == 0) {
+			return;
+		}
 
 		// check for presence subscription
 		Pattern presencePattern = Pattern.compile("presence\\(([\\w_-]+)\\)");
@@ -299,8 +304,8 @@ public class Server extends Channel {
 		if (c != null) {
 			c.removeChannel(subscriber);
 			closeEmptyChannels();
+			OOCSIServer.logConnection(subscriber.getName(), channel, "unsubscribed", new Date());
 		}
-		OOCSIServer.logConnection(subscriber.getName(), channel, "unsubscribed", new Date());
 	}
 
 	/**
