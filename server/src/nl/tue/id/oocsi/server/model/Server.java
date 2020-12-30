@@ -100,7 +100,7 @@ public class Server extends Channel {
 				if (socketClientOld.getIPAddress() != null && socketClientNew.getIPAddress() != null) {
 					if (socketClientOld.getIPAddress().equals(socketClientNew.getIPAddress())) {
 						// check mini-timeout (last action of old socket at least 2 seconds ago)
-						if (socketClientOld.lastAction < System.currentTimeMillis() - 2000) {
+						if (socketClientOld.lastAction() < System.currentTimeMillis() - 2000) {
 
 							// kill old socket
 							presence.leave(clientName, clientName);
@@ -175,15 +175,15 @@ public class Server extends Channel {
 	 */
 	protected void closeStaleClients() {
 		long now = System.currentTimeMillis();
-		for (Client existingClient : clients.values()) {
-			if (now - existingClient.lastAction() > 120000 || !existingClient.isConnected()) {
-				OOCSIServer.log("Client " + existingClient.getName()
+		for (Client client : clients.values()) {
+			if (client.lastAction() + 120000 < now || !client.isConnected()) {
+				OOCSIServer.log("Client " + client.getName()
 				        + " has not responded for 120 secs and will be disconnected");
 
 				// remove from presence tracking if tracking
-				presence.timeout(existingClient.getName(), existingClient.getName());
+				presence.timeout(client.getName(), client.getName());
 
-				removeClient(existingClient);
+				removeClient(client);
 			}
 		}
 	}

@@ -14,7 +14,7 @@ abstract public class Client extends Channel {
 		OOCSI, PD, JSON, OSC
 	}
 
-	protected long lastAction = System.currentTimeMillis();
+	private long lastAction = System.currentTimeMillis();
 
 	/**
 	 * constructor
@@ -62,5 +62,13 @@ abstract public class Client extends Channel {
 	 */
 	public long lastAction() {
 		return lastAction;
+	}
+
+	/**
+	 * set last action to now
+	 * 
+	 */
+	public void touch() {
+		lastAction = System.currentTimeMillis();
 	}
 }

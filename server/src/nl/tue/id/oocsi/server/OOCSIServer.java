@@ -27,7 +27,7 @@ import nl.tue.id.oocsi.server.services.SocketService;
 public class OOCSIServer extends Server {
 
 	// constants
-	public static final String VERSION = "1.19";
+	public static final String VERSION = "1.20";
 
 	// defaults for different services
 	private int maxClients = 100;
@@ -420,7 +420,10 @@ public class OOCSIServer extends Server {
 
 			// keep-alive ping-pong with socket clients
 			for (Client client : INSTANCE.getClients()) {
-				client.ping();
+				// only ping if last action is at least 5 seconds ago
+				if (client.lastAction() + 5000 < start) {
+					client.ping();
+				}
 			}
 
 			long afterPings = System.currentTimeMillis();
@@ -464,8 +467,8 @@ public class OOCSIServer extends Server {
 				// total messages since startup
 				message.addData("messagesTotal", messageTotal);
 
-				// messages per second, averaged over 5 seconds
-				message.addData("messages", (int) Math.ceil(messageCount / 5.));
+				// messages per second
+				message.addData("messages", messageCount);
 
 				// channel count
 				message.addData("channels", INSTANCE.subChannels.size());

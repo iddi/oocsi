@@ -240,7 +240,7 @@ public class SocketClient extends Client {
 					if ((inputLine = input.readLine()) != null) {
 
 						// update last action
-						lastAction = System.currentTimeMillis();
+						touch();
 
 						// do some filtering for SSH clients connecting and other abuse
 						if (inputLine.length() > 200) {
@@ -297,7 +297,7 @@ public class SocketClient extends Client {
 							while ((inputLine = input.readLine()) != null) {
 
 								// update last action
-								lastAction = System.currentTimeMillis();
+								touch();
 
 								// clean input from PD clients
 								if (type == ClientType.PD) {
