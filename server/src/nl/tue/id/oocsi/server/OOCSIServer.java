@@ -2,6 +2,8 @@ package nl.tue.id.oocsi.server;
 
 import java.io.IOException;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.LongSummaryStatistics;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -27,7 +29,7 @@ import nl.tue.id.oocsi.server.services.SocketService;
 public class OOCSIServer extends Server {
 
 	// constants
-	public static final String VERSION = "1.20";
+	public static final String VERSION = "1.21";
 
 	// defaults for different services
 	private int maxClients = 100;
@@ -329,10 +331,14 @@ public class OOCSIServer extends Server {
 			if (logChannel != null) {
 
 				// strip secret data items starting with '_'
-				Map<String, Object> cleanData = data.entrySet().stream().filter(e -> !e.getKey().startsWith("_"))
-				        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+				LongSummaryStatistics lss = data.entrySet().stream().filter(e -> !e.getKey().startsWith("_"))
+				        .collect(Collectors.summarizingLong(e -> e.getValue().toString().length()));
 
-				Message message = new Message(SERVER, OOCSI_EVENTS, timestamp, cleanData);
+				Map<String, Object> eventStats = new HashMap<>();
+				eventStats.put("size", lss.getSum());
+				eventStats.put("count", lss.getCount());
+
+				Message message = new Message(SERVER, OOCSI_EVENTS, timestamp, eventStats);
 				message.addData("PUB", sender);
 				message.addData("CHANNEL", channel);
 				message.addData("SUB", recipient);
