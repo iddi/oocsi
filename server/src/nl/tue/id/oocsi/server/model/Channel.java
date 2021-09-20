@@ -16,11 +16,14 @@ import nl.tue.id.oocsi.server.protocol.Message;
  */
 public class Channel {
 
+	private static final String RETAIN_MESSAGE = "_RETAIN";
+
 	protected final Date created = new Date();
 	protected final ChangeListener presence;
 	protected final Map<String, Channel> subChannels = new ConcurrentHashMap<String, Channel>();
 
 	protected String token;
+	protected Message retainedMessage;
 
 	public Channel(String token, ChangeListener changeListener) {
 		this.token = token;
@@ -95,11 +98,25 @@ public class Channel {
 			if (!subChannel.isPrivate()) {
 				if (!message.recipient.equals(subChannel.getName())) {
 					OOCSIServer.logEvent(message.sender, message.recipient, subChannel.getName(), message.data,
-							message.timestamp);
+					        message.timestamp);
 				}
 			}
 		}
 
+		// new message erases always retained message
+		retainedMessage = null;
+
+		// check for retained message flag and store message
+		if (message.data.containsKey(RETAIN_MESSAGE)) {
+			Object retainTimeoutRaw = message.data.getOrDefault(RETAIN_MESSAGE, "0");
+			try {
+				long timeout = Long.parseLong(retainTimeoutRaw.toString());
+				message.validUntil = new Date(System.currentTimeMillis() + timeout);
+				retainedMessage = message;
+			} catch (Exception e) {
+				// do nothing
+			}
+		}
 	}
 
 	/**
@@ -156,9 +173,20 @@ public class Channel {
 	public void addChannel(Channel channel) {
 		if (!getName().equals(channel.getName()) && !subChannels.containsKey(channel.getName())) {
 			subChannels.put(channel.getName(), channel);
+
+			// update presence information
 			if (!channel.isPrivate()) {
 				presence.join(this, channel);
 				OOCSIServer.logConnection(getName(), channel.getName(), "added channel", new Date());
+			}
+
+			// send out the retained message to new client
+			final Message retainedMessageCopy = retainedMessage;
+			if (retainedMessageCopy != null && retainedMessageCopy.isValid()) {
+				channel.send(retainedMessageCopy);
+			} else {
+				// clear invalid or null message
+				retainedMessage = null;
 			}
 		}
 	}

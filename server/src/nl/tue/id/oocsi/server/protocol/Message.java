@@ -34,6 +34,10 @@ public class Message implements Serializable {
 	 * data payload of message
 	 */
 	public Map<String, Object> data;
+	/**
+	 * until when the message is valid (used for retained messages)
+	 */
+	public Date validUntil;
 
 	/**
 	 * create message from sender and recipient
@@ -86,6 +90,15 @@ public class Message implements Serializable {
 		return this;
 	}
 
+	/**
+	 * check whether the message is still valid
+	 * 
+	 * @return
+	 */
+	public boolean isValid() {
+		return validUntil == null || validUntil.after(new Date());
+	}
+
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -93,7 +106,7 @@ public class Message implements Serializable {
 	 */
 	public String toString() {
 		return "{sender: " + sender + ", recipient: " + recipient + ", timestamp: " + timestamp + ", data: " + data
-				+ "}";
+		        + "}";
 	}
 
 }
