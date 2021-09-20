@@ -110,9 +110,13 @@ public class Channel {
 		if (message.data.containsKey(RETAIN_MESSAGE)) {
 			Object retainTimeoutRaw = message.data.getOrDefault(RETAIN_MESSAGE, "0");
 			try {
+				// retrieve timeout and restrict timeout to 2 days
 				long timeout = Long.parseLong(retainTimeoutRaw.toString());
-				message.validUntil = new Date(System.currentTimeMillis() + timeout);
+				timeout = Math.min(3600 * 24 * 2, timeout);
+				// set timeout and store retained message
+				message.validUntil = new Date(System.currentTimeMillis() + timeout * 1000);
 				retainedMessage = message;
+				OOCSIServer.log("Retained message stored for channel '" + this.token + "' for " + timeout + "secs.");
 			} catch (Exception e) {
 				// do nothing
 			}
@@ -232,7 +236,8 @@ public class Channel {
 			}
 
 			// it is empty now, remove sub channel
-			if (!(subChannel instanceof Client) && subChannel.subChannels.size() == 0) {
+			if (!(subChannel instanceof Client) && subChannel.subChannels.size() == 0
+			        && (subChannel.retainedMessage == null || !subChannel.retainedMessage.isValid())) {
 				subChannels.remove(subChannel.getName());
 				if (!subChannel.isPrivate()) {
 					OOCSIServer.logConnection(getName(), subChannel.getName(), "closed empty channel", new Date());
