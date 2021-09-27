@@ -9,7 +9,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import com.google.gson.Gson;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import nl.tue.id.oocsi.server.model.Channel;
 import nl.tue.id.oocsi.server.model.Client;
@@ -29,7 +29,7 @@ import nl.tue.id.oocsi.server.services.SocketService;
 public class OOCSIServer extends Server {
 
 	// constants
-	public static final String VERSION = "1.22";
+	public static final String VERSION = "1.23";
 
 	// defaults for different services
 	private int maxClients = 100;
@@ -267,8 +267,8 @@ public class OOCSIServer extends Server {
 
 	public static void main(String[] args) {
 
-		// check dependencies
-		new Gson();
+		// check dependencies (Jackson ObjectMapper)
+		new ObjectMapper();
 
 		// start socket server
 		try {

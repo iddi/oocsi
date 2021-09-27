@@ -1,17 +1,17 @@
 package nl.tue.id.oocsi.server.protocol;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.JsonSyntaxException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import nl.tue.id.oocsi.server.OOCSIServer;
 import nl.tue.id.oocsi.server.model.Channel;
@@ -113,8 +113,12 @@ public class Protocol {
 					if (message.startsWith("{")) {
 						map = parseJSONMessage(message);
 					} else {
-						try {
-							map = parseJavaMessage(message);
+						// log legacy messages
+						OOCSIServer.log("[MsgParser] Received legacy Java message from " + sender.getName()
+						        + "\nRecipient:\n" + recipient + "\n");
+
+						// no function message
+						map = new HashMap<>();
 							if (c != null && c.accept(recipient)) {
 								c.send(new Message(sender.getName(), recipient, new Date(), map));
 							} else {
@@ -123,17 +127,6 @@ public class Protocol {
 									OOCSIServer.logEvent(sender.getName(), recipient, "?", map, new Date());
 								}
 							}
-						} catch (IOException e) {
-							OOCSIServer.log("[MsgParser] I/O problem: " + e.getMessage() + "\n\nSender:\n"
-							        + sender.getName() + "\nRecipient:\n" + recipient + "\nData:\n" + message);
-						} catch (IllegalArgumentException e) {
-							OOCSIServer.log("[MsgParser] Base64 encoder problem: " + e.getMessage());
-						} catch (ClassNotFoundException e) {
-							OOCSIServer.log("[MsgParser] Unknown class: " + e.getMessage());
-						} catch (Exception e) {
-							// just in case
-							OOCSIServer.log("[MsgParser] Unknown problem: " + e.getMessage());
-						}
 					}
 
 					// only send if there is useful data
@@ -169,95 +162,47 @@ public class Protocol {
 	}
 
 	/**
-	 * parse a JSON message
+	 * parse a JSON message --> convert JsonNode (ObjectNode) to Map<String, Object> that can later be serialized as
+	 * Json again
 	 * 
 	 * @param message
 	 * @return
 	 */
 	public static Map<String, Object> parseJSONMessage(String message) {
-		final Map<String, Object> map = new HashMap<String, Object>();
-
-		// try to parse input as JSON
+		Map<String, Object> map = new HashMap<String, Object>();
 		try {
-			JsonElement je = JsonParser.parseString(message);
-			if (je.isJsonObject()) {
-				JsonObject jo = je.getAsJsonObject();
-				for (Map.Entry<String, JsonElement> element : jo.entrySet()) {
-					// translate primitives from json to java
-					JsonElement value = element.getValue();
-					// element is a single primitive
-					if (value.isJsonPrimitive()) {
-						map.put(element.getKey(), value);
-					}
-					// element is an array
-					else if (value.isJsonArray()) {
-						JsonArray asJsonArray = value.getAsJsonArray();
-
-						// array is non-empty and contains primitives
-						if (asJsonArray != null && asJsonArray.size() > 0 && asJsonArray.get(0).isJsonPrimitive()) {
-
-							// booleans
-							if (asJsonArray.get(0).getAsJsonPrimitive().isBoolean()) {
-								boolean[] array = new boolean[asJsonArray.size()];
-								for (int i = 0; i < array.length; i++) {
-									JsonElement jsonElement = asJsonArray.get(i);
-									if (jsonElement.isJsonPrimitive() && jsonElement.getAsJsonPrimitive().isBoolean()) {
-										array[i] = jsonElement.getAsBoolean();
-									}
-								}
-								map.put(element.getKey(), array);
-							}
-							// numbers
-							else if (asJsonArray.get(0).getAsJsonPrimitive().isNumber()) {
-								float[] array = new float[asJsonArray.size()];
-								for (int i = 0; i < array.length; i++) {
-									JsonElement jsonElement = asJsonArray.get(i);
-									if (jsonElement.isJsonPrimitive() && jsonElement.getAsJsonPrimitive().isNumber()) {
-										array[i] = jsonElement.getAsFloat();
-									}
-								}
-								map.put(element.getKey(), array);
-							}
-							// string
-							else if (asJsonArray.get(0).getAsJsonPrimitive().isString()) {
-								String[] array = new String[asJsonArray.size()];
-								for (int i = 0; i < array.length; i++) {
-									JsonElement jsonElement = asJsonArray.get(i);
-									if (jsonElement.isJsonPrimitive() && jsonElement.getAsJsonPrimitive().isString()) {
-										array[i] = jsonElement.getAsString();
-									}
-								}
-								map.put(element.getKey(), array);
-							}
-						}
-						// no primitives included on first level, so we include the JSON array directly
-						else if (!value.isJsonNull()) {
-							map.put(element.getKey(), value/* serializer.toJson(value) */);
-						}
+			ObjectMapper om = new ObjectMapper();
+			JsonNode jn = om.readTree(message);
+			if (jn.isObject()) {
+				ObjectNode on = (ObjectNode) jn;
+				for (Iterator<Entry<String, JsonNode>> iterator = on.fields(); iterator.hasNext();) {
+					Entry<String, JsonNode> entry = iterator.next();
+					JsonNode val = entry.getValue();
+					if (val.isBoolean()) {
+						map.put(entry.getKey(), val.booleanValue());
+					} else if (val.isInt()) {
+						map.put(entry.getKey(), val.intValue());
+					} else if (val.isFloat()) {
+						map.put(entry.getKey(), val.floatValue());
+					} else if (val.isDouble()) {
+						map.put(entry.getKey(), val.doubleValue());
+					} else if (val.isLong()) {
+						map.put(entry.getKey(), val.longValue());
+					} else if (val.isTextual()) {
+						map.put(entry.getKey(), val.textValue());
+					} else if (val.isObject()) {
+						ObjectNode object = (ObjectNode) val;
+						map.put(entry.getKey(), object);
+					} else if (val.isArray()) {
+						ArrayNode array = (ArrayNode) val;
+						map.put(entry.getKey(), array);
 					}
 				}
 			}
-		} catch (JsonSyntaxException jse) {
-			// in case of problems, add the full data as a raw string
-			map.put("data", message);
-		}
-		return map;
+		} catch (JsonMappingException e) {
+		} catch (JsonProcessingException e) {
 	}
 
-	/**
-	 * parse a Java message
-	 * 
-	 * @param data
-	 * @return
-	 * @throws IOException
-	 * @throws ClassNotFoundException
-	 */
-	@SuppressWarnings("unchecked")
-	private Map<String, Object> parseJavaMessage(String data) throws IOException, ClassNotFoundException {
-		// serialized object parsing
-		ByteArrayInputStream bais = new ByteArrayInputStream(Base64Coder.decode(data));
-		ObjectInputStream ois = new ObjectInputStream(bais);
-		Object outputObject = ois.readObject();
-		return (Map<String, Object>) outputObject;
+		return map;
 	}
 }

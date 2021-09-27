@@ -12,17 +12,16 @@ import java.net.Socket;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.Semaphore;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import nl.tue.id.oocsi.server.OOCSIServer;
 import nl.tue.id.oocsi.server.model.Client;
 import nl.tue.id.oocsi.server.protocol.Base64Coder;
 import nl.tue.id.oocsi.server.protocol.Message;
+import nl.tue.id.oocsi.server.protocol.StreamMessage;
 
 /**
  * socket implementation for OOCSI client
@@ -32,7 +31,7 @@ import nl.tue.id.oocsi.server.protocol.Message;
  */
 public class SocketClient extends Client {
 
-	private static final Gson JSON_SERIALIZER = new Gson();
+	private static final ObjectMapper JSON_OBJECT_MAPPER = new ObjectMapper();;
 	private final SocketService protocol;
 	private final Socket socket;
 
@@ -112,32 +111,8 @@ public class SocketClient extends Client {
 	 * @return
 	 */
 	private String serializeJava(Map<String, Object> data) {
-
 		Map<String, Object> oocsiData = new HashMap<String, Object>();
-
-		// replace JSON objects if necessary
-		for (Entry<String, Object> e : data.entrySet()) {
-			if (e.getValue() instanceof JsonElement) {
-				JsonElement je = (JsonElement) e.getValue();
-				if (je.isJsonPrimitive()) {
-					// convert JSON primitives to Java primitives
-					if (je.getAsJsonPrimitive().isNumber()) {
-						oocsiData.put(e.getKey(), je.getAsJsonPrimitive().getAsNumber());
-					} else if (je.getAsJsonPrimitive().isString()) {
-						oocsiData.put(e.getKey(), je.getAsJsonPrimitive().getAsString());
-					} else if (je.getAsJsonPrimitive().isBoolean()) {
-						oocsiData.put(e.getKey(), je.getAsJsonPrimitive().getAsBoolean());
-					}
-				} else {
-					// keep JSON object as is
-					oocsiData.put(e.getKey(), JSON_SERIALIZER.toJson(je));
-				}
-			} else {
-				// copy all other values as is
-				oocsiData.put(e.getKey(), e.getValue());
-			}
-		}
-
+		oocsiData.put("error", "Your OOCSI client version is too old, please update.");
 		return serializeOOCSIOutput(oocsiData);
 	}
 
@@ -190,14 +165,12 @@ public class SocketClient extends Client {
 	 * @return
 	 */
 	private String serializeJSON(Map<String, Object> data, String recipient, long timestamp, String sender) {
-
-		// map to json
-		JsonObject je = (JsonObject) JSON_SERIALIZER.toJsonTree(data);
+		ObjectNode je = JSON_OBJECT_MAPPER.valueToTree(data);
 
 		// add OOCSI properties
-		je.addProperty("recipient", recipient);
-		je.addProperty("timestamp", timestamp);
-		je.addProperty("sender", sender);
+		je.put("recipient", recipient);
+		je.put("timestamp", timestamp);
+		je.put("sender", sender);
 
 		// serialize
 		return je.toString();
