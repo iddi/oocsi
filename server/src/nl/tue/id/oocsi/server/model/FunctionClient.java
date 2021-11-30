@@ -28,6 +28,8 @@ public class FunctionClient extends Client {
 	private WindowFunction sumFct = new SumOverWindowFunction();
 	private WindowFunction meanFct = new MeanOverWindowFunction();
 	private WindowFunction stdevFct = new StandardDeviationOverWindowFunction();
+	private WindowFunction minFct = new MinOverWindowFunction();
+	private WindowFunction maxFct = new MaxOverWindowFunction();
 
 	public FunctionClient(Client delegateClient, String token, String functionString, ChangeListener presence) {
 		super(token, presence);
@@ -68,12 +70,16 @@ public class FunctionClient extends Client {
 			// apply expression
 			try {
 				final Expression e = loadExpression(expression, message, true);
-				if (expression.contains("sum("))
+				if (expression.contains("sum(") || expression.contains("SUM("))
 					e.addFunction(sumFct);
-				if (expression.contains("mean("))
+				if (expression.contains("mean(") || expression.contains("MEAN("))
 					e.addFunction(meanFct);
-				if (expression.contains("stdev("))
+				if (expression.contains("stdev(") || expression.contains("STDEV("))
 					e.addFunction(stdevFct);
+				if (expression.contains("emin(") || expression.contains("EMIN("))
+					e.addFunction(minFct);
+				if (expression.contains("emax(") || expression.contains("EMAX("))
+					e.addFunction(maxFct);
 				BigDecimal bd = e.eval();
 				if (bd.intValue() == 0) {
 					return;
@@ -88,12 +94,16 @@ public class FunctionClient extends Client {
 		for (String expression : transformExpression) {
 			try {
 				Expression e = loadExpression(expression, message, false);
-				if (expression.contains("sum("))
+				if (expression.contains("sum(") || expression.contains("SUM("))
 					e.addFunction(sumFct);
-				if (expression.contains("mean("))
+				if (expression.contains("mean(") || expression.contains("MEAN("))
 					e.addFunction(meanFct);
-				if (expression.contains("stdev("))
+				if (expression.contains("stdev(") || expression.contains("STDEV("))
 					e.addFunction(stdevFct);
+				if (expression.contains("emin(") || expression.contains("EMIN("))
+					e.addFunction(minFct);
+				if (expression.contains("emax(") || expression.contains("EMAX("))
+					e.addFunction(maxFct);
 				e.addLazyFunction(new AbstractTransform(message));
 				e.eval();
 			} catch (Exception ex) {
@@ -118,7 +128,7 @@ public class FunctionClient extends Client {
 	 * @param abortOnMissing
 	 * @return
 	 */
-	private static Expression loadExpression(final String expression, Message message, boolean abortOnMissing) {
+	private Expression loadExpression(final String expression, Message message, boolean abortOnMissing) {
 		final Expression e = new Expression(expression);
 		List<String> vars = e.getUsedVariables();
 		for (String key : vars) {
@@ -264,6 +274,30 @@ public class FunctionClient extends Client {
 				result += number.doubleValue() / queueLength;
 			}
 			return result;
+		}
+	}
+
+	class MinOverWindowFunction extends WindowFunction {
+
+		protected MinOverWindowFunction() {
+			super("emin", 2);
+		}
+
+		@Override
+		public BigDecimal evalQueue(Queue<BigDecimal> queue) {
+			return queue.stream().min((a, b) -> a.compareTo(b)).orElse(new BigDecimal(0));
+		}
+	}
+
+	class MaxOverWindowFunction extends WindowFunction {
+
+		protected MaxOverWindowFunction() {
+			super("emax", 2);
+		}
+
+		@Override
+		public BigDecimal evalQueue(Queue<BigDecimal> queue) {
+			return queue.stream().max((a, b) -> a.compareTo(b)).orElse(new BigDecimal(0));
 		}
 	}
 
