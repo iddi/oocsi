@@ -19,6 +19,34 @@ import nl.tue.id.oocsi.client.protocol.OOCSIMessage;
 public class ClientDataTest {
 
 	@Test
+	public void testStringData() throws InterruptedException {
+		final List<OOCSIEvent> events = new ArrayList<OOCSIEvent>();
+
+		OOCSIClient o1 = new OOCSIClient("string1");
+		o1.connect("localhost", 4444);
+		assertTrue(o1.isConnected());
+
+		OOCSIClient o2 = new OOCSIClient("string2");
+		o2.connect("localhost", 4444);
+		assertTrue(o2.isConnected());
+		o2.subscribe("stringTesting", new nl.tue.id.oocsi.client.protocol.EventHandler() {
+			@Override
+			public void receive(OOCSIEvent event) {
+				events.add(event);
+			}
+		});
+
+		Thread.sleep(100);
+
+		{
+			new OOCSIMessage(o1, "stringTesting").data("string1", "This is a string with spaces.").send();
+			Thread.sleep(150);
+			assertEquals(1, events.size());
+			events.clear();
+		}
+	}
+
+	@Test
 	public void testArrayData() throws InterruptedException {
 
 		final List<OOCSIEvent> events = new ArrayList<OOCSIEvent>();

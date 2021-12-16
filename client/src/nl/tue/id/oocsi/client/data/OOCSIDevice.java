@@ -35,6 +35,7 @@ public class OOCSIDevice {
 		deviceMessage = new OOCSIMessage(client, "heyOOCSI!");
 		deviceMessage.data("clientHandle", deviceName);
 		deviceMessage.data("properties", properties);
+		properties.put("device_id", client.getName());
 		deviceMessage.data("components", components);
 		deviceMessage.data("location", location);
 		client.log("Created device " + deviceName);

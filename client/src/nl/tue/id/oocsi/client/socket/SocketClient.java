@@ -30,7 +30,7 @@ public class SocketClient {
 	private final Map<String, Handler> channels;
 	private final Map<String, Responder> services;
 
-	private SocketClientRunner runner;
+	protected SocketClientRunner runner;
 
 	/**
 	 * create a new socket client with the given name

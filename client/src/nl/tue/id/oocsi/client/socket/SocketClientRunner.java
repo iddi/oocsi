@@ -36,13 +36,17 @@ public class SocketClientRunner implements Runnable {
 	private PrintWriter output;
 
 	// connection flags
-	boolean connectionEstablished = false;
+	protected boolean connectionEstablished = false;
 	boolean reconnect = false;
 
 	private boolean disconnected = false;
 	private int reconnectCountDown = 100;
 	private boolean relinquished = false;
 	private boolean hasPrintedServerInfo = false;
+
+	// testing
+	private boolean noPing = false;
+	private boolean noProcess = false;
 
 	// management
 	private final Map<String, Handler> channels;
@@ -68,6 +72,24 @@ public class SocketClientRunner implements Runnable {
 
 		// start
 		executor.execute(this);
+	}
+
+	/**
+	 * for testing only
+	 * 
+	 * @param name
+	 * @param hostname
+	 * @param port
+	 * @param channels
+	 * @param services
+	 * @param noPing
+	 * @param noProcess
+	 */
+	public SocketClientRunner(String name, String hostname, int port, Map<String, Handler> channels,
+	        Map<String, Responder> services, boolean noPing, boolean noProcess) {
+		this(name, hostname, port, channels, services);
+		this.noPing = noPing;
+		this.noProcess = noProcess;
 	}
 
 	@Override
@@ -221,7 +243,7 @@ public class SocketClientRunner implements Runnable {
 	 * 
 	 * @return
 	 */
-	boolean isConnectionInProgress() {
+	protected boolean isConnectionInProgress() {
 		return !disconnected && !connectionEstablished && reconnectCountDown > 0;
 	}
 
@@ -236,7 +258,7 @@ public class SocketClientRunner implements Runnable {
 			while (!socket.isClosed()) {
 
 				// main messaging loop
-				while (input.ready() && (fromServer = input.readLine()) != null) {
+				while (input.ready() && !noProcess && (fromServer = input.readLine()) != null) {
 					handleMessage(fromServer);
 					cyclesSinceRead = 0;
 				}
@@ -283,7 +305,7 @@ public class SocketClientRunner implements Runnable {
 		}
 
 		// any other non-send message
-		if (!fromServer.startsWith("send")) {
+		if (!fromServer.startsWith("send") && !noPing) {
 			tempIncomingMessages.offer(fromServer);
 			send(".");
 			return;
@@ -598,7 +620,7 @@ public class SocketClientRunner implements Runnable {
 	 * let thread sleep for ms milliseconds
 	 * 
 	 */
-	void sleep(int ms) {
+	protected void sleep(int ms) {
 		try {
 			// so, wait a bit before next trial
 			Thread.sleep(ms);

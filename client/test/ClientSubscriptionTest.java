@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import nl.tue.id.oocsi.client.OOCSIClient;
@@ -13,17 +12,6 @@ import nl.tue.id.oocsi.client.protocol.DataHandler;
 import nl.tue.id.oocsi.client.protocol.OOCSIMessage;
 
 public class ClientSubscriptionTest {
-
-	@BeforeClass
-	public static void checkClientList() {
-		OOCSIClient o = new OOCSIClient("pre_checks");
-		o.connect("localhost", 4444);
-		assertTrue(o.isConnected());
-
-		assertEquals("pre_checks", o.clients());
-
-		o.disconnect();
-	}
 
 	@Test
 	public void testFilteringBrokenSpec() throws InterruptedException {
@@ -490,11 +478,11 @@ public class ClientSubscriptionTest {
 
 		// o1.subscribe("channel_filter", new DataHandler() {
 		o1.subscribe("channel_transform[transform(minsize,stdev(size*10,2));transform(superpos,mean(pos*1000,2))]",
-				new DataHandler() {
-					public void receive(String sender, Map<String, Object> data, long timestamp) {
-						list.add(sender + data.toString());
-					}
-				});
+		        new DataHandler() {
+			        public void receive(String sender, Map<String, Object> data, long timestamp) {
+				        list.add(sender + data.toString());
+			        }
+		        });
 
 		OOCSIClient o2 = new OOCSIClient("test_channel_transform_6");
 		o2.connect("localhost", 4444);
@@ -522,6 +510,57 @@ public class ClientSubscriptionTest {
 		assertTrue(list.get(6).contains("=0.0"));
 		assertTrue(list.get(6).contains("superpos"));
 		assertTrue(list.get(6).contains("=8500.0"));
+
+		o1.disconnect();
+		o2.disconnect();
+	}
+
+	@Test
+	public void testAggregatedTransformMinMax() throws InterruptedException {
+		final List<String> list = new ArrayList<String>();
+
+		OOCSIClient o1 = new OOCSIClient("test_channel_transform_7");
+		o1.connect("localhost", 4444);
+		assertTrue(o1.isConnected());
+
+		// o1.subscribe("channel_filter", new DataHandler() {
+		o1.subscribe("channel_transform[transform(maxval,max(size,5));transform(minval,min(pos,3))]",
+		        new DataHandler() {
+			        public void receive(String sender, Map<String, Object> data, long timestamp) {
+				        list.add(sender + data.toString());
+			        }
+		        });
+
+		OOCSIClient o2 = new OOCSIClient("test_channel_transform_8");
+		o2.connect("localhost", 4444);
+		assertTrue(o2.isConnected());
+
+		Thread.sleep(100);
+
+		// baseline
+		assertEquals(0, list.size());
+
+		new OOCSIMessage(o2, "channel_transform").data("size", 20).data("pos", 2).send();
+		new OOCSIMessage(o2, "channel_transform").data("size", 10).data("pos", 4).send();
+		new OOCSIMessage(o2, "channel_transform").data("size", 10).data("pos", 4).send();
+		new OOCSIMessage(o2, "channel_transform").data("size", 10).data("pos", 4).send();
+		new OOCSIMessage(o2, "channel_transform").data("size", 10).data("pos", 2).send();
+		new OOCSIMessage(o2, "channel_transform").data("size", 10).data("pos", 4).send();
+		new OOCSIMessage(o2, "channel_transform").data("size", 10).data("pos", 4).send();
+
+		Thread.sleep(200);
+
+		assertEquals(7, list.size());
+		assertTrue(list.get(0).contains("maxval"));
+		assertTrue(list.get(0).contains("=20.0"));
+		assertTrue(list.get(0).contains("minval"));
+		assertTrue(list.get(0).contains("=2.0"));
+
+		assertTrue(list.get(3).contains("minval"));
+		assertTrue(list.get(3).contains("=4.0"));
+
+		assertTrue(list.get(5).contains("maxval"));
+		assertTrue(list.get(5).contains("=10.0"));
 
 		o1.disconnect();
 		o2.disconnect();
