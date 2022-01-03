@@ -17,6 +17,14 @@ public class Message implements Serializable {
 	 * id to be able to serialize across client and server
 	 */
 	private static final long serialVersionUID = 7907711514783823619L;
+	/**
+	 * message attribute key to flag a message that should be retained on a channel (for n seconds)
+	 */
+	public static final String RETAIN_MESSAGE = "_RETAIN";
+	/**
+	 * message attribute key to flag a message that should be delivered with a delay (in at least n seconds)
+	 */
+	public static final String DELAY_MESSAGE = "_DELAY";
 
 	/**
 	 * id of sender (individual client)

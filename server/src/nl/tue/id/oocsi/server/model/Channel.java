@@ -16,8 +16,6 @@ import nl.tue.id.oocsi.server.protocol.Message;
  */
 public class Channel {
 
-	private static final String RETAIN_MESSAGE = "_RETAIN";
-
 	protected final Date created = new Date();
 	protected final ChangeListener presence;
 	protected final Map<String, Channel> subChannels = new ConcurrentHashMap<String, Channel>();
@@ -107,8 +105,8 @@ public class Channel {
 		retainedMessage = null;
 
 		// check for retained message flag and store message
-		if (message.data.containsKey(RETAIN_MESSAGE)) {
-			Object retainTimeoutRaw = message.data.getOrDefault(RETAIN_MESSAGE, "0");
+		if (message.data.containsKey(Message.RETAIN_MESSAGE)) {
+			Object retainTimeoutRaw = message.data.getOrDefault(Message.RETAIN_MESSAGE, "0");
 			try {
 				// retrieve timeout and restrict timeout to 2 days
 				long timeout = Long.parseLong(retainTimeoutRaw.toString());

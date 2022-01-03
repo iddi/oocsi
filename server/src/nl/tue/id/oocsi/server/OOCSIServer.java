@@ -29,7 +29,7 @@ import nl.tue.id.oocsi.server.services.SocketService;
 public class OOCSIServer extends Server {
 
 	// constants
-	public static final String VERSION = "1.24";
+	public static final String VERSION = "1.25";
 
 	// defaults for different services
 	private int maxClients = 100;
@@ -421,6 +421,23 @@ public class OOCSIServer extends Server {
 			// clean up first
 			closeStaleClients();
 			closeEmptyChannels();
+
+			// dispatch delayed messages
+			synchronized (delayedMessages) {
+				final Date now = new Date();
+				delayedMessages.values().removeIf(message -> {
+					if (message.timestamp.before(now)) {
+						Channel c = getChannel(message.recipient);
+						if (c != null && c.validate(message.recipient)) {
+							c.send(message);
+						}
+
+						// remove message from map
+						return true;
+					}
+					return false;
+				});
+			}
 
 			long afterCleans = System.currentTimeMillis();
 

@@ -2,6 +2,7 @@ package nl.tue.id.oocsi.server.model;
 
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,6 +27,7 @@ public class Server extends Channel {
 	protected final Map<String, Client> clients = new ConcurrentHashMap<String, Client>();
 	protected final Protocol protocol;
 	protected final PresenceTracker presence;
+	protected final Map<String, Message> delayedMessages;
 
 	/**
 	 * create new server data structure
@@ -38,11 +40,26 @@ public class Server extends Channel {
 
 		// start protocol controller
 		protocol = new Protocol(this);
+
+		// create map for delayed messages
+		delayedMessages = new HashMap<>();
 	}
 
 	@Override
 	public void send(Message message) {
 		// disable direct send
+	}
+
+	/**
+	 * dispatch a delayed message; will replace earlier delayed and not yet delivered messages for this client
+	 * 
+	 * @param sender
+	 * @param message
+	 */
+	public void sendDelayedMessage(String sender, Message message) {
+		synchronized (delayedMessages) {
+			delayedMessages.put(sender, message);
+		}
 	}
 
 	/**
@@ -177,8 +194,8 @@ public class Server extends Channel {
 		long now = System.currentTimeMillis();
 		for (Client client : clients.values()) {
 			if (client.lastAction() + 120000 < now || !client.isConnected()) {
-				OOCSIServer.log("Client " + client.getName()
-				        + " has not responded for 120 secs and will be disconnected");
+				OOCSIServer
+				        .log("Client " + client.getName() + " has not responded for 120 secs and will be disconnected");
 
 				// remove from presence tracking if tracking
 				presence.timeout(client.getName(), client.getName());
