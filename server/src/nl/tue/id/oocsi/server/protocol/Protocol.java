@@ -122,16 +122,17 @@ public class Protocol {
 		}
 		// respond to ping
 		else if (inputLine.equals("ping")) {
-			server.getChangeListener().refresh(sender, sender);
+			server.refreshChannelPresence(sender);
 			return ".";
 		}
 		// record ping acknowledgement
 		else if (inputLine.startsWith(".")) {
+			server.refreshChannelPresence(sender);
 			sender.pong();
 		}
 		// no catch
 		else {
-			server.getChangeListener().refresh(sender, sender);
+			server.refreshChannelPresence(sender);
 		}
 
 		// default response

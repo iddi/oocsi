@@ -92,14 +92,16 @@ public class SocketClient extends Client {
 	private synchronized void send(String outputLine) {
 		if (output != null) {
 			synchronized (output) {
-				if (type == ClientType.OOCSI) {
-					output.println(outputLine);
-				} else if (type == ClientType.PD) {
-					output.println(outputLine + ";");
-				} else if (type == ClientType.JSON) {
-					output.println(outputLine);
+				if (output != null) {
+					if (type == ClientType.OOCSI) {
+						output.println(outputLine);
+					} else if (type == ClientType.PD) {
+						output.println(outputLine + ";");
+					} else if (type == ClientType.JSON) {
+						output.println(outputLine);
+					}
+					output.flush();
 				}
-				output.flush();
 			}
 		}
 	}

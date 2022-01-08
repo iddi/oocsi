@@ -198,7 +198,7 @@ public class Server extends Channel {
 				        .log("Client " + client.getName() + " has not responded for 120 secs and will be disconnected");
 
 				// remove from presence tracking if tracking
-				presence.timeout(client.getName(), client.getName());
+				presence.timeout(client);
 
 				removeClient(client);
 			}
@@ -230,42 +230,26 @@ public class Server extends Channel {
 			return;
 		}
 
+		// ------------------------------------------------------------------------------------------------------------
 		// check for presence subscription
 		Pattern presencePattern = Pattern.compile("presence\\(([\\w_-]+)\\)");
 		Matcher presenceMatcher = presencePattern.matcher(channelName);
 		if (presenceMatcher.find()) {
+
+			// extract presence channel name, or abort
 			String presenceChannelName = presenceMatcher.group(1);
 			if (presenceChannelName == null || presenceChannelName.trim().length() == 0) {
 				return;
 			}
 
-			// add to tracking
-			presence.add(presenceChannelName, subscriber);
-
-			// record presence within channel
-			Channel ch = getChannel(presenceChannelName);
-			if (ch != null) {
-				for (Channel sch : ch.getChannels()) {
-					presence.join(ch, sch);
-				}
-
-				return;
-			}
-
-			// record presence of client
-			Client client = getClient(presenceChannelName);
-			if (client != null) {
-				presence.join(client, client);
-			} else {
-				// // record absence
-				// presence.absent(presenceChannelName, presenceChannelName);
-			}
+			// add presenceChannel to presence tracking if not existing
+			// the presenceChannel might not exist yet
+			presence.subscribe(presenceChannelName, subscriber);
 
 			return;
 		}
 
-		// non-presence tracking behavior /////////////////////////////////////////////
-
+		// ------------------------------------------------------------------------------------------------------------
 		// functions for filtering and transformation
 		String functions = null;
 		Pattern functionPattern = Pattern.compile("([\\w_-]+)\\[(.*)\\]");
@@ -314,15 +298,43 @@ public class Server extends Channel {
 	 * unsubscribe <subscriber> from <channel> and close channel if empty
 	 * 
 	 * @param subscriber
-	 * @param channel
+	 * @param channelName
 	 */
-	public void unsubscribe(Channel subscriber, String channel) {
-		Channel c = getChannel(channel);
+	public void unsubscribe(Channel subscriber, String channelName) {
+
+		// check for presence unsubscribe
+		Pattern presencePattern = Pattern.compile("presence\\(([\\w_-]+)\\)");
+		Matcher presenceMatcher = presencePattern.matcher(channelName);
+		if (presenceMatcher.find()) {
+
+			// extract presence channel name, or abort
+			String presenceChannelName = presenceMatcher.group(1);
+			if (presenceChannelName == null || presenceChannelName.trim().length() == 0) {
+				return;
+			}
+
+			// remove the presence subscription for this channel
+			presence.unsubscribe(presenceChannelName, subscriber);
+
+			return;
+		}
+
+		// normal channel unsubscribe
+		Channel c = getChannel(channelName);
 		if (c != null) {
 			c.removeChannel(subscriber);
 			closeEmptyChannels();
-			OOCSIServer.logConnection(subscriber.getName(), channel, "unsubscribed", new Date());
+			OOCSIServer.logConnection(subscriber.getName(), channelName, "unsubscribed", new Date());
 		}
+	}
+
+	/**
+	 * refreshes presence for the given client/channel
+	 * 
+	 * @param guest
+	 */
+	public void refreshChannelPresence(Channel guest) {
+		presence.refresh(guest);
 	}
 
 	/**

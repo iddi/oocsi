@@ -26,6 +26,8 @@ public class Channel {
 	public Channel(String token, ChangeListener changeListener) {
 		this.token = token;
 		this.presence = changeListener;
+
+		this.presence.created(this);
 	}
 
 	/**
@@ -178,6 +180,10 @@ public class Channel {
 
 			// update presence information
 			if (!channel.isPrivate()) {
+				if (channel instanceof Client) {
+					presence.created(channel);
+				}
+
 				presence.join(this, channel);
 				OOCSIServer.logConnection(getName(), channel.getName(), "added channel", new Date());
 			}
@@ -213,6 +219,10 @@ public class Channel {
 			if (!channel.isPrivate()) {
 				presence.leave(this.getName(), channel.getName());
 				OOCSIServer.logConnection(getName(), channel.getName(), "removed channel", new Date());
+
+				if (channel instanceof Client) {
+					presence.closed(channel);
+				}
 			}
 		}
 
@@ -237,6 +247,7 @@ public class Channel {
 			if (!(subChannel instanceof Client) && subChannel.subChannels.size() == 0
 			        && (subChannel.retainedMessage == null || !subChannel.retainedMessage.isValid())) {
 				subChannels.remove(subChannel.getName());
+				presence.closed(subChannel);
 				if (!subChannel.isPrivate()) {
 					OOCSIServer.logConnection(getName(), subChannel.getName(), "closed empty channel", new Date());
 				}
@@ -251,11 +262,11 @@ public class Channel {
 
 		public void join(Channel host, Channel guest);
 
-		public void refresh(Channel host, Channel guest);
+		public void refresh(Channel subscriber);
 
 		public void leave(String host, String guest);
 
-		public void timeout(String host, String guest);
+		public void timeout(Channel subscriber);
 
 	}
 }

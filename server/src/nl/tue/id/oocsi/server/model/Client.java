@@ -20,6 +20,7 @@ abstract public class Client extends Channel {
 	 * constructor
 	 * 
 	 * @param token
+	 * @param presence
 	 */
 	public Client(String token, ChangeListener presence) {
 		super(token, presence);
