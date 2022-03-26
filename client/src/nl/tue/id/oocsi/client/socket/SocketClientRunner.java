@@ -191,12 +191,12 @@ public class SocketClientRunner implements Runnable {
 			// name is not ok
 			if (!serverWelcomeMessage.contains("welcome " + name)) {
 				disconnect();
-				log(" - disconnected (client name not accepted)");
+				log(" - disconnected (client name '" + name + "' not accepted)");
 				throw new OOCSIAuthenticationException();
 			}
 
 			// name is ok
-			log(" - connected successfully");
+			log(" - connected successfully as " + name);
 
 			// longer timeout after successful connection
 			socket.setSoTimeout(20000);
@@ -269,14 +269,17 @@ public class SocketClientRunner implements Runnable {
 				// if no data came in for 20 secs, kill connection and reconnect
 				if (cyclesSinceRead++ > 2000) {
 					internalDisconnect();
-					log(" - OOCSI disconnected (application level timeout)");
+					log(" - OOCSI disconnected (application level timeout) for " + name);
 					break;
+				} else if (cyclesSinceRead > 1000) {
+					// after 10 secs send a ping myself
+					send("ping");
 				}
 			}
 		} catch (Exception e) {
 			internalDisconnect();
 			if (connectionEstablished) {
-				log(" - OOCSI disconnected (server unavailable)");
+				log(" - OOCSI disconnected (server unavailable) for " + name);
 			}
 		}
 	}
@@ -303,9 +306,8 @@ public class SocketClientRunner implements Runnable {
 			handleMappedData(channel, fromServer, timestamp, sender, c, map);
 			return;
 		}
-
 		// any other non-send message
-		if (!fromServer.startsWith("send") && !noPing) {
+		else if (!fromServer.startsWith("send") && !noPing) {
 			tempIncomingMessages.offer(fromServer);
 			send(".");
 			return;
@@ -346,7 +348,7 @@ public class SocketClientRunner implements Runnable {
 			handleMappedData(channel, data, timestamp, sender, c, dataMap);
 		}
 
-		// if dataMap not parseable and channel ready
+		// if dataMap not parseable and handler ready
 		else if (c != null) {
 			executor.submit(new Runnable() {
 				public void run() {

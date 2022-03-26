@@ -3,12 +3,14 @@ package nl.tue.id.oocsi.client.data;
 import java.util.HashMap;
 import java.util.Map;
 
+import nl.tue.id.oocsi.OOCSIEvent;
 import nl.tue.id.oocsi.client.OOCSIClient;
+import nl.tue.id.oocsi.client.protocol.EventHandler;
 import nl.tue.id.oocsi.client.protocol.OOCSIMessage;
 
 /**
  * OOCSIDevice allows to configure one or more devices for an OOCSI client that can be recognized by HomeAssistant (and
- * the OOCSI server) and will then be displayed or treated otherwise in a semantically correct way. Tbc.
+ * the OOCSI server) and will then be displayed or treated otherwise in a semantically correct way.
  * 
  * @author matsfunk
  *
@@ -18,10 +20,13 @@ public class OOCSIDevice {
 	final private OOCSIClient client;
 	final private String deviceName;
 
-	final private OOCSIMessage deviceMessage;
-	private Map<String, Object> properties = new HashMap<>();
-	private Map<String, Object> components = new HashMap<>();
-	private Map<String, Object> location = new HashMap<>();
+	// device data
+	private Map<String, String> properties = new HashMap<>();
+	private Map<String, Map<String, Object>> components = new HashMap<>();
+	private Map<String, float[]> location = new HashMap<>();
+
+	// sending and receiving values for this device (state, value, brightness) depending on type
+	private Map<String, Map<String, Object>> componentValues = new HashMap<>();
 
 	/**
 	 * create a new OOCSI device
@@ -32,13 +37,9 @@ public class OOCSIDevice {
 	public OOCSIDevice(OOCSIClient client, String deviceName) {
 		this.client = client;
 		this.deviceName = deviceName;
-		deviceMessage = new OOCSIMessage(client, "heyOOCSI!");
-		deviceMessage.data("clientHandle", deviceName);
-		deviceMessage.data("properties", properties);
 		properties.put("device_id", client.getName());
-		deviceMessage.data("components", components);
-		deviceMessage.data("location", location);
-		client.log("Created device " + deviceName);
+
+		log("created device");
 	}
 
 	/**
@@ -50,7 +51,7 @@ public class OOCSIDevice {
 	 */
 	public OOCSIDevice addProperty(String name, String value) {
 		properties.put(name, value);
-		client.log("Added property " + name + " to the properties list of device " + deviceName);
+		log("added property " + name);
 		return this;
 	}
 
@@ -64,7 +65,7 @@ public class OOCSIDevice {
 	 */
 	public OOCSIDevice addLocation(String name, float lat, float lng) {
 		location.put(name, new float[] { lat, lng });
-		client.log("Added location " + name + " to the location list of device " + deviceName);
+		log("added location " + name);
 		return this;
 	}
 
@@ -79,20 +80,13 @@ public class OOCSIDevice {
 	 * @param channel
 	 * @param min
 	 * @param max
-	 * @param numberUnit
 	 * @param numberDefault
 	 * @param icon          Get an icon from the set at: https://materialdesignicons.com/ Copy the title of the icon
 	 *                      page
 	 * @return
 	 */
-	public OOCSIDevice addNumberComponent(String name, String channel, float min, float max, String numberUnit,
-	        float numberDefault, String icon) {
-		try {
-			addNumberComponent(name, channel, min, max, SensorUnit.valueOf(numberUnit), numberDefault, icon);
-		} catch (Exception e) {
-			client.log("Error in number unit of component " + name + " for device " + deviceName);
-		}
-		return this;
+	public OOCSIDevice addNumber(String name, String channel, float min, float max, float numberDefault, String icon) {
+		return addNumber(name, channel, min, max, "", numberDefault, icon);
 	}
 
 	/**
@@ -108,17 +102,21 @@ public class OOCSIDevice {
 	 *                      page
 	 * @return
 	 */
-	public OOCSIDevice addNumberComponent(String name, String channel, float min, float max, SensorUnit numberUnit,
+	public OOCSIDevice addNumber(final String name, String channel, float min, float max, String numberUnit,
 	        float numberDefault, String icon) {
 		Map<String, Object> componentMap = new HashMap<>();
 		componentMap.put("channel_name", channel);
 		componentMap.put("type", "number");
-		componentMap.put("unit", numberUnit.name());
+		componentMap.put("unit", numberUnit);
 		componentMap.put("min_max", new float[] { min, max });
 		componentMap.put("value", numberDefault);
 		componentMap.put("icon", icon);
 		components.put(name, componentMap);
-		client.log("Added component " + name + " to the components list of device " + deviceName);
+
+		// receive data
+		installValueHandler(name, channel);
+
+		log("added number " + name);
 		return this;
 	}
 
@@ -134,13 +132,12 @@ public class OOCSIDevice {
 	 *                      page
 	 * @return
 	 */
-	public OOCSIDevice addSensorComponent(String name, String channel, String sensorType, String sensorUnit,
-	        float sensorDefault, String icon) {
+	public OOCSIDevice addSensor(String name, String channel, String sensorType, String sensorUnit, float sensorDefault,
+	        String icon) {
 		try {
-			addSensorComponent(name, channel, BinarySensorType.valueOf(sensorType), SensorUnit.valueOf(sensorUnit),
-			        sensorDefault, icon);
+			addSensor(name, channel, SensorType.valueOf(sensorType), sensorUnit, sensorDefault, icon);
 		} catch (Exception e) {
-			client.log("Error in sensor type or unit of component " + name + " for device " + deviceName);
+			log("Error in sensor type or unit of component " + name);
 		}
 		return this;
 	}
@@ -157,17 +154,21 @@ public class OOCSIDevice {
 	 *                      page
 	 * @return
 	 */
-	public OOCSIDevice addSensorComponent(String name, String channel, BinarySensorType sensorType,
-	        SensorUnit sensorUnit, float sensorDefault, String icon) {
+	public OOCSIDevice addSensor(final String name, String channel, SensorType sensorType, String sensorUnit,
+	        float sensorDefault, String icon) {
 		Map<String, Object> componentMap = new HashMap<>();
 		componentMap.put("channel_name", channel);
 		componentMap.put("type", "sensor");
 		componentMap.put("sensor_type", sensorType.name());
-		componentMap.put("unit", sensorUnit.name());
+		componentMap.put("unit", sensorUnit);
 		componentMap.put("value", sensorDefault);
 		componentMap.put("icon", icon);
 		components.put(name, componentMap);
-		client.log("Added component " + name + " to the components list of device " + deviceName);
+
+		// receive data
+		installValueHandler(name, channel);
+
+		log("added sensor " + name);
 		return this;
 	}
 
@@ -182,12 +183,12 @@ public class OOCSIDevice {
 	 *                      page
 	 * @return
 	 */
-	public OOCSIDevice addBinarySensorComponent(String name, String channel, String sensorType, boolean sensorDefault,
+	public OOCSIDevice addBinarySensor(String name, String channel, String sensorType, boolean sensorDefault,
 	        String icon) {
 		try {
-			addBinarySensorComponent(name, channel, BinarySensorType.valueOf(sensorType), sensorDefault, icon);
+			addBinarySensor(name, channel, BinarySensorType.valueOf(sensorType), sensorDefault, icon);
 		} catch (Exception e) {
-			client.log("Error in sensor type of component " + name + " for device " + deviceName);
+			log("Error in sensor type of component " + name);
 		}
 		return this;
 	}
@@ -203,7 +204,7 @@ public class OOCSIDevice {
 	 *                      page
 	 * @return
 	 */
-	public OOCSIDevice addBinarySensorComponent(String name, String channel, BinarySensorType sensorType,
+	public OOCSIDevice addBinarySensor(final String name, String channel, BinarySensorType sensorType,
 	        boolean sensorDefault, String icon) {
 		Map<String, Object> componentMap = new HashMap<>();
 		componentMap.put("channel_name", channel);
@@ -212,7 +213,11 @@ public class OOCSIDevice {
 		componentMap.put("state", sensorDefault);
 		componentMap.put("icon", icon);
 		components.put(name, componentMap);
-		client.log("Added component " + name + " to the components list of device " + deviceName);
+
+		// receive data
+		installValueHandler(name, channel);
+
+		log("added binary sensor " + name);
 		return this;
 	}
 
@@ -227,12 +232,11 @@ public class OOCSIDevice {
 	 *                      page
 	 * @return
 	 */
-	public OOCSIDevice addSwitchComponent(String name, String channel, String switchType, boolean switchDefault,
-	        String icon) {
+	public OOCSIDevice addSwitch(String name, String channel, String switchType, boolean switchDefault, String icon) {
 		try {
-			addSwitchComponent(name, channel, SwitchType.valueOf(switchType), switchDefault, icon);
+			addSwitch(name, channel, SwitchType.valueOf(switchType), switchDefault, icon);
 		} catch (Exception e) {
-			client.log("Error in sensor type of component " + name + " for device " + deviceName);
+			log("Error in sensor type of component " + name);
 		}
 		return this;
 	}
@@ -248,7 +252,7 @@ public class OOCSIDevice {
 	 *                      page
 	 * @return
 	 */
-	public OOCSIDevice addSwitchComponent(String name, String channel, SwitchType switchType, boolean switchDefault,
+	public OOCSIDevice addSwitch(final String name, String channel, SwitchType switchType, boolean switchDefault,
 	        String icon) {
 		Map<String, Object> componentMap = new HashMap<>();
 		componentMap.put("channel_name", channel);
@@ -257,7 +261,11 @@ public class OOCSIDevice {
 		componentMap.put("state", switchDefault);
 		componentMap.put("icon", icon);
 		components.put(name, componentMap);
-		client.log("Added component " + name + " to the components list of device " + deviceName);
+
+		// receive data
+		installValueHandler(name, channel);
+
+		log("added switch " + name);
 		return this;
 	}
 
@@ -276,13 +284,13 @@ public class OOCSIDevice {
 	 *                          page
 	 * @return
 	 */
-	public OOCSIDevice addLightComponent(String name, String channel, String lightType, String spectrum, int min,
-	        int max, boolean lightDefault, int defaultBrightness, String icon) {
+	public OOCSIDevice addLight(String name, String channel, String lightType, String spectrum, int min, int max,
+	        boolean lightDefault, int defaultBrightness, String icon) {
 		try {
-			addLightComponent(name, channel, LedType.valueOf(lightType), LightSpectrum.valueOf(spectrum), min, max,
-			        lightDefault, defaultBrightness, icon);
+			addLight(name, channel, LedType.valueOf(lightType), LightSpectrum.valueOf(spectrum), min, max, lightDefault,
+			        defaultBrightness, icon);
 		} catch (Exception e) {
-			client.log("Error in sensor type or unit of component " + name + " for device " + deviceName);
+			log("Error in sensor type or unit of component " + name);
 		}
 		return this;
 	}
@@ -302,8 +310,8 @@ public class OOCSIDevice {
 	 *                          page
 	 * @return
 	 */
-	public OOCSIDevice addLightComponent(String name, String channel, LedType lightType, LightSpectrum spectrum,
-	        int min, int max, boolean lightDefault, int defaultBrightness, String icon) {
+	public OOCSIDevice addLight(final String name, String channel, LedType lightType, LightSpectrum spectrum, int min,
+	        int max, boolean lightDefault, int defaultBrightness, String icon) {
 		Map<String, Object> componentMap = new HashMap<>();
 		componentMap.put("channel_name", channel);
 		componentMap.put("type", "light");
@@ -314,7 +322,11 @@ public class OOCSIDevice {
 		componentMap.put("brightness", defaultBrightness);
 		componentMap.put("icon", icon);
 		components.put(name, componentMap);
-		client.log("Added component " + name + " to the components list of device " + deviceName);
+
+		// receive data
+		installValueHandler(name, channel);
+
+		log("added light " + name);
 		return this;
 	}
 
@@ -326,8 +338,13 @@ public class OOCSIDevice {
 	 * submit the heyOOCSI! message to the server
 	 */
 	public void submit() {
-		deviceMessage.send();
-		client.log("Sent heyOOCSI! message for device " + deviceName);
+		HashMap<String, Object> messageData = new HashMap<>();
+		messageData.put("properties", properties);
+		messageData.put("components", components);
+		messageData.put("location", location);
+
+		new OOCSIMessage(client, "heyOOCSI!").data(deviceName, messageData).send();
+		log("sent heyOOCSI! message");
 	}
 
 	/**
@@ -339,6 +356,268 @@ public class OOCSIDevice {
 	}
 
 	//
+	// Values
+	//
+
+	/**
+	 * internal value receiver handler that is added to components
+	 * 
+	 * @param name
+	 * @param channel
+	 */
+	private void installValueHandler(final String name, String channel) {
+		client.subscribe(channel, new EventHandler() {
+			@Override
+			public void receive(OOCSIEvent event) {
+				if (event.getString("clientHandle", "").equals(name)) {
+					// retrieve the value map
+					componentValues.putIfAbsent(name, new HashMap<String, Object>());
+					Map<String, Object> values = componentValues.get(name);
+					if (event.has("state")) {
+						values.put("value", event.getObject("state"));
+					} else if (event.has("value")) {
+						values.put("value", event.getObject("value"));
+					}
+					if (event.has("brightness")) {
+						values.put("brightness", event.getObject("brightness"));
+					}
+				}
+			}
+		});
+	}
+
+	/**
+	 * retrieve the currently set state for the only component -- or default value
+	 * 
+	 * @param defaultValue
+	 * @return
+	 */
+	public boolean getState(boolean defaultValue) {
+		if (componentValues.size() == 1) {
+			String componentName = components.keySet().iterator().next();
+			return getStateOfComponent(componentName, defaultValue);
+		}
+		return defaultValue;
+	}
+
+	/**
+	 * retrieve the currently set state for the given component -- or default value
+	 * 
+	 * @param defaultValue
+	 * @return
+	 */
+	public boolean getStateOfComponent(String componentName, boolean defaultValue) {
+		return getValueOfComponent(componentName, "value", defaultValue ? 1 : 0) != 0;
+	}
+
+	/**
+	 * retrieve the currently set value for the only component -- or default value
+	 * 
+	 * @param defaultValue
+	 * @return
+	 */
+	public float getValue(float defaultValue) {
+		if (componentValues.size() == 1) {
+			String componentName = components.keySet().iterator().next();
+			return getValueOfComponent(componentName, "value", defaultValue);
+		}
+		return defaultValue;
+	}
+
+	/**
+	 * retrieve the currently set value for a given key for the only component -- or default value
+	 * 
+	 * @param defaultValue
+	 * @return
+	 */
+	public float getValue(String key, float defaultValue) {
+		if (componentValues.size() == 1) {
+			String componentName = components.keySet().iterator().next();
+			return getValueOfComponent(componentName, key, defaultValue);
+		}
+		return defaultValue;
+	}
+
+	/**
+	 * retrieve the currently set default value for the given component -- or default value
+	 * 
+	 * @param componentName
+	 * @param defaultValue
+	 * @return
+	 */
+	public float getValueOfComponent(String componentName, float defaultValue) {
+		return getValueOfComponent(componentName, "value", defaultValue);
+	}
+
+	/**
+	 * retrieve the currently set value for the given component and key -- or default value
+	 * 
+	 * @param componentName
+	 * @param key
+	 * @param defaultValue
+	 * @return
+	 */
+	public float getValueOfComponent(String componentName, String key, float defaultValue) {
+		Map<String, Object> values = componentValues.get(componentName);
+		if (values != null) {
+			try {
+				return Float.parseFloat((String) values.get(key));
+			} catch (Exception e) {
+				return defaultValue;
+			}
+		}
+		return defaultValue;
+	}
+
+	/**
+	 * set the default value for the only component
+	 * 
+	 * @param state
+	 */
+	public void setState(boolean state) {
+		if (components.size() == 1) {
+			String componentName = components.keySet().iterator().next();
+			setValueForComponent(componentName, "value", state);
+		}
+	}
+
+	/**
+	 * set the default value for the only component
+	 * 
+	 * @param value
+	 */
+	public void setValue(Number value) {
+		if (components.size() == 1) {
+			String componentName = components.keySet().iterator().next();
+			setValueForComponent(componentName, "value", value);
+		}
+	}
+
+	/**
+	 * set the default value for the only component
+	 * 
+	 * @param value
+	 */
+	public void setValue(String value) {
+		if (components.size() == 1) {
+			String componentName = components.keySet().iterator().next();
+			setValueForComponent(componentName, "value", value);
+		}
+	}
+
+	/**
+	 * set the value for a given key for the only component
+	 * 
+	 * @param key
+	 * @param value
+	 */
+	public void setValue(String key, Number value) {
+		if (components.size() == 1) {
+			String componentName = components.keySet().iterator().next();
+			setValueForComponent(componentName, key, value);
+		}
+	}
+
+	/**
+	 * set the value for a given key for the only component
+	 * 
+	 * @param key
+	 * @param value
+	 */
+	public void setValue(String key, String value) {
+		if (components.size() == 1) {
+			String componentName = components.keySet().iterator().next();
+			setValueForComponent(componentName, key, value);
+		}
+	}
+
+	/**
+	 * set the default value for the given component
+	 * 
+	 * @param componentName
+	 * @param value
+	 */
+	public void setValueForComponent(String componentName, Number value) {
+		setValueForComponent(componentName, "value", value);
+	}
+
+	/**
+	 * set the default value for the given component
+	 * 
+	 * @param componentName
+	 * @param value
+	 */
+	public void setValueForComponent(String componentName, String value) {
+		setValueForComponent(componentName, "value", value);
+	}
+
+	/**
+	 * set a value for the given component
+	 * 
+	 * @param componentName
+	 * @param key
+	 * @param value
+	 */
+	public void setValueForComponent(String componentName, String key, boolean value) {
+		if (components.containsKey(componentName)) {
+			// store value internally
+			componentValues.putIfAbsent(componentName, new HashMap<String, Object>());
+			Map<String, Object> values = componentValues.get(componentName);
+			values.put(key, value);
+			// broadcast value
+			String channel = (String) components.get(componentName).get("channel_name");
+			new OOCSIMessage(client, channel).data(key, value).data("component", componentName).send();
+		}
+	}
+
+	/**
+	 * set a value for the given component
+	 * 
+	 * @param componentName
+	 * @param key
+	 * @param value
+	 */
+	public void setValueForComponent(String componentName, String key, Number value) {
+		if (components.containsKey(componentName)) {
+			// store value internally
+			componentValues.putIfAbsent(componentName, new HashMap<String, Object>());
+			Map<String, Object> values = componentValues.get(componentName);
+			values.put(key, value);
+			// broadcast value
+			String channel = (String) components.get(componentName).get("channel_name");
+			new OOCSIMessage(client, channel).data(key, value.doubleValue()).data("component", componentName).send();
+		}
+	}
+
+	/**
+	 * set a value for the given component
+	 * 
+	 * @param componentName
+	 * @param key
+	 * @param value
+	 */
+	public void setValueForComponent(String componentName, String key, String value) {
+		if (components.containsKey(componentName)) {
+			// store value internally
+			componentValues.putIfAbsent(componentName, new HashMap<String, Object>());
+			Map<String, Object> values = componentValues.get(componentName);
+			values.put(key, value);
+			// broadcast value
+			String channel = (String) components.get(componentName).get("channel_name");
+			new OOCSIMessage(client, channel).data(key, value).data("component", componentName).send();
+		}
+	}
+
+	/**
+	 * internal log helper that prepends the log message with heyOOCSI; for better readability of the logs
+	 * 
+	 * @param message
+	 */
+	private void log(String message) {
+		client.log(" - heyOOCSI (" + deviceName + "): " + message);
+	}
+
+	//
 	// Types
 	//
 
@@ -346,7 +625,7 @@ public class OOCSIDevice {
 	 * from: https://developers.home-assistant.io/docs/core/entity/binary-sensor/#available-device-classes
 	 *
 	 */
-	static enum BinarySensorType {
+	public static enum BinarySensorType {
 		/** On means low, Off means normal. */
 		battery,
 		/** On means charging, Off means not charging. */
@@ -407,7 +686,7 @@ public class OOCSIDevice {
 	 * from: https://developers.home-assistant.io/docs/core/entity/sensor/#available-device-classes
 	 *
 	 */
-	static enum SensorUnit {
+	public static enum SensorType {
 		/** Air Quality Index */
 		aqi,
 		/** % Percentage of battery that is left */
@@ -471,7 +750,7 @@ public class OOCSIDevice {
 	 * from: https://developers.home-assistant.io/docs/core/entity/switch/#available-device-classes
 	 *
 	 */
-	static enum SwitchType {
+	public static enum SwitchType {
 		/** Device is an outlet for power */
 		OUTLET,
 		/** Device is switch for some type of entity */
@@ -479,18 +758,18 @@ public class OOCSIDevice {
 	}
 
 	/**
-	 * from: ?
+	 * from: ? Tbd.
 	 *
 	 */
-	static enum LedType {
+	public static enum LedType {
 		RGB, RGBW, RGBWW, CCT, DIMMABLE, ONOFF
 	}
 
 	/**
-	 * from: ?
+	 * from: ? Tbd.
 	 *
 	 */
-	static enum LightSpectrum {
+	public static enum LightSpectrum {
 		CCT, WHITE, RGB
 	}
 }
