@@ -123,6 +123,7 @@ public class Protocol {
 		// respond to ping
 		else if (inputLine.equals("ping")) {
 			server.refreshChannelPresence(sender);
+			sender.pong();
 			return ".";
 		}
 		// record ping acknowledgement

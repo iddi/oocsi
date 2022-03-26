@@ -183,9 +183,16 @@ public class SocketClient extends Client {
 	 * 
 	 */
 	public void ping() {
+		// ensure that we don't have too many permits in queue
+		while (pingQueue.availablePermits() > 10) {
+			pingQueue.acquireUninterruptibly();
+		}
+
 		// don't send a ping if this might block the output stream
 		if (pingQueue.tryAcquire()) {
 			send("ping");
+		} else {
+			OOCSIServer.log("Ping failed for " + getName());
 		}
 	}
 
