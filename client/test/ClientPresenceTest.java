@@ -13,6 +13,102 @@ import nl.tue.id.oocsi.client.protocol.DataHandler;
 public class ClientPresenceTest {
 
 	@Test
+	public void testClientPresence() throws InterruptedException {
+		final List<String> list = new ArrayList<String>();
+
+		OOCSIClient o1 = new OOCSIClient("test_client_presence_1");
+		o1.connect("localhost", 4444);
+		assertTrue(o1.isConnected());
+
+		// baseline
+		assertEquals(0, list.size());
+
+		o1.subscribe("presence(test_client_presence_2)", new DataHandler() {
+			public void receive(String sender, Map<String, Object> data, long timestamp) {
+				list.add(sender + data.toString());
+			}
+		});
+
+		Thread.sleep(100);
+
+		// test _client_presence_2 is not yet registered, so absent
+		assertEquals(0, list.size());
+
+		OOCSIClient o2 = new OOCSIClient("test_client_presence_2");
+		o2.connect("localhost", 4444);
+		assertTrue(o2.isConnected());
+
+		Thread.sleep(100);
+
+		assertEquals(2, list.size());
+		assertTrue(list.get(0).contains("created"));
+		assertTrue(list.get(1).contains("join"));
+
+		o2.disconnect();
+
+		Thread.sleep(100);
+
+		assertEquals(4, list.size());
+		assertTrue(list.get(2).contains("leave"));
+		assertTrue(list.get(3).contains("closed"));
+
+		o1.disconnect();
+	}
+
+	@Test
+	public void testChannelPresence() throws InterruptedException {
+		final List<String> list = new ArrayList<String>();
+
+		OOCSIClient o1 = new OOCSIClient("test_channel_presence_1");
+		o1.connect("localhost", 4444);
+		assertTrue(o1.isConnected());
+
+		o1.subscribe("presence(test_presence)", new DataHandler() {
+			public void receive(String sender, Map<String, Object> data, long timestamp) {
+				String string = data.toString();
+				// exclude refresh information
+				if (!string.contains("refresh")) {
+					list.add(sender + string);
+				}
+			}
+		});
+
+		Thread.sleep(100);
+
+		// baseline
+		assertEquals(0, list.size());
+
+		OOCSIClient o2 = new OOCSIClient("test_channel_presence_2");
+		o2.connect("localhost", 4444);
+		assertTrue(o2.isConnected());
+
+		Thread.sleep(200);
+
+		assertEquals(0, list.size());
+
+		o2.subscribe("test_presence", null);
+
+		Thread.sleep(100);
+
+		assertEquals(1, list.size());
+
+		o2.subscribe("test_presence_wrong", null);
+
+		Thread.sleep(100);
+
+		assertEquals(1, list.size());
+
+		o2.unsubscribe("test_presence");
+
+		Thread.sleep(100);
+
+		assertEquals(2, list.size());
+
+		o1.disconnect();
+		o2.disconnect();
+	}
+
+	@Test
 	public void testChannelPresenceSubscription() throws InterruptedException {
 		final List<String> list = new ArrayList<String>();
 
@@ -36,20 +132,18 @@ public class ClientPresenceTest {
 		});
 		Thread.sleep(200);
 
-		// two events captured?
-		assertEquals(2, list.size());
+		// one event captured?
+		assertEquals(1, list.size());
 
-		assertTrue(list.get(0).contains("created"));
-		assertTrue(list.get(1).contains("join"));
+		assertTrue(list.get(0).contains("join"));
 
 		o2.disconnect();
 		Thread.sleep(200);
 
 		// two more event captured?
-		assertEquals(4, list.size());
+		assertEquals(2, list.size());
 
-		assertTrue(list.get(2).contains("leave"));
-		assertTrue(list.get(3).contains("close"));
+		assertTrue(list.get(1).contains("leave"));
 
 		o1.disconnect();
 	}
@@ -104,10 +198,9 @@ public class ClientPresenceTest {
 		Thread.sleep(200);
 
 		// two more event captured?
-		assertEquals(4, list.size());
+		assertEquals(3, list.size());
 
 		assertTrue(list.get(2).contains("leave"));
-		assertTrue(list.get(3).contains("close"));
 
 		o1.disconnect();
 	}

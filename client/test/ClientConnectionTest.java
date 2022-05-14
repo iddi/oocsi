@@ -251,14 +251,14 @@ public class ClientConnectionTest {
 
 		o1.send("test_client_3s", map1);
 		Thread.yield();
-		Thread.sleep(3000);
+		Thread.sleep(300);
 
 		assertEquals(1, list.size());
 		assertEquals(list.get(0), map1.get("data"));
 
 		o2.send("test_client_4s", map2);
 		Thread.yield();
-		Thread.sleep(3000);
+		Thread.sleep(300);
 
 		assertEquals(2, list.size());
 		assertEquals(list.get(1), map2.get("data"));
@@ -276,7 +276,7 @@ public class ClientConnectionTest {
 		assertTrue(o1.isConnected());
 		o1.subscribe(new RateLimitedEventHandler(5, 3) {
 			public void receive(OOCSIEvent event) {
-				list.add(event.getSender());
+				list.add(event.getSender() + event.getString("data", ""));
 			}
 		});
 
@@ -285,7 +285,7 @@ public class ClientConnectionTest {
 		assertTrue(o2.isConnected());
 		o2.subscribe(new RateLimitedEventHandler(2, 3) {
 			public void receive(OOCSIEvent event) {
-				list.add(event.getSender());
+				list.add(event.getSender() + event.getString("data", ""));
 			}
 		});
 
@@ -414,9 +414,6 @@ public class ClientConnectionTest {
 		o3.send("test_client_rate_limit_pc_1", "hello18n");
 		Thread.sleep(500);
 
-		for (String string : list) {
-			System.out.println(string);
-		}
 		assertEquals(8, list.size());
 
 		o1.disconnect();
@@ -459,95 +456,6 @@ public class ClientConnectionTest {
 
 		o2.send("testpattern_-AZ09<>!#$@%$*^", "hello1");
 		Thread.sleep(100);
-		assertEquals(2, list.size());
-
-		o1.disconnect();
-		o2.disconnect();
-	}
-
-	@Test
-	public void testClientPresence() throws InterruptedException {
-		final List<String> list = new ArrayList<String>();
-
-		OOCSIClient o1 = new OOCSIClient("test_client_presence_1");
-		o1.connect("localhost", 4444);
-		assertTrue(o1.isConnected());
-
-		// baseline
-		assertEquals(0, list.size());
-
-		o1.subscribe("presence(test_client_presence_2)", new DataHandler() {
-			public void receive(String sender, Map<String, Object> data, long timestamp) {
-				list.add(sender + data.toString());
-			}
-		});
-
-		Thread.sleep(100);
-
-		// test _client_presence_2 is not yet registered, so absent
-		assertEquals(0, list.size());
-
-		OOCSIClient o2 = new OOCSIClient("test_client_presence_2");
-		o2.connect("localhost", 4444);
-		assertTrue(o2.isConnected());
-
-		Thread.sleep(100);
-
-		assertTrue(list.get(0).contains("join"));
-
-		o2.disconnect();
-
-		Thread.sleep(100);
-
-		assertTrue(list.size() > 1);
-		assertTrue(list.get(list.size() - 1).contains("leave"));
-
-		o1.disconnect();
-	}
-
-	@Test
-	public void testChannelPresence() throws InterruptedException {
-		final List<String> list = new ArrayList<String>();
-
-		OOCSIClient o1 = new OOCSIClient("test_channel_presence_1");
-		o1.connect("localhost", 4444);
-		assertTrue(o1.isConnected());
-
-		o1.subscribe("presence(test_presence)", new DataHandler() {
-			public void receive(String sender, Map<String, Object> data, long timestamp) {
-				list.add(sender + data.toString());
-			}
-		});
-
-		Thread.sleep(100);
-
-		// baseline
-		assertEquals(0, list.size());
-
-		OOCSIClient o2 = new OOCSIClient("test_channel_presence_2");
-		o2.connect("localhost", 4444);
-		assertTrue(o2.isConnected());
-
-		Thread.sleep(200);
-
-		assertEquals(0, list.size());
-
-		o2.subscribe("test_presence", null);
-
-		Thread.sleep(100);
-
-		assertEquals(1, list.size());
-
-		o2.subscribe("test_presence_wrong", null);
-
-		Thread.sleep(100);
-
-		assertEquals(1, list.size());
-
-		o2.unsubscribe("test_presence");
-
-		Thread.sleep(100);
-
 		assertEquals(2, list.size());
 
 		o1.disconnect();

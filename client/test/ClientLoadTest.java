@@ -87,17 +87,17 @@ public class ClientLoadTest {
 			}
 		});
 
-		int[][] largePayload = new int[10000][10];
-		for (int i = 0; i < 10000; i++) {
+		int[][] largePayload = new int[100][10];
+		for (int i = 0; i < 100; i++) {
 			largePayload[i] = new int[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 0 };
 		}
 		new OOCSIMessage(o1, "test_client_big_message_2").data("load", largePayload).send();
 
 		Thread.yield();
-		Thread.sleep(1000);
+		Thread.sleep(400);
 
 		assertEquals(1, list.size());
-		assertTrue(((ArrayList) list.get(0)).size() == 10000);
+		assertTrue(((ArrayList) list.get(0)).size() == 100);
 		assertEquals(3l, ((ArrayList) ((ArrayList) list.get(0)).get(0)).get(2));
 
 		o1.disconnect();

@@ -39,8 +39,8 @@ abstract public class RateLimitedEventHandler extends EventHandler {
 	 * java.lang.String, java.lang.String)
 	 */
 	@Override
-	public void receive(String sender, Map<String, Object> data, long timestamp, String channel,
-			final String recipient) {
+	public synchronized void receive(String sender, Map<String, Object> data, long timestamp, String channel,
+	        final String recipient) {
 		final long currentTimeMillis = System.currentTimeMillis();
 
 		// if rate and seconds are invalid
@@ -76,7 +76,7 @@ abstract public class RateLimitedEventHandler extends EventHandler {
 	 * @param recipient
 	 */
 	final protected void internalReceive(String sender, Map<String, Object> data, long timestamp, String channel,
-			final String recipient) {
+	        final String recipient) {
 		super.receive(sender, data, timestamp, channel, recipient);
 	}
 

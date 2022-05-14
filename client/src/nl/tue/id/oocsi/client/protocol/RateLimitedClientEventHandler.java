@@ -25,8 +25,9 @@ abstract public class RateLimitedClientEventHandler extends RateLimitedEventHand
 	}
 
 	@Override
-	public void receive(String sender, Map<String, Object> data, long timestamp, String channel,
-			final String recipient) {
+	public synchronized void receive(String sender, Map<String, Object> data, long timestamp, String channel,
+	        final String recipient) {
+
 		final long currentTimeMillis = System.currentTimeMillis();
 
 		// if rate and seconds are invalid

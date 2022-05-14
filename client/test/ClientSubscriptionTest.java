@@ -476,7 +476,6 @@ public class ClientSubscriptionTest {
 		o1.connect("localhost", 4444);
 		assertTrue(o1.isConnected());
 
-		// o1.subscribe("channel_filter", new DataHandler() {
 		o1.subscribe("channel_transform[transform(minsize,stdev(size*10,2));transform(superpos,mean(pos*1000,2))]",
 		        new DataHandler() {
 			        public void receive(String sender, Map<String, Object> data, long timestamp) {

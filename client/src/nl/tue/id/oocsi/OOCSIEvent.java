@@ -237,10 +237,10 @@ public class OOCSIEvent {
 			Object object = getObject(key);
 			if (object instanceof ArrayList) {
 				@SuppressWarnings("unchecked")
-				ArrayList<Double> list = (ArrayList<Double>) object;
+				ArrayList<Number> list = (ArrayList<Number>) object;
 				int[] array = new int[list.size()];
 				for (int i = 0; i < list.size(); i++) {
-					array[i] = ((Double) list.get(i)).intValue();
+					array[i] = ((Number) list.get(i)).intValue();
 				}
 				return array;
 			}
@@ -262,10 +262,10 @@ public class OOCSIEvent {
 			Object object = getObject(key);
 			if (object instanceof ArrayList) {
 				@SuppressWarnings("unchecked")
-				ArrayList<Double> list = (ArrayList<Double>) object;
+				ArrayList<Number> list = (ArrayList<Number>) object;
 				float[] array = new float[list.size()];
 				for (int i = 0; i < list.size(); i++) {
-					array[i] = ((Double) list.get(i)).floatValue();
+					array[i] = ((Number) list.get(i)).floatValue();
 				}
 				return array;
 			}
@@ -287,10 +287,10 @@ public class OOCSIEvent {
 			Object object = getObject(key);
 			if (object instanceof ArrayList) {
 				@SuppressWarnings("unchecked")
-				ArrayList<Double> list = (ArrayList<Double>) object;
+				ArrayList<Number> list = (ArrayList<Number>) object;
 				long[] array = new long[list.size()];
 				for (int i = 0; i < list.size(); i++) {
-					array[i] = ((Double) list.get(i)).longValue();
+					array[i] = ((Number) list.get(i)).longValue();
 				}
 				return array;
 			}

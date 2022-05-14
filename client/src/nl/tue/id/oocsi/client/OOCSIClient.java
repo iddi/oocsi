@@ -17,7 +17,7 @@ import nl.tue.id.oocsi.client.socket.SocketClient;
  */
 public class OOCSIClient {
 
-	public static final String VERSION = "1.4.3";
+	public static final String VERSION = "1.4.4";
 
 	protected SocketClient sc;
 	protected String name;

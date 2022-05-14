@@ -73,7 +73,7 @@ public class OOCSISpatial extends OOCSISystemCommunicator<Position> {
 	 * @param handler
 	 */
 	private OOCSISpatial(final OOCSIClient client, final String channelName, String key, int timeoutMS,
-			Handler handler) {
+	        Handler handler) {
 		super(client, channelName + "_" + key + "_spatial", handler);
 
 		this.timeout = timeoutMS;
@@ -93,7 +93,7 @@ public class OOCSISpatial extends OOCSISystemCommunicator<Position> {
 
 					// send out my vote
 					new OOCSIMessage(client, OOCSISpatial.this.channelName).data(VOTE, metric.serialise())
-							.data(HANDLE, getHandle()).send();
+					        .data(HANDLE, getHandle()).send();
 				}
 				// vote coming in?
 				else if (event.has(VOTE)) {
@@ -113,7 +113,7 @@ public class OOCSISpatial extends OOCSISystemCommunicator<Position> {
 		client.register(DESTINATION, new Responder(client) {
 			@SuppressWarnings("unchecked")
 			@Override
-			public void respond(OOCSIEvent event, OOCSIData response) {
+			public synchronized void respond(OOCSIEvent event, OOCSIData response) {
 				if (event.has(DESTINATION)) {
 					String destination = event.getString(DESTINATION);
 					String path = event.getString(ROUTING_PATH, "");
@@ -129,7 +129,7 @@ public class OOCSISpatial extends OOCSISystemCommunicator<Position> {
 						float minDistance = Float.MAX_VALUE;
 						int timeoutMS2 = 2000 - path.split(",").length * 100;
 						MultiMessage mm = neighborCall(DESTINATION).data(DESTINATION, destination).data(ROUTING_PATH,
-								path + client.getName() + ",");
+						        path + client.getName() + ",");
 						mm.sendAndWait(timeoutMS2);
 						for (OOCSIMessage om : mm.getMessages()) {
 							if (om instanceof OOCSICall) {
@@ -167,7 +167,7 @@ public class OOCSISpatial extends OOCSISystemCommunicator<Position> {
 	 * @return
 	 */
 	static public OOCSISpatial createSpatial(OOCSIClient client, String channelName, String key, final float myPosition,
-			final float neighborDistance) {
+	        final float neighborDistance) {
 		return new OOCSISpatial(client, channelName, key, new Position1D(myPosition, neighborDistance));
 	}
 
@@ -183,7 +183,7 @@ public class OOCSISpatial extends OOCSISystemCommunicator<Position> {
 	 * @return
 	 */
 	static public OOCSISpatial createSpatial(OOCSIClient client, String channelName, String key,
-			final float myPositionX, final float myPositionY, final float neighborDistance) {
+	        final float myPositionX, final float myPositionY, final float neighborDistance) {
 		return new OOCSISpatial(client, channelName, key, new Position2D(myPositionX, myPositionY, neighborDistance));
 	}
 
@@ -270,7 +270,7 @@ public class OOCSISpatial extends OOCSISystemCommunicator<Position> {
 		// send to all neighbors to ask their neighbors
 		// add my name to path, so I don't have to answer my own question when my neighbor calls back
 		MultiMessage mm = neighborCall(DESTINATION).data(DESTINATION, destination).data(ROUTING_PATH,
-				client.getName() + ",");
+		        client.getName() + ",");
 		mm.sendAndWait();
 
 		float minDistance = Float.MAX_VALUE;
@@ -412,7 +412,7 @@ public class OOCSISpatial extends OOCSISystemCommunicator<Position> {
 		@Override
 		public float distance(Position2D value) {
 			return (float) Math
-					.sqrt(Math.pow(myPositionX - value.myPositionX, 2) + Math.pow(myPositionY - value.myPositionY, 2));
+			        .sqrt(Math.pow(myPositionX - value.myPositionX, 2) + Math.pow(myPositionY - value.myPositionY, 2));
 		}
 
 		@Override
