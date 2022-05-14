@@ -28,7 +28,7 @@ public class PresenceTracker implements ChangeListener {
 	 */
 	public void subscribe(String presenceHostChannel, Channel subscriber) {
 		presenceTracking.putIfAbsent(presenceHostChannel,
-		        new Channel("presence(" + presenceHostChannel + ")", nullListener));
+		        new Channel("presence(" + presenceHostChannel + ")", NULL_LISTENER));
 		presenceTracking.get(presenceHostChannel).addChannel(subscriber);
 	}
 
@@ -59,7 +59,7 @@ public class PresenceTracker implements ChangeListener {
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	@Override
-	public void created(Channel host) {
+	public synchronized void created(Channel host) {
 		Channel listeners = presenceTracking.get(host.getName());
 		if (listeners != null) {
 			listeners.send(new Message(host.getName(), "presence(" + host.getName() + ")")
@@ -68,7 +68,7 @@ public class PresenceTracker implements ChangeListener {
 	}
 
 	@Override
-	public void closed(Channel host) {
+	public synchronized void closed(Channel host) {
 		Channel listeners = presenceTracking.get(host.getName());
 		if (listeners != null) {
 			listeners.send(new Message(host.getName(), "presence(" + host.getName() + ")")
@@ -77,7 +77,7 @@ public class PresenceTracker implements ChangeListener {
 	}
 
 	@Override
-	public void join(Channel host, Channel guest) {
+	public synchronized void join(Channel host, Channel guest) {
 		Channel listeners = presenceTracking.get(host.getName());
 		if (listeners != null) {
 			listeners.send(new Message(host.getName(), "presence(" + host.getName() + ")")
@@ -87,7 +87,7 @@ public class PresenceTracker implements ChangeListener {
 	}
 
 	@Override
-	public void refresh(Channel subscriber) {
+	public synchronized void refresh(Channel subscriber) {
 		presenceTracking.entrySet().stream().forEach(e -> {
 			Channel c = e.getValue();
 			// remove subscriber from all presence tracking channels
@@ -109,7 +109,7 @@ public class PresenceTracker implements ChangeListener {
 	}
 
 	@Override
-	public void leave(String host, String guest) {
+	public synchronized void leave(String host, String guest) {
 		Channel listeners = presenceTracking.get(host);
 		if (listeners != null) {
 			listeners.send(new Message(host, "presence(" + host + ")").addData("client", host).addData(LEAVE, guest));
@@ -117,7 +117,7 @@ public class PresenceTracker implements ChangeListener {
 	}
 
 	@Override
-	public void timeout(Channel subscriber) {
+	public synchronized void timeout(Channel subscriber) {
 		presenceTracking.entrySet().stream().forEach(e -> {
 			Channel c = e.getValue();
 			// remove subscriber from all presence tracking channels
@@ -139,7 +139,7 @@ public class PresenceTracker implements ChangeListener {
 	 * listener implementation that will not listen (for special (meta)channels)
 	 * 
 	 */
-	public final static ChangeListener nullListener = new ChangeListener() {
+	public final static ChangeListener NULL_LISTENER = new ChangeListener() {
 
 		@Override
 		public void created(Channel host) {

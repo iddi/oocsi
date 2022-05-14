@@ -63,7 +63,7 @@ public class FunctionClient extends Client {
 	}
 
 	@Override
-	public void send(Message message) {
+	public synchronized void send(Message message) {
 
 		// filtering checks
 		for (String expression : filterExpression) {
@@ -144,7 +144,7 @@ public class FunctionClient extends Client {
 
 	@Override
 	public String getName() {
-		return delegate.getName();
+		return delegate != null ? delegate.getName() : super.getName();
 	}
 
 	@Override
@@ -177,7 +177,7 @@ public class FunctionClient extends Client {
 		}
 
 		@Override
-		public BigDecimal eval(List<BigDecimal> parameters) {
+		public synchronized BigDecimal eval(List<BigDecimal> parameters) {
 
 			// not initialized?
 			if (queueLength == -1) {
@@ -211,7 +211,7 @@ public class FunctionClient extends Client {
 		}
 
 		@Override
-		public BigDecimal evalQueue(Queue<BigDecimal> queue) {
+		public synchronized BigDecimal evalQueue(Queue<BigDecimal> queue) {
 			BigDecimal result = new BigDecimal(0);
 			for (BigDecimal number : queue) {
 				result = result.add(number);
@@ -227,7 +227,7 @@ public class FunctionClient extends Client {
 		}
 
 		@Override
-		public BigDecimal evalQueue(Queue<BigDecimal> queue) {
+		public synchronized BigDecimal evalQueue(Queue<BigDecimal> queue) {
 			return new BigDecimal(mean(queue));
 		}
 
@@ -253,7 +253,7 @@ public class FunctionClient extends Client {
 		}
 
 		@Override
-		public BigDecimal evalQueue(Queue<BigDecimal> queue) {
+		public synchronized BigDecimal evalQueue(Queue<BigDecimal> queue) {
 			double result = 0;
 			double mean = mean(queue);
 			for (BigDecimal number : queue) {
@@ -284,7 +284,7 @@ public class FunctionClient extends Client {
 		}
 
 		@Override
-		public BigDecimal evalQueue(Queue<BigDecimal> queue) {
+		public synchronized BigDecimal evalQueue(Queue<BigDecimal> queue) {
 			return queue.stream().min((a, b) -> a.compareTo(b)).orElse(new BigDecimal(0));
 		}
 	}
@@ -296,7 +296,7 @@ public class FunctionClient extends Client {
 		}
 
 		@Override
-		public BigDecimal evalQueue(Queue<BigDecimal> queue) {
+		public synchronized BigDecimal evalQueue(Queue<BigDecimal> queue) {
 			return queue.stream().max((a, b) -> a.compareTo(b)).orElse(new BigDecimal(0));
 		}
 	}
@@ -311,7 +311,7 @@ public class FunctionClient extends Client {
 		}
 
 		@Override
-		public LazyNumber lazyEval(List<LazyNumber> parameters) {
+		public synchronized LazyNumber lazyEval(List<LazyNumber> parameters) {
 
 			String key = parameters.get(0).getString();
 			String expression = parameters.get(1).getString();

@@ -119,14 +119,14 @@ public class Server extends Channel {
 						// check mini-timeout (last action of old socket at least 2 seconds ago)
 						if (socketClientOld.lastAction() < System.currentTimeMillis() - 2000) {
 
-							// kill old socket
+							// kill old client connection
 							presence.leave(clientName, clientName);
 							removeClient(existingClient);
 
 							// log
 							OOCSIServer.logConnection(clientName, clientName, "replaced client at same IP", new Date());
 
-							// add new socket
+							// add new client connection
 							addChannel(client);
 							clients.put(clientName, client);
 							presence.join(client, client);
@@ -161,12 +161,17 @@ public class Server extends Channel {
 
 		// check first if this is really the client to remove
 		if (getClient(clientName) == client || getChannel(clientName) == client) {
+
+			// only report presence information for public clients
+			if (!client.isPrivate()) {
+				// remove from presence tracking if tracking
+				presence.leave(client.getName(), client.getName());
+				presence.remove(client);
+			}
+
 			// remove client from client list and sub channels (recursively)
 			removeChannel(client, true);
 			clients.remove(clientName);
-
-			// remove from presence tracking if tracking
-			presence.remove(client);
 
 			// disconnect client
 			client.disconnect();

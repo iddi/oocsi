@@ -16,9 +16,9 @@ import nl.tue.id.oocsi.server.model.Client;
 import nl.tue.id.oocsi.server.model.Server;
 import nl.tue.id.oocsi.server.protocol.Message;
 import nl.tue.id.oocsi.server.services.AbstractService;
+import nl.tue.id.oocsi.server.services.NIOSocketService;
 import nl.tue.id.oocsi.server.services.OSCService;
 import nl.tue.id.oocsi.server.services.PresenceTracker;
-import nl.tue.id.oocsi.server.services.SocketService;
 
 /**
  * main server component for running OOCSI
@@ -29,7 +29,7 @@ import nl.tue.id.oocsi.server.services.SocketService;
 public class OOCSIServer extends Server {
 
 	// constants
-	public static final String VERSION = "1.27";
+	public static final String VERSION = "1.28";
 
 	// defaults for different services
 	private int maxClients = 100;
@@ -48,7 +48,7 @@ public class OOCSIServer extends Server {
 	// metrics
 	private static int messageCount = 0;
 	private static int messageTotal = 0;
-	private static final long serverStart = System.currentTimeMillis();
+	private static final long SERVER_START = System.currentTimeMillis();
 
 	// singleton server instance
 	private volatile static OOCSIServer INSTANCE;
@@ -155,8 +155,8 @@ public class OOCSIServer extends Server {
 
 		// add OOCSI channels that will deliver meta-data to potentially
 		// connected clients
-		addChannel(new Channel(OOCSI_CONNECTIONS, PresenceTracker.nullListener));
-		addChannel(new Channel(OOCSI_EVENTS, PresenceTracker.nullListener));
+		addChannel(new Channel(OOCSI_CONNECTIONS, PresenceTracker.NULL_LISTENER));
+		addChannel(new Channel(OOCSI_EVENTS, PresenceTracker.NULL_LISTENER));
 
 		// output status message
 		OOCSIServer.log("Started OOCSI server v" + OOCSIServer.VERSION + " for max. " + maxClients + " parallel clients"
@@ -166,19 +166,16 @@ public class OOCSIServer extends Server {
 		OSCService osc = new OSCService(this, port + 1);
 
 		// start TCP/socket server
-		SocketService tcp = new SocketService(this, port, users);
+		NIOSocketService tcp = new NIOSocketService(this, port, users);
 
 		// start services
 		startServices(new AbstractService[] { tcp, osc });
 
 		// start timer for posting channel and client information to the respective channels
-		try {
-			Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(new StatusTimeTask(), 5, 1,
-			        TimeUnit.SECONDS);
-		} catch (Exception e) {
-			e.printStackTrace();
-			OOCSIServer.log("Exception on StatusTimeTask: " + e.getMessage());
-		}
+		Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(new StatusTimeTask(), 5, 1, TimeUnit.SECONDS);
+
+		// start timer for pinging clients that have not sent any data in the last 5 seconds
+		Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(new PingTask(), 5, 5, TimeUnit.SECONDS);
 	}
 
 	/**
@@ -395,6 +392,39 @@ public class OOCSIServer extends Server {
 		}
 	}
 
+	class PingTask implements Runnable {
+
+		public PingTask() {
+			OOCSIServer.log("PingTask launched");
+		}
+
+		@Override
+		public void run() {
+			try {
+				statusTask();
+			} catch (Exception e) {
+				OOCSIServer.log("Exception in PingTask: " + e.getMessage());
+				e.printStackTrace();
+			}
+		}
+
+		/**
+		 * run the ping task
+		 * 
+		 */
+		public void statusTask() {
+			long start = System.currentTimeMillis();
+
+			// keep-alive ping-pong with socket clients
+			for (Client client : INSTANCE.getClients()) {
+				// only ping if last action is at least 5 seconds ago
+				if (client.lastAction() + 5000 < start) {
+					client.ping();
+				}
+			}
+		}
+	}
+
 	class StatusTimeTask implements Runnable {
 
 		public StatusTimeTask() {
@@ -441,16 +471,6 @@ public class OOCSIServer extends Server {
 
 			long afterCleans = System.currentTimeMillis();
 
-			// keep-alive ping-pong with socket clients
-			for (Client client : INSTANCE.getClients()) {
-				// only ping if last action is at least 5 seconds ago
-				if (client.lastAction() + 5000 < start) {
-					client.ping();
-				}
-			}
-
-			long afterPings = System.currentTimeMillis();
-
 			// check if we have a subscriber for public channel information
 			Channel channels = INSTANCE.getChannel(OOCSI_CHANNELS);
 			if (channels != null) {
@@ -485,7 +505,7 @@ public class OOCSIServer extends Server {
 				Message message = new Message(SERVER, OOCSI_METRICS);
 
 				// millis since startup
-				message.addData("uptime", System.currentTimeMillis() - serverStart);
+				message.addData("uptime", System.currentTimeMillis() - SERVER_START);
 
 				// total messages since startup
 				message.addData("messagesTotal", messageTotal);
@@ -510,8 +530,7 @@ public class OOCSIServer extends Server {
 			if (System.currentTimeMillis() - start > 100) {
 				OOCSIServer.log("Status task took longer than 100ms: " + (System.currentTimeMillis() - start));
 				OOCSIServer.log("Also cleans took: " + (afterCleans - start));
-				OOCSIServer.log("Also pings took: " + (afterPings - afterCleans));
-				OOCSIServer.log("Also 1st metrics took: " + (afterFirstMetrics - afterPings));
+				OOCSIServer.log("Also 1st metrics took: " + (afterFirstMetrics - afterCleans));
 				OOCSIServer.log("Also 2nd metrics took: " + (System.currentTimeMillis() - afterFirstMetrics));
 			}
 		}

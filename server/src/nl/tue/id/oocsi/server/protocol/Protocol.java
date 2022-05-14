@@ -89,7 +89,13 @@ public class Protocol {
 				String message = tokens[2];
 
 				Channel c = server.getChannel(recipient);
-				dispatchMessage(sender, recipient, c, parseJSONMessage(message));
+				if (message.startsWith("{")) {
+					dispatchMessage(sender, recipient, c, parseJSONMessage(message));
+				} else {
+					final Map<String, Object> map = new HashMap<String, Object>();
+					map.put("data", message);
+					dispatchMessage(sender, recipient, c, map);
+				}
 			}
 		}
 		// create new message from Java serialized input

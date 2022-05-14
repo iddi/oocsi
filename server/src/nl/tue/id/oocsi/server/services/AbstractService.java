@@ -31,7 +31,7 @@ abstract public class AbstractService {
 	 * @return
 	 */
 	public boolean register(Client client) {
-		return server.addClient(client);
+		return client.getName().contains(" ") ? false : server.addClient(client);
 	}
 
 	/**
@@ -51,7 +51,7 @@ abstract public class AbstractService {
 	 * @param inputLine
 	 * @return
 	 */
-	public String processInput(SocketClient client, String inputLine) {
+	public String processInput(Client client, String inputLine) {
 		return server.processInput(client, inputLine);
 	}
 }

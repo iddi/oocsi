@@ -26,8 +26,6 @@ public class Channel {
 	public Channel(String token, ChangeListener changeListener) {
 		this.token = token;
 		this.presence = changeListener;
-
-		this.presence.created(this);
 	}
 
 	/**
@@ -178,12 +176,14 @@ public class Channel {
 		if (!getName().equals(channel.getName()) && !subChannels.containsKey(channel.getName())) {
 			subChannels.put(channel.getName(), channel);
 
-			// update presence information
+			// update presence information only for public clients
 			if (!channel.isPrivate()) {
 				if (channel instanceof Client) {
+					// signal to presence tracker that a client "channel" is created
 					presence.created(channel);
 				}
 
+				// signal to presence tracker that a subchannel "channel" joins "this" channel
 				presence.join(this, channel);
 				OOCSIServer.logConnection(getName(), channel.getName(), "added channel", new Date());
 			}
@@ -216,11 +216,15 @@ public class Channel {
 	 */
 	public void removeChannel(Channel channel, boolean recursive) {
 		if (subChannels.remove(channel.getName()) != null) {
+
+			// update presence information once for public clients
 			if (!channel.isPrivate()) {
+				// signal to presence tracker that a subchannel "channel" leaves "this" channel
 				presence.leave(this.getName(), channel.getName());
 				OOCSIServer.logConnection(getName(), channel.getName(), "removed channel", new Date());
 
 				if (channel instanceof Client) {
+					// signal to presence tracker that a client "channel" is closed
 					presence.closed(channel);
 				}
 			}
@@ -246,10 +250,15 @@ public class Channel {
 			// it is empty now, remove sub channel
 			if (!(subChannel instanceof Client) && subChannel.subChannels.size() == 0
 			        && (subChannel.retainedMessage == null || !subChannel.retainedMessage.isValid())) {
-				subChannels.remove(subChannel.getName());
-				presence.closed(subChannel);
+				// update presence information once for public clients
 				if (!subChannel.isPrivate()) {
+					// signal to presence tracker that a subchannel "channel" leaves "this" channel
+					presence.leave(this.getName(), subChannel.getName());
+					subChannels.remove(subChannel.getName());
+
 					OOCSIServer.logConnection(getName(), subChannel.getName(), "closed empty channel", new Date());
+				} else {
+					subChannels.remove(subChannel.getName());
 				}
 			}
 		}
