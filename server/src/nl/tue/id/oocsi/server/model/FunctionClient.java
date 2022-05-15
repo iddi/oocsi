@@ -111,12 +111,12 @@ public class FunctionClient extends Client {
 			}
 		}
 
-		message.recipient += "[" + functionString + "]";
-		delegate.send(message);
+		// send message with a function client specific recipient
+		delegate.send(message.cloneForRecipient(message.getRecipient() + ("[" + functionString + "]")));
 
 		// log this if recipient is this client exactly
-		if (message.recipient.equals(getName())) {
-			OOCSIServer.logEvent(message.sender, "", message.recipient, message.data, message.timestamp);
+		if (message.getRecipient().equals(getName())) {
+			OOCSIServer.logEvent(message.getSender(), "", message.getRecipient(), message.data, message.getTimestamp());
 		}
 	}
 
@@ -145,6 +145,11 @@ public class FunctionClient extends Client {
 	@Override
 	public String getName() {
 		return delegate != null ? delegate.getName() : super.getName();
+	}
+
+	@Override
+	public String toString() {
+		return getName();
 	}
 
 	@Override

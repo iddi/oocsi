@@ -29,15 +29,16 @@ public class Message implements Serializable {
 	/**
 	 * id of sender (individual client)
 	 */
-	public String sender;
+	private String sender;
+
 	/**
 	 * id of receiver (can be a channel or an individual client)
 	 */
-	public String recipient;
+	private String recipient;
 	/**
 	 * when the message was received on server
 	 */
-	public Date timestamp;
+	private Date timestamp;
 	/**
 	 * data payload of message
 	 */
@@ -86,6 +87,18 @@ public class Message implements Serializable {
 		}
 	}
 
+	public String getSender() {
+		return sender;
+	}
+
+	public String getRecipient() {
+		return recipient;
+	}
+
+	public Date getTimestamp() {
+		return timestamp;
+	}
+
 	/**
 	 * convenience method to add data (as a key/value pair) to an existing message
 	 * 
@@ -96,6 +109,16 @@ public class Message implements Serializable {
 	public Message addData(String key, Object value) {
 		this.data.put(key, value);
 		return this;
+	}
+
+	/**
+	 * clones with message with a new, given recipient
+	 * 
+	 * @param recipient
+	 * @return
+	 */
+	public Message cloneForRecipient(String recipient) {
+		return new Message(this.sender, recipient, this.timestamp, this.data);
 	}
 
 	/**

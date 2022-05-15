@@ -29,7 +29,7 @@ import nl.tue.id.oocsi.server.services.PresenceTracker;
 public class OOCSIServer extends Server {
 
 	// constants
-	public static final String VERSION = "1.28";
+	public static final String VERSION = "1.29";
 
 	// defaults for different services
 	private int maxClients = 100;
@@ -456,9 +456,9 @@ public class OOCSIServer extends Server {
 			synchronized (delayedMessages) {
 				final Date now = new Date();
 				delayedMessages.values().removeIf(message -> {
-					if (message.timestamp.before(now)) {
-						Channel c = getChannel(message.recipient);
-						if (c != null && c.validate(message.recipient)) {
+					if (message.getTimestamp().before(now)) {
+						Channel c = getChannel(message.getRecipient());
+						if (c != null && c.validate(message.getRecipient())) {
 							c.send(message);
 						}
 

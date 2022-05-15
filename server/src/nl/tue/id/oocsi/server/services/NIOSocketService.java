@@ -13,9 +13,11 @@ import java.nio.charset.Charset;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Executors;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -25,18 +27,18 @@ import nl.tue.id.oocsi.server.model.Client;
 import nl.tue.id.oocsi.server.model.Server;
 import nl.tue.id.oocsi.server.protocol.Base64Coder;
 import nl.tue.id.oocsi.server.protocol.Message;
-import nl.tue.id.oocsi.server.protocol.StreamMessage;
 
 public class NIOSocketService extends AbstractService {
 
 	private final int port;
 	private final String[] registeredUsers;
 
-	private final Map<SocketChannel, NIOSocketClient> nioClients = new HashMap<>();
+	// current list of connected NIO clients
+	private final Map<SocketChannel, NIOSocketClient> nioClients = new ConcurrentHashMap<>();
 	private boolean serverSocketActive = true;
 
 	/**
-	 * create a TCP socket service for OOCSI
+	 * create a TCP socket service for OOCSI based on Java NIO
 	 * 
 	 * @param server
 	 * @param port
@@ -90,38 +92,77 @@ public class NIOSocketService extends AbstractService {
 			serverSocketChannel.configureBlocking(false);
 			serverSocketChannel.socket().bind(new InetSocketAddress(port));
 
-			Selector selector = Selector.open();
-			serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
+			Selector readSelector = Selector.open();
+			serverSocketChannel.register(readSelector, SelectionKey.OP_ACCEPT);
+			Selector writeSelector = Selector.open();
 
+			// start writer loop in separate thread
+			Executors.newSingleThreadExecutor().execute(() -> {
+				try {
+					while (serverSocketActive) {
+						// check if there is anything to write
+						if (!writableNIOClients()) {
+							try {
+								Thread.sleep(10);
+							} catch (InterruptedException e) {
+							}
+
+							continue;
+						}
+
+						writeSelector.selectNow();
+						Iterator<SelectionKey> keys = writeSelector.selectedKeys().iterator();
+						while (keys.hasNext()) {
+							SelectionKey selectionKey = (SelectionKey) keys.next();
+							if (selectionKey.isWritable()) {
+								handleWriteOp(selectionKey);
+							}
+							keys.remove();
+						}
+					}
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			});
+
+			// accept and read loop
 			while (serverSocketActive) {
-				selector.select();
-				Iterator<SelectionKey> keys = selector.selectedKeys().iterator();
+				readSelector.select();
+				Iterator<SelectionKey> keys = readSelector.selectedKeys().iterator();
 
 				while (keys.hasNext()) {
 					SelectionKey selectionKey = (SelectionKey) keys.next();
 					if (selectionKey.isAcceptable()) {
 						SocketChannel socketChannel = serverSocketChannel.accept();
 						socketChannel.configureBlocking(false);
-						socketChannel.register(selectionKey.selector(), SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+						socketChannel.register(selectionKey.selector(), SelectionKey.OP_READ);
+						socketChannel.register(writeSelector, SelectionKey.OP_WRITE);
 					} else if (selectionKey.isReadable()) {
 						handleReadOp(selectionKey);
-					} else if (selectionKey.isWritable()) {
-						handleWriteOp(selectionKey);
 					}
 					keys.remove();
 				}
-
-				try {
-					Thread.sleep(10);
-				} catch (InterruptedException e) {
-				}
 			}
+
 		} catch (IOException e) {
-			// broken
 			e.printStackTrace();
 		}
 	}
 
+	/**
+	 * check whether there is any outgoing data from any client
+	 * 
+	 * @return
+	 */
+	private boolean writableNIOClients() {
+		return nioClients.values().parallelStream().anyMatch(nc -> !nc.pendingData.isEmpty());
+	}
+
+	/**
+	 * read from NIO socket client and process the data
+	 * 
+	 * @param selectionKey
+	 */
 	private void handleReadOp(SelectionKey selectionKey) {
 		SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
 		ByteBuffer byteBuffer = ByteBuffer.allocate(128 * 1024);
@@ -196,14 +237,28 @@ public class NIOSocketService extends AbstractService {
 		} else {
 			// send data to client
 			client.send(byteBuffer);
-		}
 
+			// check if client should be terminated
+			if (!client.isConnected()) {
+				try {
+					socketChannel.write(ByteBuffer.wrap("bye\n".getBytes()));
+					nioClients.remove(socketChannel);
+					socketChannel.close();
+				} catch (IOException e) {
+				}
+			}
+		}
 	}
 
+	/**
+	 * write pending data to NIO client
+	 * 
+	 * @param selectionKey
+	 */
 	private void handleWriteOp(SelectionKey selectionKey) {
-		SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
-		NIOSocketClient client = nioClients.get(socketChannel);
 		try {
+			SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
+			NIOSocketClient client = nioClients.get(socketChannel);
 			if (client != null) {
 				Queue<ByteBuffer> pendingData = client.pendingData;
 				while (!pendingData.isEmpty()) {
@@ -213,7 +268,7 @@ public class NIOSocketService extends AbstractService {
 					}
 				}
 
-				// check if we need to terminate this client
+				// check if client should be terminated
 				if (!client.isConnected()) {
 					socketChannel.write(ByteBuffer.wrap("bye\n".getBytes()));
 					nioClients.remove(socketChannel);
@@ -230,13 +285,17 @@ public class NIOSocketService extends AbstractService {
 		serverSocketActive = false;
 	}
 
+	/**
+	 * Java NIO Socket Client
+	 *
+	 */
 	class NIOSocketClient extends Client {
 		private final ObjectMapper JSON_OBJECT_MAPPER = new ObjectMapper();
 
-		ClientType type = ClientType.OOCSI;
-		LinkedList<ByteBuffer> pendingData = new LinkedList<ByteBuffer>();
-
+		private ClientType type = ClientType.OOCSI;
 		private boolean isConnected = true;
+
+		private Queue<ByteBuffer> pendingData = new ConcurrentLinkedQueue<ByteBuffer>();
 
 		public NIOSocketClient(String token, ChangeListener presence) {
 			super(token.replace(";", "").replace("(JSON)", "").trim(), presence);
@@ -268,51 +327,6 @@ public class NIOSocketService extends AbstractService {
 			}
 		}
 
-		public void send(ByteBuffer input) {
-
-			// update last action
-			touch();
-
-			String comps[] = new String(input.array()).trim().split("\n");
-			for (String message : comps) {
-				// process input and write output if necessary
-				String outputLine = processInput(this, type == ClientType.PD ? message.replace(";", "") : message);
-				if (outputLine == null) {
-					server.removeClient(this);
-				} else if (outputLine.length() > 0) {
-					send(outputLine);
-				}
-			}
-		}
-
-		@Override
-		public void send(Message message) {
-
-			// update last action
-			touch();
-
-			if (type == ClientType.OOCSI) {
-				// OOCSI native clients might support streaming
-				if (message instanceof StreamMessage) {
-					StreamMessage smessage = (StreamMessage) message;
-					send("stream " + smessage.recipient + " " + new String(smessage.getData()));
-				} else {
-					send("send " + message.recipient + " " + serializeJava(message.data) + " "
-					        + message.timestamp.getTime() + " " + message.sender);
-				}
-			} else if (type == ClientType.PD) {
-				send(message.recipient + " " + serializePD(message.data) + " " + "timestamp="
-				        + message.timestamp.getTime() + " sender=" + message.sender);
-			} else if (type == ClientType.JSON) {
-				send(serializeJSON(message.data, message.recipient, message.timestamp.getTime(), message.sender));
-			}
-
-			// log this if recipient is this client exactly
-			if (message.recipient.equals(getName())) {
-				OOCSIServer.logEvent(message.sender, "", message.recipient, message.data, message.timestamp);
-			}
-		}
-
 		@Override
 		public void disconnect() {
 			isConnected = false;
@@ -332,13 +346,65 @@ public class NIOSocketService extends AbstractService {
 		public void pong() {
 		}
 
+		/**
+		 * receive data in a ByteBuffer, that is, split into lines, then handle the lines separately
+		 * 
+		 * @param input
+		 */
+		public void send(ByteBuffer input) {
+
+			// update last action
+			touch();
+
+			String comps[] = new String(input.array()).trim().split("\n");
+			for (String message : comps) {
+				// process input and write output if necessary
+				String outputLine = processInput(this, type == ClientType.PD ? message.replace(";", "") : message);
+				if (outputLine == null) {
+					server.removeClient(this);
+				} else if (outputLine.length() > 0) {
+					send(outputLine);
+				}
+			}
+		}
+
+		/**
+		 * send message to subscribers
+		 * 
+		 */
+		@Override
+		public void send(Message message) {
+
+			// update last action
+			touch();
+
+			if (type == ClientType.OOCSI) {
+				send("send " + message.getRecipient() + " " + serializeJava(message.data) + " "
+				        + message.getTimestamp().getTime() + " " + message.getSender());
+			} else if (type == ClientType.PD) {
+				send(message.getRecipient() + " " + serializePD(message.data) + " " + "timestamp="
+				        + message.getTimestamp().getTime() + " sender=" + message.getSender());
+			} else if (type == ClientType.JSON) {
+				send(serializeJSON(message.data, message.getRecipient(), message.getTimestamp().getTime(),
+				        message.getSender()));
+			}
+
+			// log this if recipient is this client exactly
+			if (message.getRecipient().equals(getName())) {
+				OOCSIServer.logEvent(message.getSender(), "", message.getRecipient(), message.data,
+				        message.getTimestamp());
+			}
+		}
+
 		private void send(String string) {
 			if (type == ClientType.PD) {
 				string += ';';
 			}
 
-			ByteBuffer b = ByteBuffer.wrap((string + "\n").getBytes(Charset.defaultCharset()));
-			pendingData.add(b);
+			ByteBuffer b = ByteBuffer.wrap((string + "\n").getBytes(Charset.defaultCharset()).clone());
+			if (b != null) {
+				pendingData.offer(b);
+			}
 		}
 
 		/**

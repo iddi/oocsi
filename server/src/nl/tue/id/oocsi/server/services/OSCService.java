@@ -6,16 +6,16 @@ import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.Date;
 
-import nl.tue.id.oocsi.server.OOCSIServer;
-import nl.tue.id.oocsi.server.model.Channel;
-import nl.tue.id.oocsi.server.model.Server;
-import nl.tue.id.oocsi.server.protocol.Message;
-
 import com.illposed.osc.AddressSelector;
 import com.illposed.osc.OSCListener;
 import com.illposed.osc.OSCMessage;
 import com.illposed.osc.OSCPortIn;
 import com.illposed.osc.OSCPortOut;
+
+import nl.tue.id.oocsi.server.OOCSIServer;
+import nl.tue.id.oocsi.server.model.Channel;
+import nl.tue.id.oocsi.server.model.Server;
+import nl.tue.id.oocsi.server.protocol.Message;
 
 /**
  * OSC service component
@@ -49,7 +49,7 @@ public class OSCService extends AbstractService {
 			OSCListener oscListener = new OSCListener() {
 				public void acceptMessage(Date timestamp, OSCMessage message) {
 					if (timestamp.getTime() < System.currentTimeMillis() + 1000
-							&& timestamp.getTime() > System.currentTimeMillis() - 1000) {
+					        && timestamp.getTime() > System.currentTimeMillis() - 1000) {
 
 						String address = message.getAddress();
 						String key = null;
@@ -87,7 +87,7 @@ public class OSCService extends AbstractService {
 				@Override
 				public void send(Message message) {
 					try {
-						String recipient = message.recipient;
+						String recipient = message.getRecipient();
 						if (recipient.startsWith("osc://")) {
 							recipient = recipient.replaceFirst("osc:/", "");
 							opOut.send(new OSCMessage(recipient, message.data.values()));
@@ -110,7 +110,7 @@ public class OSCService extends AbstractService {
 			String hostname = addr.getHostName();
 
 			OOCSIServer.log("[OSC server]: Started OSC service @ local address '" + hostname + "' on port "
-					+ (oscInPort + 1) + " for OSC.");
+			        + (oscInPort + 1) + " for OSC.");
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}

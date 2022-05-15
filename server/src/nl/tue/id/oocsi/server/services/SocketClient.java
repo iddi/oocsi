@@ -21,7 +21,6 @@ import nl.tue.id.oocsi.server.OOCSIServer;
 import nl.tue.id.oocsi.server.model.Client;
 import nl.tue.id.oocsi.server.protocol.Base64Coder;
 import nl.tue.id.oocsi.server.protocol.Message;
-import nl.tue.id.oocsi.server.protocol.StreamMessage;
 
 /**
  * socket implementation for OOCSI client
@@ -69,18 +68,19 @@ public class SocketClient extends Client {
 	@Override
 	public synchronized void send(Message message) {
 		if (type == ClientType.OOCSI) {
-				send("send " + message.recipient + " " + serializeJava(message.data) + " " + message.timestamp.getTime()
-				        + " " + message.sender);
+			send("send " + message.getRecipient() + " " + serializeJava(message.data) + " "
+			        + message.getTimestamp().getTime() + " " + message.getSender());
 		} else if (type == ClientType.PD) {
-			send(message.recipient + " " + serializePD(message.data) + " " + "timestamp=" + message.timestamp.getTime()
-			        + " sender=" + message.sender);
+			send(message.getRecipient() + " " + serializePD(message.data) + " " + "timestamp="
+			        + message.getTimestamp().getTime() + " sender=" + message.getSender());
 		} else if (type == ClientType.JSON) {
-			send(serializeJSON(message.data, message.recipient, message.timestamp.getTime(), message.sender));
+			send(serializeJSON(message.data, message.getRecipient(), message.getTimestamp().getTime(),
+			        message.getSender()));
 		}
 
 		// log this if recipient is this client exactly
-		if (message.recipient.equals(getName())) {
-			OOCSIServer.logEvent(message.sender, "", message.recipient, message.data, message.timestamp);
+		if (message.getRecipient().equals(getName())) {
+			OOCSIServer.logEvent(message.getSender(), "", message.getRecipient(), message.data, message.getTimestamp());
 		}
 	}
 

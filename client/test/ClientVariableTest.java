@@ -58,13 +58,13 @@ public class ClientVariableTest {
 
 		OOCSIClient client1 = new OOCSIClient();
 		client1.connect("localhost", 4444);
-		OOCSIVariable<Integer> of11 = new OOCSIInt(client1, "localVariableTestChannel", "integer1");
-		OOCSIVariable<Integer> of12 = new OOCSIInt(client1, "localVariableTestChannel", "integer2");
+		OOCSIVariable<Integer> of11 = new OOCSIInt(client1, "localVariableTestChannel1", "integer1");
+		OOCSIVariable<Integer> of12 = new OOCSIInt(client1, "localVariableTestChannel1", "integer2");
 
 		OOCSIClient client2 = new OOCSIClient();
 		client2.connect("localhost", 4444);
-		OOCSIVariable<Integer> of21 = new OOCSIInt(client2, "localVariableTestChannel", "integer1");
-		OOCSIVariable<Integer> of22 = new OOCSIInt(client2, "localVariableTestChannel", "integer2");
+		OOCSIVariable<Integer> of21 = new OOCSIInt(client2, "localVariableTestChannel1", "integer1");
+		OOCSIVariable<Integer> of22 = new OOCSIInt(client2, "localVariableTestChannel1", "integer2");
 
 		// initially ---
 
@@ -142,13 +142,13 @@ public class ClientVariableTest {
 
 		OOCSIClient client1 = new OOCSIClient();
 		client1.connect("localhost", 4444);
-		OOCSIFloat of11 = new OOCSIFloat(client1, "localVariableTestChannel", "float3").min(2f).max(6f);
-		OOCSIFloat of12 = new OOCSIFloat(client1, "localVariableTestChannel", "float4");
+		OOCSIFloat of11 = new OOCSIFloat(client1, "localVariableTestChannel2", "float3").min(2f).max(6f);
+		OOCSIFloat of12 = new OOCSIFloat(client1, "localVariableTestChannel2", "float4");
 
 		OOCSIClient client2 = new OOCSIClient();
 		client2.connect("localhost", 4444);
-		OOCSIFloat of21 = new OOCSIFloat(client2, "localVariableTestChannel", "float3").min(3f).max(5f);
-		OOCSIFloat of22 = new OOCSIFloat(client2, "localVariableTestChannel", "float4");
+		OOCSIFloat of21 = new OOCSIFloat(client2, "localVariableTestChannel2", "float3").min(3f).max(5f);
+		OOCSIFloat of22 = new OOCSIFloat(client2, "localVariableTestChannel2", "float4");
 
 		// initially ---
 
@@ -193,11 +193,11 @@ public class ClientVariableTest {
 	public void testVariableRateLimit() throws InterruptedException {
 		OOCSIClient client1 = new OOCSIClient();
 		client1.connect("localhost", 4444);
-		OOCSIFloat of11 = new OOCSIFloat(client1, "localVariableTestChannel", "float1").limit(5, 1);
+		OOCSIFloat of11 = new OOCSIFloat(client1, "localVariableTestChannel4", "float1").limit(5, 1);
 
 		OOCSIClient client2 = new OOCSIClient();
 		client2.connect("localhost", 4444);
-		OOCSIFloat of21 = new OOCSIFloat(client2, "localVariableTestChannel", "float1").limit(5, 1);
+		OOCSIFloat of21 = new OOCSIFloat(client2, "localVariableTestChannel4", "float1").limit(5, 1);
 
 		// initially ---
 
@@ -230,13 +230,13 @@ public class ClientVariableTest {
 
 		OOCSIClient client1 = new OOCSIClient();
 		client1.connect("localhost", 4444);
-		OOCSIFloat of11 = new OOCSIFloat(client1, "localVariableTestChannel", "float1").smooth(2);
-		OOCSIFloat of12 = new OOCSIFloat(client1, "localVariableTestChannel", "float2");
+		OOCSIFloat of11 = new OOCSIFloat(client1, "localVariableTestChannel5", "float1").smooth(2);
+		OOCSIFloat of12 = new OOCSIFloat(client1, "localVariableTestChannel5", "float2");
 
 		OOCSIClient client2 = new OOCSIClient();
 		client2.connect("localhost", 4444);
-		OOCSIFloat of21 = new OOCSIFloat(client2, "localVariableTestChannel", "float1").smooth(2);
-		OOCSIFloat of22 = new OOCSIFloat(client2, "localVariableTestChannel", "float2");
+		OOCSIFloat of21 = new OOCSIFloat(client2, "localVariableTestChannel5", "float1").smooth(2);
+		OOCSIFloat of22 = new OOCSIFloat(client2, "localVariableTestChannel5", "float2");
 
 		// initially ---
 
@@ -246,7 +246,9 @@ public class ClientVariableTest {
 		// towards ---
 
 		of11.set(1.f);
+		Thread.sleep(150);
 		of11.set(2.f);
+		Thread.sleep(150);
 		of12.set(-1.2f);
 
 		Thread.sleep(500);
@@ -284,13 +286,13 @@ public class ClientVariableTest {
 
 		OOCSIClient client1 = new OOCSIClient();
 		client1.connect("localhost", 4444);
-		OOCSIFloat of11 = new OOCSIFloat(client1, "localVariableTestChannel2", "float1s").smooth(2, 1f);
-		OOCSIFloat of12 = new OOCSIFloat(client1, "localVariableTestChannel2", "float2s").smooth(2, 2f);
+		OOCSIFloat of11 = new OOCSIFloat(client1, "localVariableTestChannel21", "float1s").smooth(2, 1f);
+		OOCSIFloat of12 = new OOCSIFloat(client1, "localVariableTestChannel21", "float2s").smooth(2, 2f);
 
 		OOCSIClient client2 = new OOCSIClient();
 		client2.connect("localhost", 4444);
-		OOCSIFloat of21 = new OOCSIFloat(client2, "localVariableTestChannel2", "float1s").smooth(2, 1f);
-		OOCSIFloat of22 = new OOCSIFloat(client2, "localVariableTestChannel2", "float2s").smooth(2, 2f);
+		OOCSIFloat of21 = new OOCSIFloat(client2, "localVariableTestChannel21", "float1s").smooth(2, 1f);
+		OOCSIFloat of22 = new OOCSIFloat(client2, "localVariableTestChannel21", "float2s").smooth(2, 2f);
 
 		// initially ---
 
@@ -351,8 +353,8 @@ public class ClientVariableTest {
 
 		OOCSIClient client1 = new OOCSIClient();
 		client1.connect("localhost", 4444);
-		OOCSIFloat of11 = new OOCSIFloat(client1, "localVariableTestChannel", "float1").reference(4f).timeout(500);
-		OOCSIFloat of12 = new OOCSIFloat(client1, "localVariableTestChannel", "float2").reference(4f).timeout(1000);
+		OOCSIFloat of11 = new OOCSIFloat(client1, "localVariableTestChannel23", "float1").reference(4f).timeout(500);
+		OOCSIFloat of12 = new OOCSIFloat(client1, "localVariableTestChannel23", "float2").reference(4f).timeout(1000);
 
 		// initialization should be reference value
 		assertEquals(4f, of11.get(), 0);
@@ -447,7 +449,7 @@ public class ClientVariableTest {
 		client1.connect("localhost", 4444);
 		assertTrue(client1.isConnected());
 
-		OOCSIFloat of11 = new OOCSIFloat(client1, "localVariableTestChannel", "float1");
+		OOCSIFloat of11 = new OOCSIFloat(client1, "localVariableTestChannel24", "float1");
 
 		of11.set(10f);
 
@@ -459,7 +461,7 @@ public class ClientVariableTest {
 
 		assertEquals(10f, of11.get(), 0);
 
-		OOCSIFloat of21 = new OOCSIFloat(client2, "localVariableTestChannel", "float1");
+		OOCSIFloat of21 = new OOCSIFloat(client2, "localVariableTestChannel24", "float1");
 
 		Thread.sleep(200);
 		of11.set(11f);

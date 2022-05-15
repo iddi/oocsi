@@ -85,7 +85,7 @@ public class Channel {
 	public void send(Message message) {
 		for (Channel subChannel : subChannels.values()) {
 			// no echo in channels; use ECHO channel for that
-			if (message.sender.equals(subChannel.getName())) {
+			if (message.getSender().equals(subChannel.getName())) {
 				continue;
 			}
 
@@ -94,9 +94,9 @@ public class Channel {
 
 			// log event unless channel is private
 			if (!subChannel.isPrivate()) {
-				if (!message.recipient.equals(subChannel.getName())) {
-					OOCSIServer.logEvent(message.sender, message.recipient, subChannel.getName(), message.data,
-					        message.timestamp);
+				if (!message.getRecipient().equals(subChannel.getName())) {
+					OOCSIServer.logEvent(message.getSender(), message.getRecipient(), subChannel.getName(),
+					        message.data, message.getTimestamp());
 				}
 			}
 		}
@@ -170,28 +170,30 @@ public class Channel {
 	/**
 	 * adds a channel if not existing
 	 * 
-	 * @param channel
+	 * @param newChannel
 	 */
-	public void addChannel(Channel channel) {
-		if (!getName().equals(channel.getName()) && !subChannels.containsKey(channel.getName())) {
-			subChannels.put(channel.getName(), channel);
+	public void addChannel(Channel newChannel) {
+
+		// check whether a channel is added recursively
+		if (!getName().equals(newChannel.getName()) && !subChannels.containsKey(newChannel.getName())) {
+			subChannels.put(newChannel.getName(), newChannel);
 
 			// update presence information only for public clients
-			if (!channel.isPrivate()) {
-				if (channel instanceof Client) {
+			if (!newChannel.isPrivate()) {
+				if (newChannel instanceof Client) {
 					// signal to presence tracker that a client "channel" is created
-					presence.created(channel);
+					presence.created(newChannel);
 				}
 
 				// signal to presence tracker that a subchannel "channel" joins "this" channel
-				presence.join(this, channel);
-				OOCSIServer.logConnection(getName(), channel.getName(), "added channel", new Date());
+				presence.join(this, newChannel);
+				OOCSIServer.logConnection(getName(), newChannel.getName(), "added channel", new Date());
 			}
 
 			// send out the retained message to new client
 			final Message retainedMessageCopy = retainedMessage;
 			if (retainedMessageCopy != null && retainedMessageCopy.isValid()) {
-				channel.send(retainedMessageCopy);
+				newChannel.send(retainedMessageCopy);
 			} else {
 				// clear invalid or null message
 				retainedMessage = null;
