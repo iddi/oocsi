@@ -1,3 +1,6 @@
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -8,8 +11,8 @@ import java.util.Map;
 
 import org.junit.Test;
 
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import nl.tue.id.oocsi.client.data.JSONWriter;
 import nl.tue.id.oocsi.server.protocol.Base64Coder;
@@ -18,7 +21,9 @@ public class MessageParsingSpeedTest {
 
 	@SuppressWarnings("unchecked")
 	@Test
-	public void test() throws IOException, ClassNotFoundException {
+	public void testMessageParsingSpeed() throws IOException, ClassNotFoundException {
+		ObjectMapper om = new ObjectMapper();
+
 		Map<String, Object> messageMap = new HashMap<String, Object>();
 		messageMap.put("number", 1.0);
 		messageMap.put("bool", false);
@@ -36,7 +41,7 @@ public class MessageParsingSpeedTest {
 				String msg = new JSONWriter().write(messageMap);
 
 				// to map
-				JsonObject jo = JsonParser.parseString(msg).getAsJsonObject();
+				JsonNode jo = om.readTree(msg);
 				String joStr = jo.toString();
 				if (!joStr.equals(msg)) {
 					System.out.println("Problem:" + joStr + "\n\n" + msg);

@@ -307,6 +307,7 @@ public class Server extends Channel {
 	 */
 	public void unsubscribe(Channel subscriber, String channelName) {
 
+		// ------------------------------------------------------------------------------------------------------------
 		// check for presence unsubscribe
 		Pattern presencePattern = Pattern.compile("presence\\(([\\w_-]+)\\)");
 		Matcher presenceMatcher = presencePattern.matcher(channelName);
@@ -322,6 +323,14 @@ public class Server extends Channel {
 			presence.unsubscribe(presenceChannelName, subscriber);
 
 			return;
+		}
+
+		// ------------------------------------------------------------------------------------------------------------
+		// functions for filtering and transformation
+		Pattern functionPattern = Pattern.compile("([\\w_-]+)\\[(.*)\\]");
+		Matcher functionMatcher = functionPattern.matcher(channelName);
+		if (functionMatcher.find()) {
+			channelName = functionMatcher.group(1);
 		}
 
 		// normal channel unsubscribe
