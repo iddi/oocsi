@@ -61,9 +61,8 @@ public class OOCSIClient {
 				}
 			}
 
-			// concate char array to a new string
-			String randomizedName = new String(newName);
-			this.name = randomizedName;
+			// convert modified char array to a new String
+			this.name = new String(newName);
 		} else {
 			this.name = name;
 		}
