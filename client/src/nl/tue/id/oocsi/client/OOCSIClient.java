@@ -50,9 +50,23 @@ public class OOCSIClient {
 			log("[ERROR] OOCSI name cannot contain spaces");
 			log(" - OOCSI connection aborted");
 			return;
-		}
+		} else if (name.contains("#")) {
+			char[] newName = name.toCharArray();
 
-		this.name = name;
+			// replace "#" with random number
+			for (int i = 0; i < newName.length; i++) {
+				if (newName[i] == '#') {
+					int rand = (int) Math.random()*9;
+					newName[i] = Integer.toString(rand).charAt(0);
+				}
+			}
+
+			// concate char array to a new string
+			String randomizedName = new String(newName);
+			this.name = randomizedName;
+		} else {
+			this.name = name;
+		}
 
 		sc = new SocketClient(name, channels, services) {
 			public void log(String message) {
