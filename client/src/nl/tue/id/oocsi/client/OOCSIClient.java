@@ -17,7 +17,7 @@ import nl.tue.id.oocsi.client.socket.SocketClient;
  */
 public class OOCSIClient {
 
-	public static final String VERSION = "1.4.4";
+	public static final String VERSION = "1.4.5";
 
 	protected SocketClient sc;
 	protected String name;
@@ -56,7 +56,7 @@ public class OOCSIClient {
 			// replace "#" with random number
 			for (int i = 0; i < newName.length; i++) {
 				if (newName[i] == '#') {
-					int rand = (int) Math.random()*9;
+					int rand = (int) Math.random() * 9;
 					newName[i] = Integer.toString(rand).charAt(0);
 				}
 			}
@@ -159,6 +159,8 @@ public class OOCSIClient {
 		sc.setReconnect(reconnect);
 	}
 
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 	/**
 	 * subscribe to the channel with the given name
 	 * 
@@ -186,6 +188,18 @@ public class OOCSIClient {
 	public void unsubscribe(String channelName) {
 		sc.unsubscribe(channelName);
 	}
+
+	/**
+	 * unsubscribe from the channel with the given name
+	 * 
+	 * @param channelName
+	 * @param handler
+	 */
+	public void unsubscribe(String channelName, Handler handler) {
+		sc.unsubscribe(channelName, handler);
+	}
+
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	/**
 	 * register a call with the socket client
@@ -244,6 +258,8 @@ public class OOCSIClient {
 		sc.unregister(callName);
 	}
 
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 	/**
 	 * send a string message to the channel with the given name
 	 * 
@@ -268,6 +284,8 @@ public class OOCSIClient {
 		}
 	}
 
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 	/**
 	 * create an OOCSI device instance with the client's name that can be configured and then submitted to the OOCSI
 	 * server
@@ -287,6 +305,8 @@ public class OOCSIClient {
 	public OOCSIDevice heyOOCSI(String deviceName) {
 		return new OOCSIDevice(this, deviceName);
 	}
+
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	/**
 	 * retrieve the list of clients on the server

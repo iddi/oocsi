@@ -214,7 +214,7 @@ public class SocketClient {
 	}
 
 	/**
-	 * subscribe to channel my own channel
+	 * subscribe to my own channel
 	 * 
 	 * @param handler
 	 */
@@ -235,27 +235,10 @@ public class SocketClient {
 	}
 
 	/**
-	 * unsubscribe from channel given by channelName
-	 * 
-	 * @param channelName
-	 */
-	public void unsubscribe(String channelName) {
-
-		// unregister at server
-		if (runner != null) {
-			runner.send("unsubscribe " + channelName);
-		}
-
-		// remove handler
-		internalRemoveHandler(channelName, null);
-	}
-
-	/**
-	 * unsubscribe from my channel
+	 * unsubscribe from my own channel
 	 * 
 	 */
 	public void unsubscribe() {
-
 		// unregister at server
 		if (runner != null) {
 			runner.send("unsubscribe " + name);
@@ -263,6 +246,25 @@ public class SocketClient {
 
 		// remove handler
 		internalRemoveHandler(SELF, null);
+	}
+
+	/**
+	 * unsubscribe from channel given by channelName
+	 * 
+	 * @param channelName
+	 */
+	public void unsubscribe(String channelName) {
+		unsubscribe(channelName, null);
+	}
+
+	/**
+	 * unsubscribe from channel given by channelName and handler
+	 * 
+	 * @param channelName
+	 * @param handler
+	 */
+	public void unsubscribe(String channelName, Handler handler) {
+		internalRemoveHandler(channelName, handler);
 	}
 
 	/**
@@ -279,8 +281,15 @@ public class SocketClient {
 				MultiHandler mh = (MultiHandler) h;
 				mh.remove(handler);
 
+				// if there are no handlers left...
 				if (mh.isEmpty()) {
+					// remove channel
 					channels.remove(channelName);
+
+					// unregister at server
+					if (runner != null) {
+						runner.send("unsubscribe " + channelName);
+					}
 				}
 			}
 		} else {

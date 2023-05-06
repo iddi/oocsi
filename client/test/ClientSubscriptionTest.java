@@ -14,6 +14,149 @@ import nl.tue.id.oocsi.client.protocol.OOCSIMessage;
 public class ClientSubscriptionTest {
 
 	@Test
+	public void testMultipleSubscriptions() throws InterruptedException {
+		final List<String> list = new ArrayList<String>();
+
+		OOCSIClient o1 = new OOCSIClient("test_multi_subscription1");
+		o1.connect("localhost", 4444);
+		assertTrue(o1.isConnected());
+		o1.subscribe("test_multi_subscriptions_a", new DataHandler() {
+			public void receive(String sender, Map<String, Object> data, long timestamp) {
+				list.add(sender + data.toString());
+			}
+		});
+
+		OOCSIClient o2 = new OOCSIClient("test_multi_subscription2");
+		o2.connect("localhost", 4444);
+		assertTrue(o2.isConnected());
+		o2.subscribe("test_multi_subscriptions_a", new DataHandler() {
+			public void receive(String sender, Map<String, Object> data, long timestamp) {
+				list.add(sender + data.toString());
+			}
+		});
+
+		OOCSIClient o3 = new OOCSIClient("test_multi_subscription3");
+		o3.connect("localhost", 4444);
+		assertTrue(o3.isConnected());
+		o3.subscribe("test_multi_subscriptions_a", new DataHandler() {
+			public void receive(String sender, Map<String, Object> data, long timestamp) {
+				list.add(sender + data.toString());
+			}
+		});
+
+		OOCSIClient o4 = new OOCSIClient("test_multi_subscription4");
+		o4.connect("localhost", 4444);
+		assertTrue(o4.isConnected());
+
+		// baseline
+		assertEquals(0, list.size());
+
+		new OOCSIMessage(o4, "test_multi_subscriptions_a").data("size", 1).send();
+		Thread.sleep(100);
+
+		// all clients connected and receiving
+		assertEquals(3, list.size());
+
+		o2.unsubscribe("test_multi_subscriptions_a");
+		Thread.sleep(50);
+
+		new OOCSIMessage(o4, "test_multi_subscriptions_a").data("size", 2).send();
+		Thread.sleep(50);
+
+		// two clients connected and receiving
+		assertEquals(3 + 2, list.size());
+
+		o3.unsubscribe("test_multi_subscriptions_a");
+		Thread.sleep(50);
+
+		new OOCSIMessage(o4, "test_multi_subscriptions_a").data("size", 3).send();
+		Thread.sleep(50);
+
+		// two clients connected and receiving
+		assertEquals(3 + 2 + 1, list.size());
+
+		o1.disconnect();
+		o2.disconnect();
+		o3.disconnect();
+		o4.disconnect();
+	}
+
+	@Test
+	public void testMultipleSubscriptionsSingleClient() throws InterruptedException {
+		final List<String> list = new ArrayList<String>();
+
+		OOCSIClient o1 = new OOCSIClient("test_multi_subscriptionb1");
+		o1.connect("localhost", 4444);
+		assertTrue(o1.isConnected());
+
+		DataHandler dh1 = new DataHandler() {
+			public void receive(String sender, Map<String, Object> data, long timestamp) {
+				list.add(sender + data.toString());
+			}
+		};
+		o1.subscribe("test_multi_subscriptions_b", dh1);
+
+		DataHandler dh2 = new DataHandler() {
+			public void receive(String sender, Map<String, Object> data, long timestamp) {
+				list.add(sender + data.toString());
+			}
+		};
+		o1.subscribe("test_multi_subscriptions_b", dh2);
+
+		DataHandler dh3 = new DataHandler() {
+			public void receive(String sender, Map<String, Object> data, long timestamp) {
+				list.add(sender + data.toString());
+			}
+		};
+		o1.subscribe("test_multi_subscriptions_b", dh3);
+
+		OOCSIClient o2 = new OOCSIClient("test_multi_subscriptionb2");
+		o2.connect("localhost", 4444);
+		assertTrue(o2.isConnected());
+
+		Thread.sleep(100);
+
+		// baseline
+		assertEquals(0, list.size());
+
+		new OOCSIMessage(o2, "test_multi_subscriptions_b").data("size", 1).send();
+
+		Thread.sleep(100);
+
+		// all clients connected and receiving
+		assertEquals(3, list.size());
+
+		Thread.sleep(50);
+
+		o1.unsubscribe("test_multi_subscriptions_b", dh2);
+
+		Thread.sleep(50);
+
+		new OOCSIMessage(o2, "test_multi_subscriptions_b").data("size", 2).send();
+
+		Thread.sleep(50);
+
+		// two clients connected and receiving
+		assertEquals(3 + 2, list.size());
+
+		Thread.sleep(50);
+
+		o1.unsubscribe("test_multi_subscriptions_b", dh3);
+
+		Thread.sleep(50);
+
+		new OOCSIMessage(o2, "test_multi_subscriptions_b").data("size", 3).send();
+
+		Thread.sleep(50);
+
+		// two clients connected and receiving
+		assertEquals(3 + 2 + 1, list.size());
+
+		o1.disconnect();
+		o2.disconnect();
+	}
+
+	@Test
 	public void testFilteringBrokenSpec() throws InterruptedException {
 		final List<String> list = new ArrayList<String>();
 
