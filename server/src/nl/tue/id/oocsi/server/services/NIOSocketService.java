@@ -151,6 +151,7 @@ public class NIOSocketService extends AbstractService {
 							handleReadOp(selectionKey);
 						}
 					} catch (Exception e) {
+						e.printStackTrace();
 					}
 					keys.remove();
 				}
@@ -193,6 +194,12 @@ public class NIOSocketService extends AbstractService {
 				return;
 			}
 		} catch (Exception e) {
+			try {
+				// then close channel
+				socketChannel.close();
+			} catch (IOException e1) {
+			}
+
 			// connection reset
 			if (nioClients.containsKey(socketChannel)) {
 				// remove the client first
@@ -200,6 +207,8 @@ public class NIOSocketService extends AbstractService {
 				server.removeClient(client);
 				nioClients.remove(socketChannel);
 			}
+
+			e.printStackTrace();
 		}
 
 		NIOSocketClient client = nioClients.get(socketChannel);
@@ -291,6 +300,7 @@ public class NIOSocketService extends AbstractService {
 						nioClientInputBuffer.remove(socketChannel);
 						socketChannel.close();
 					} catch (IOException e) {
+						e.printStackTrace();
 					}
 				}
 
@@ -311,16 +321,16 @@ public class NIOSocketService extends AbstractService {
 			socketChannel.socket().setTcpNoDelay(true);
 			NIOSocketClient client = nioClients.get(socketChannel);
 			if (client != null) {
-				Queue<ByteBuffer> pendingData = client.pendingData;
-				while (!pendingData.isEmpty()) {
-					ByteBuffer buf = pendingData.poll();
-					if (buf != null) {
-						socketChannel.write(buf);
+				if (client.isConnected()) {
+					Queue<ByteBuffer> pendingData = client.pendingData;
+					while (!pendingData.isEmpty() && client.isConnected()) {
+						ByteBuffer buf = pendingData.poll();
+						if (buf != null) {
+							socketChannel.write(buf);
+						}
 					}
-				}
-
-				// check if client should be terminated
-				if (!client.isConnected()) {
+				} else {
+					// check if client should be terminated
 					socketChannel.write(ByteBuffer.wrap("bye\n".getBytes()));
 					nioClients.remove(socketChannel);
 					nioClientInputBuffer.remove(socketChannel);
@@ -329,8 +339,10 @@ public class NIOSocketService extends AbstractService {
 			}
 		} catch (ClosedChannelException e) {
 			// it's ok, don't raise alert
+			e.printStackTrace();
 		} catch (IOException e) {
 			// it's ok, don't raise alert
+			e.printStackTrace();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -361,6 +373,7 @@ public class NIOSocketService extends AbstractService {
 				serverSocketChannel.close();
 				serverSocketChannel.socket().close();
 			} catch (IOException e) {
+				e.printStackTrace();
 			}
 		}
 	}
@@ -439,6 +452,7 @@ public class NIOSocketService extends AbstractService {
 			// process input and write output if necessary
 			String outputLine = processInput(this, type == ClientType.PD ? message.replace(";", "") : message);
 			if (outputLine == null) {
+				this.disconnect();
 				server.removeClient(this);
 			} else if (outputLine.length() > 0) {
 				send(outputLine);
