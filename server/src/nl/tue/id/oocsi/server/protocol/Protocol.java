@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -92,7 +93,7 @@ public class Protocol {
 				if (message.startsWith("{")) {
 					dispatchMessage(sender, recipient, c, parseJSONMessage(message));
 				} else {
-					final Map<String, Object> map = new HashMap<String, Object>();
+					final Map<String, Object> map = new ConcurrentHashMap<String, Object>();
 					map.put("data", message);
 					dispatchMessage(sender, recipient, c, map);
 				}
@@ -116,7 +117,7 @@ public class Protocol {
 						        + "\nRecipient:\n" + recipient + "\n");
 
 						// no function message
-						map = new HashMap<>();
+						map = new ConcurrentHashMap<>();
 					}
 
 					// only send if there is useful data

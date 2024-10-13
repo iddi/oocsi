@@ -2,7 +2,6 @@ package nl.tue.id.oocsi.server.model;
 
 import java.util.Collection;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -42,7 +41,7 @@ public class Server extends Channel {
 		protocol = new Protocol(this);
 
 		// create map for delayed messages
-		delayedMessages = new HashMap<>();
+		delayedMessages = new ConcurrentHashMap<>();
 	}
 
 	@Override

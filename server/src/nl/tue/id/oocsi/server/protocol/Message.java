@@ -2,8 +2,8 @@ package nl.tue.id.oocsi.server.protocol;
 
 import java.io.Serializable;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * general message for the OOCSI protocol
@@ -69,7 +69,7 @@ public class Message implements Serializable {
 		this.sender = sender;
 		this.recipient = recipient;
 		this.timestamp = timestamp;
-		this.data = new HashMap<String, Object>();
+		this.data = new ConcurrentHashMap<String, Object>();
 	}
 
 	/**
