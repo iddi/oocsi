@@ -9,6 +9,7 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -19,7 +20,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import nl.tue.id.oocsi.server.OOCSIServer;
 import nl.tue.id.oocsi.server.model.Client;
-import nl.tue.id.oocsi.server.protocol.Base64Coder;
 import nl.tue.id.oocsi.server.protocol.Message;
 
 /**
@@ -129,13 +129,13 @@ public class SocketClient extends Client {
 			final ObjectOutputStream oos = new ObjectOutputStream(baos);
 			oos.writeObject(data);
 			final byte[] rawData = baos.toByteArray();
-			return new String(Base64Coder.encode(rawData));
+			return new String(Base64.getEncoder().encode(rawData));
 		} catch (IOException e) {
 			try {
 				final ObjectOutputStream oos = new ObjectOutputStream(baos);
 				oos.writeObject(new HashMap<String, Object>());
 				final byte[] rawData = baos.toByteArray();
-				return new String(Base64Coder.encode(rawData));
+				return new String(Base64.getEncoder().encode(rawData));
 			} catch (IOException e1) {
 				return "";
 			}

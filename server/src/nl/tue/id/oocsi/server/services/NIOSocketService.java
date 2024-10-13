@@ -12,6 +12,7 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
+import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -27,7 +28,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import nl.tue.id.oocsi.server.OOCSIServer;
 import nl.tue.id.oocsi.server.model.Client;
 import nl.tue.id.oocsi.server.model.Server;
-import nl.tue.id.oocsi.server.protocol.Base64Coder;
 import nl.tue.id.oocsi.server.protocol.Message;
 
 public class NIOSocketService extends AbstractService {
@@ -434,12 +434,12 @@ public class NIOSocketService extends AbstractService {
 			if (type == ClientType.OOCSI) {
 				send("send " + message.getRecipient() + " " + serializeJava(message.data) + " "
 				        + message.getTimestamp().getTime() + " " + message.getSender());
-			} else if (type == ClientType.PD) {
-				send(message.getRecipient() + " " + serializePD(message.data) + " " + "timestamp="
-				        + message.getTimestamp().getTime() + " sender=" + message.getSender());
 			} else if (type == ClientType.JSON) {
 				send(serializeJSON(message.data, message.getRecipient(), message.getTimestamp().getTime(),
 				        message.getSender()));
+			} else if (type == ClientType.PD) {
+				send(message.getRecipient() + " " + serializePD(message.data) + " " + "timestamp="
+				        + message.getTimestamp().getTime() + " sender=" + message.getSender());
 			}
 
 			// log this if recipient is this client exactly
@@ -471,6 +471,7 @@ public class NIOSocketService extends AbstractService {
 		 * @param data
 		 * @return
 		 */
+		@Deprecated
 		private String serializeJava(Map<String, Object> data) {
 			Map<String, Object> oocsiData = new HashMap<String, Object>();
 			oocsiData.put("error", "Your OOCSI client version is too old, please update.");
@@ -481,6 +482,7 @@ public class NIOSocketService extends AbstractService {
 		 * @param data
 		 * @return
 		 */
+		@Deprecated
 		private String serializeOOCSIOutput(Map<String, Object> data) {
 			// map to serialized java object
 			final ByteArrayOutputStream baos = new ByteArrayOutputStream(1024);
@@ -488,13 +490,13 @@ public class NIOSocketService extends AbstractService {
 				final ObjectOutputStream oos = new ObjectOutputStream(baos);
 				oos.writeObject(data);
 				final byte[] rawData = baos.toByteArray();
-				return new String(Base64Coder.encode(rawData));
+				return new String(Base64.getEncoder().encode(rawData));
 			} catch (IOException e) {
 				try {
 					final ObjectOutputStream oos = new ObjectOutputStream(baos);
 					oos.writeObject(new HashMap<String, Object>());
 					final byte[] rawData = baos.toByteArray();
-					return new String(Base64Coder.encode(rawData));
+					return new String(Base64.getEncoder().encode(rawData));
 				} catch (IOException e1) {
 					return "";
 				}
