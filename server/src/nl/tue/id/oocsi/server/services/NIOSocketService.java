@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
@@ -233,6 +234,15 @@ public class NIOSocketService extends AbstractService {
 				return;
 			}
 
+			// if there are one or more hashes in the inputLine, we need to generate a client name
+			for (int i = 0; i < 20 && inputLine.contains("#"); i++) {
+				String tempHandle = replaceHashesWithDigits(inputLine);
+				if (server.getClient(tempHandle) == null) {
+					inputLine = tempHandle;
+					break;
+				}
+			}
+
 			// if ok, register NIOSocketClient
 			NIOSocketClient newClient = new NIOSocketClient(inputLine, presence);
 			// register for NIO
@@ -324,6 +334,20 @@ public class NIOSocketService extends AbstractService {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+
+	private String replaceHashesWithDigits(String input) {
+		StringBuilder result = new StringBuilder(input.length());
+		Random RAND = new Random();
+		for (int i = 0; i < input.length(); i++) {
+			char c = input.charAt(i);
+			if (c == '#') {
+				result.append(RAND.nextInt(10));
+			} else {
+				result.append(c);
+			}
+		}
+		return result.toString();
 	}
 
 	@Override
