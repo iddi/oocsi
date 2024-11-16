@@ -22,8 +22,12 @@ import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import nl.tue.id.oocsi.server.OOCSIServer;
@@ -449,8 +453,17 @@ public class NIOSocketService extends AbstractService {
 			// update last action
 			touch();
 
-			// process input and write output if necessary
-			String outputLine = processInput(this, type == ClientType.PD ? message.replace(";", "") : message);
+			// depending on client type, we need to pre-process input
+			final String outputLine;
+			if (type == ClientType.PD) {
+				// then process input
+				outputLine = processInput(this, message.replace("'", ",").replace(";", ""));
+			} else {
+				// then process input
+				outputLine = processInput(this, message);
+			}
+
+			// write output if necessary
 			if (outputLine == null) {
 				this.disconnect();
 				server.removeClient(this);
@@ -476,8 +489,8 @@ public class NIOSocketService extends AbstractService {
 				send(serializeJSON(message.data, message.getRecipient(), message.getTimestamp().getTime(),
 				        message.getSender()));
 			} else if (type == ClientType.PD) {
-				send(message.getRecipient() + " " + serializePD(message.data) + " " + "timestamp="
-				        + message.getTimestamp().getTime() + " sender=" + message.getSender());
+				send(message.getRecipient() + " timestamp=" + message.getTimestamp().getTime() + " sender="
+				        + message.getSender() + " " + serializePD(message.data));
 			}
 
 			// log this if recipient is this client exactly
@@ -542,7 +555,8 @@ public class NIOSocketService extends AbstractService {
 		}
 
 		/**
-		 * serialize data for PD clients
+		 * serialize data for PD clients; this serialization needs to be flat, i.e., all key-value pairs are on the
+		 * highest level; array serialization prioritizes arrays of numbers; strings in array will not work well
 		 * 
 		 * @param data
 		 * @return
@@ -551,7 +565,17 @@ public class NIOSocketService extends AbstractService {
 			// map to blank separated list
 			StringBuilder sb = new StringBuilder();
 			for (String key : data.keySet()) {
-				sb.append(key + "=" + data.get(key) + " ");
+				Object value = data.get(key);
+				if (value instanceof String) {
+					sb.append(key + "=" + (String) value + " ");
+				} else if (value instanceof ArrayNode) {
+					String joinedArray = StreamSupport.stream(((ArrayNode) value).spliterator(), false)
+					        .map(JsonNode::asText).collect(Collectors.joining(","));
+					sb.append(key + "=" + joinedArray + " ");
+				} else {
+					// otherwise, just toString()
+					sb.append(key + "=" + value.toString() + " ");
+				}
 			}
 			return sb.toString();
 		}

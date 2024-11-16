@@ -7,15 +7,18 @@ import java.io.InputStreamReader;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import nl.tue.id.oocsi.server.OOCSIServer;
@@ -71,8 +74,8 @@ public class SocketClient extends Client {
 			send("send " + message.getRecipient() + " " + serializeJava(message.data) + " "
 			        + message.getTimestamp().getTime() + " " + message.getSender());
 		} else if (type == ClientType.PD) {
-			send(message.getRecipient() + " " + serializePD(message.data) + " " + "timestamp="
-			        + message.getTimestamp().getTime() + " sender=" + message.getSender());
+			send(message.getRecipient() + " timestamp=" + message.getTimestamp().getTime() + " sender="
+			        + message.getSender() + " " + serializePD(message.data));
 		} else if (type == ClientType.JSON) {
 			send(serializeJSON(message.data, message.getRecipient(), message.getTimestamp().getTime(),
 			        message.getSender()));
@@ -152,7 +155,17 @@ public class SocketClient extends Client {
 		// map to blank separated list
 		StringBuilder sb = new StringBuilder();
 		for (String key : data.keySet()) {
-			sb.append(key + "=" + data.get(key) + " ");
+			Object value = data.get(key);
+			if (value instanceof String) {
+				sb.append(key + "=" + (String) value + " ");
+			} else if (value instanceof ArrayNode) {
+				String joinedArray = StreamSupport.stream(((ArrayNode) value).spliterator(), false)
+				        .map(JsonNode::asText).collect(Collectors.joining(","));
+				sb.append(key + "=" + joinedArray + " ");
+			} else {
+				// otherwise, just toString()
+				sb.append(key + "=" + value.toString() + " ");
+			}
 		}
 		return sb.toString();
 	}
@@ -211,7 +224,6 @@ public class SocketClient extends Client {
 	public void start() {
 		new Thread(new Runnable() {
 			private BufferedReader input;
-			private Socket outputSocket;
 			private OutputStream outputStream;
 
 			public void run() {
@@ -242,16 +254,7 @@ public class SocketClient extends Client {
 						if (inputLine.contains(";")) {
 							token = inputLine.replace(";", "");
 							type = ClientType.PD;
-							try {
-								// try special return port 4445 (for Pd/MaxMSP)
-								outputSocket = new Socket();
-								outputSocket.connect(new InetSocketAddress(socket.getInetAddress(), 4445), 5000);
-								outputStream = outputSocket.getOutputStream();
-								output = new PrintWriter(outputStream, true);
-							} catch (Exception e) {
-								// if not responding in 5 seconds, use open connection for return
-								output = new PrintWriter(socket.getOutputStream(), true);
-							}
+							output = new PrintWriter(socket.getOutputStream(), true);
 						} else if (inputLine.contains("(JSON)")) {
 							token = inputLine.replace("(JSON)", "").trim();
 							type = ClientType.JSON;
@@ -283,7 +286,7 @@ public class SocketClient extends Client {
 
 								// clean input from PD clients
 								if (type == ClientType.PD) {
-									inputLine = inputLine.replace(";", "");
+									inputLine = inputLine.replace("'", ",").replace(";", "");
 								}
 
 								// process input and write output if necessary
