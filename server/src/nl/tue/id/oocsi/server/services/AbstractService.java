@@ -40,7 +40,7 @@ abstract public class AbstractService {
 	 * @param client
 	 */
 	public void unregister(Client client) {
-		presence.leave(client.getName(), client.getName());
+		presence.leave(client, client);
 		server.removeClient(client);
 	}
 

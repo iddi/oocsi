@@ -222,7 +222,7 @@ public class Channel {
 			// update presence information once for public clients
 			if (!channel.isPrivate()) {
 				// signal to presence tracker that a subchannel "channel" leaves "this" channel
-				presence.leave(this.getName(), channel.getName());
+				presence.leave(this, channel);
 				OOCSIServer.logConnection(getName(), channel.getName(), "removed channel", new Date());
 
 				if (channel instanceof Client) {
@@ -255,7 +255,7 @@ public class Channel {
 				// update presence information once for public clients
 				if (!subChannel.isPrivate()) {
 					// signal to presence tracker that a subchannel "channel" leaves "this" channel
-					presence.leave(this.getName(), subChannel.getName());
+					presence.leave(this, subChannel);
 					subChannels.remove(subChannel.getName());
 
 					OOCSIServer.logConnection(getName(), subChannel.getName(), "closed empty channel", new Date());
@@ -274,6 +274,8 @@ public class Channel {
 		public void join(Channel host, Channel guest);
 
 		public void refresh(Channel subscriber);
+
+		public void leave(Channel host, Channel guest);
 
 		public void leave(String host, String guest);
 

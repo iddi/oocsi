@@ -164,7 +164,7 @@ public class Server extends Channel {
 			// only report presence information for public clients
 			if (!client.isPrivate()) {
 				// remove from presence tracking if tracking
-				presence.leave(client.getName(), client.getName());
+				presence.leave(client, client);
 				presence.remove(client);
 			}
 

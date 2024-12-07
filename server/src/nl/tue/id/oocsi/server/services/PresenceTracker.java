@@ -109,6 +109,15 @@ public class PresenceTracker implements ChangeListener {
 	}
 
 	@Override
+	public synchronized void leave(Channel host, Channel guest) {
+		Channel listeners = presenceTracking.get(host.getName());
+		if (listeners != null) {
+			listeners.send(new Message(host.getName(), "presence(" + host.getName() + ")")
+			        .addData(host instanceof Client ? "client" : "channel", host.getName()).addData(LEAVE, guest));
+		}
+	}
+
+	@Override
 	public synchronized void leave(String host, String guest) {
 		Channel listeners = presenceTracking.get(host);
 		if (listeners != null) {
@@ -128,7 +137,7 @@ public class PresenceTracker implements ChangeListener {
 				String host = e.getKey();
 				Channel listeners = presenceTracking.get(host);
 				if (listeners != null) {
-					listeners.send(new Message(host, "presence(" + host + ")").addData("client", host).addData(TIMEOUT,
+					listeners.send(new Message(host, "presence(" + host + ")").addData("channel", host).addData(TIMEOUT,
 					        subscriber.getName()));
 				}
 			}
@@ -155,6 +164,10 @@ public class PresenceTracker implements ChangeListener {
 
 		@Override
 		public void refresh(Channel subscriber) {
+		}
+
+		@Override
+		public void leave(Channel host, Channel guest) {
 		}
 
 		@Override
