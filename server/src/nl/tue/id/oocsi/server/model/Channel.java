@@ -2,8 +2,10 @@ package nl.tue.id.oocsi.server.model;
 
 import java.util.Collection;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import nl.tue.id.oocsi.server.OOCSIServer;
 import nl.tue.id.oocsi.server.protocol.Message;
@@ -14,7 +16,7 @@ import nl.tue.id.oocsi.server.protocol.Message;
  * @author matsfunk
  * 
  */
-public class Channel {
+public class Channel implements IChannel {
 
 	protected final Date created = new Date();
 	protected final ChangeListener presence;
@@ -34,6 +36,7 @@ public class Channel {
 	 * @return
 	 * 
 	 */
+	@Override
 	public String getName() {
 		return token.replaceFirst(":.*", "");
 	}
@@ -53,6 +56,7 @@ public class Channel {
 	 * 
 	 * @return
 	 */
+	@Override
 	public boolean isPrivate() {
 		return token.contains(":") || token.contains("/?");
 	}
@@ -82,23 +86,21 @@ public class Channel {
 	 * 
 	 * @param message
 	 */
+	@Override
 	public void send(Message message) {
-		for (Channel subChannel : subChannels.values()) {
+		List<String> scs = subChannels.values().stream().filter(subChannel -> {
 			// no echo in channels; use ECHO channel for that
-			if (message.getSender().equals(subChannel.getName())) {
-				continue;
-			}
-
+			return !message.getSender().equals(subChannel.getName());
+		}).map(subChannel -> {
 			// send event
 			subChannel.send(message);
+			return subChannel;
+		}).filter(sc -> !sc.isPrivate()).map(sc -> sc.getName()).collect(Collectors.toList());
 
-			// log event unless channel is private
-			if (!subChannel.isPrivate()) {
-				if (!message.getRecipient().equals(subChannel.getName())) {
-					OOCSIServer.logEvent(message.getSender(), message.getRecipient(), subChannel.getName(),
-					        message.data, message.getTimestamp());
-				}
-			}
+		// log message to all subChannels in one go
+		if (!scs.isEmpty()) {
+			OOCSIServer.logEvent(message.getSender(), message.getRecipient(), scs, message.data,
+			        message.getTimestamp());
 		}
 
 		// new message erases always retained message
@@ -148,7 +150,7 @@ public class Channel {
 	 * @return
 	 */
 	public Collection<Channel> getChannels() {
-		return subChannels.values();
+		return subChannels.values().stream().filter(c -> !c.isPrivate()).collect(Collectors.toList());
 	}
 
 	/**
@@ -157,14 +159,7 @@ public class Channel {
 	 * @return
 	 */
 	public String getChannelList() {
-		String result = "";
-		for (Channel channel : subChannels.values()) {
-			if (!channel.isPrivate()) {
-				result += channel.getName() + ",";
-			}
-		}
-
-		return result;
+		return getChannels().stream().map(c -> c.getName()).collect(Collectors.joining(", "));
 	}
 
 	/**

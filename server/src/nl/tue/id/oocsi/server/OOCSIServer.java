@@ -1,8 +1,11 @@
 package nl.tue.id.oocsi.server;
 
 import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.LongSummaryStatistics;
 import java.util.Map;
 import java.util.concurrent.Executors;
@@ -232,6 +235,17 @@ public class OOCSIServer extends Server {
 		return c;
 	}
 
+	@Override
+	public Collection<Channel> getChannels() {
+		return super.getChannels().stream().filter(c -> !c.getName().contains("#") && !c.getName().contains("+"))
+		        .collect(Collectors.toList());
+	}
+
+	@Override
+	public String getChannelList() {
+		return getChannels().stream().map(c -> c.getName()).collect(Collectors.joining(", "));
+	}
+
 	/**
 	 * retrieve the max number of clients on this server
 	 * 
@@ -301,15 +315,34 @@ public class OOCSIServer extends Server {
 	 * logging of event (can be switched off with startup parameter '-logging')
 	 * 
 	 * @param sender
+	 * @param channel
 	 * @param recipient
 	 * @param data
 	 * @param timestamp
 	 */
 	public static void logEvent(String sender, String channel, String recipient, Map<String, Object> data,
 	        Date timestamp) {
+		logEvent(sender, channel, Collections.singletonList(recipient), data, timestamp);
+	}
 
-		if (SERVER.equals(sender) || OOCSI_EVENTS.equals(sender) || OOCSI_EVENTS.equals(recipient)
-		        || OOCSI_METRICS.equals(recipient) || OOCSI_CONNECTIONS.equals(recipient)) {
+	/**
+	 * logging of event (can be switched off with startup parameter '-logging')
+	 * 
+	 * @param sender
+	 * @param channel
+	 * @param recipient
+	 * @param data
+	 * @param timestamp
+	 */
+	public static void logEvent(String sender, String channel, List<String> recipients, Map<String, Object> data,
+	        Date timestamp) {
+
+		// don't ever send to these internal channels
+		recipients.remove(OOCSI_EVENTS);
+		recipients.remove(OOCSI_METRICS);
+		recipients.remove(OOCSI_CONNECTIONS);
+
+		if (SERVER.equals(sender) || OOCSI_EVENTS.equals(sender) || recipients.isEmpty()) {
 			return;
 		}
 
@@ -319,9 +352,9 @@ public class OOCSIServer extends Server {
 
 		if (INSTANCE.isLogging) {
 			if (channel.length() == 0) {
-				log(OOCSI_EVENTS + " " + sender + " --> " + recipient);
+				log(OOCSI_EVENTS + " " + sender + " --> " + recipients);
 			} else {
-				log(OOCSI_EVENTS + " " + sender + " --( " + channel + " )--> " + recipient);
+				log(OOCSI_EVENTS + " " + sender + " --( " + channel + " )--> " + recipients);
 			}
 
 			Channel logChannel = INSTANCE.getChannel(OOCSI_EVENTS);
@@ -338,7 +371,7 @@ public class OOCSIServer extends Server {
 				Message message = new Message(SERVER, OOCSI_EVENTS, timestamp, eventStats);
 				message.addData("PUB", sender);
 				message.addData("CHANNEL", channel);
-				message.addData("SUB", recipient);
+				message.addData("SUB", recipients);
 				logChannel.send(message);
 			}
 		}

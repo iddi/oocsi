@@ -142,22 +142,21 @@ public class NIOSocketService extends AbstractService {
 			// accept and read loop
 			while (serverSocketActive) {
 				readSelector.select();
-				Iterator<SelectionKey> keys = readSelector.selectedKeys().iterator();
-				while (keys.hasNext()) {
+				for (SelectionKey selectionKey : readSelector.selectedKeys()) {
 					try {
-						SelectionKey selectionKey = (SelectionKey) keys.next();
 						if (selectionKey.isAcceptable()) {
 							SocketChannel socketChannel = serverSocketChannel.accept();
-							socketChannel.configureBlocking(false);
-							socketChannel.register(selectionKey.selector(), SelectionKey.OP_READ);
-							socketChannel.register(writeSelector, SelectionKey.OP_WRITE);
+							if (socketChannel != null) {
+								socketChannel.configureBlocking(false);
+								socketChannel.register(selectionKey.selector(), SelectionKey.OP_READ);
+								socketChannel.register(writeSelector, SelectionKey.OP_WRITE);
+							}
 						} else if (selectionKey.isReadable()) {
 							handleReadOp(selectionKey);
 						}
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
-					keys.remove();
 				}
 			}
 		} catch (IOException e) {
@@ -181,7 +180,7 @@ public class NIOSocketService extends AbstractService {
 	 */
 	private void handleReadOp(SelectionKey selectionKey) {
 		SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
-		ByteBuffer byteBuffer = ByteBuffer.allocate(128 * 1024);
+		ByteBuffer byteBuffer = ByteBuffer.allocate(1024);
 		int read = 0;
 		try {
 			read = socketChannel.read(byteBuffer);
@@ -192,35 +191,41 @@ public class NIOSocketService extends AbstractService {
 					NIOSocketClient client = nioClients.get(socketChannel);
 					server.removeClient(client);
 					nioClients.remove(socketChannel);
+					nioClientInputBuffer.remove(socketChannel);
 				}
+
 				// then close channel
 				socketChannel.close();
 				return;
 			}
-		} catch (Exception e) {
-			try {
-				// then close channel
-				socketChannel.close();
-			} catch (IOException e1) {
-			}
-
+		} catch (IOException e) {
 			// connection reset
 			if (nioClients.containsKey(socketChannel)) {
 				// remove the client first
 				NIOSocketClient client = nioClients.get(socketChannel);
 				server.removeClient(client);
 				nioClients.remove(socketChannel);
+				nioClientInputBuffer.remove(socketChannel);
 			}
 
 			e.printStackTrace();
+
+			try {
+				// then close channel
+				socketChannel.close();
+			} catch (IOException e1) {
+			}
+
+			// always return in case of exceptions
+			return;
 		}
 
 		NIOSocketClient client = nioClients.get(socketChannel);
 		if (client == null) {
 			// do the client init based on read
 			String inputLine = new String(byteBuffer.array(), 0, read);
-			nioClientInputBuffer.computeIfAbsent(socketChannel, s -> new StringBuffer()).append(inputLine);
-			StringBuffer sb = nioClientInputBuffer.get(socketChannel);
+			StringBuffer sb = nioClientInputBuffer.computeIfAbsent(socketChannel, s -> new StringBuffer())
+			        .append(inputLine);
 			int nlIndex = sb.indexOf("\n");
 			// if no newline found, buffer input till next read
 			if (nlIndex == -1) {
@@ -283,8 +288,8 @@ public class NIOSocketService extends AbstractService {
 		} else {
 			// do the client init based on read
 			String inputLine = new String(byteBuffer.array(), 0, read);
-			nioClientInputBuffer.computeIfAbsent(socketChannel, s -> new StringBuffer()).append(inputLine);
-			StringBuffer sb = nioClientInputBuffer.get(socketChannel);
+			StringBuffer sb = nioClientInputBuffer.computeIfAbsent(socketChannel, s -> new StringBuffer())
+			        .append(inputLine);
 
 			// find first newline
 			int nlIndex = sb.indexOf("\n");
