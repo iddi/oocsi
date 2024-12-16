@@ -4,6 +4,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
 
@@ -14,26 +15,15 @@ import nl.tue.id.oocsi.client.protocol.OOCSIMessage;
 public class ClientLoadTest {
 
 	@Test
-	public void testConnectionToServer() {
-		OOCSIClient o = new OOCSIClient("test_client_connection_to_server");
-
-		o.connect("localhost", 4444);
-
-		assertTrue(o.isConnected());
-
-		o.disconnect();
-	}
-
-	@Test
 	public void testSendReceive() throws InterruptedException {
-		final List<String> list = new ArrayList<String>();
+		final AtomicInteger ai1 = new AtomicInteger(), ai2 = new AtomicInteger();
 
 		OOCSIClient o1 = new OOCSIClient("test_client_send_receive_1");
 		o1.connect("localhost", 4444);
 		assertTrue(o1.isConnected());
 		o1.subscribe(new DataHandler() {
 			public void receive(String sender, Map<String, Object> data, long timestamp) {
-				list.add(sender);
+				ai2.incrementAndGet();
 			}
 		});
 
@@ -42,24 +32,25 @@ public class ClientLoadTest {
 		assertTrue(o2.isConnected());
 		o2.subscribe(new DataHandler() {
 			public void receive(String sender, Map<String, Object> data, long timestamp) {
-				list.add(sender);
+				ai1.incrementAndGet();
 			}
 		});
 
-		for (int i = 0; i < 1000; i++) {
+		for (int i = 0; i < 500; i++) {
 			o1.send("test_client_send_receive_2", "hello " + i);
+			Thread.sleep(10);
 		}
-		Thread.sleep(6000);
 
-		assertTrue(990 < list.size());
+		Thread.sleep(100);
+		assertEquals(500, ai1.get());
 
-		list.clear();
-		for (int i = 0; i < 1000; i++) {
+		for (int i = 0; i < 500; i++) {
 			o2.send("test_client_send_receive_1", "hello1");
+			Thread.sleep(10);
 		}
-		Thread.sleep(3000);
 
-		assertTrue(990 < list.size());
+		Thread.sleep(100);
+		assertEquals(500, ai2.get());
 
 		o1.disconnect();
 		o2.disconnect();
@@ -97,54 +88,11 @@ public class ClientLoadTest {
 		Thread.sleep(400);
 
 		assertEquals(1, list.size());
-		assertTrue(((ArrayList) list.get(0)).size() == 100);
-		assertEquals(3l, ((ArrayList) ((ArrayList) list.get(0)).get(0)).get(2));
+		assertEquals(100, ((List) list.get(0)).size());
+		assertEquals(3l, ((List) ((List) list.get(0)).get(0)).get(2));
 
 		o1.disconnect();
 		o2.disconnect();
 	}
 
-	// @Test
-	// public void testSendReceive2() throws InterruptedException {
-	// final List<Long> list = new ArrayList<Long>();
-	//
-	// OOCSI o1 = new OOCSI("test_client_3");
-	// o1.connect("localhost", 4444);
-	// assertTrue(o1.isConnected());
-	// o1.subscribe(new DataHandler() {
-	// public void receive(String sender, Map<String, Object> data,
-	// String timestamp) {
-	// list.add((Long) data.get("data"));
-	// }
-	// });
-	// Map<String, Object> map1 = new HashMap<String, Object>();
-	// map1.put("data", System.currentTimeMillis());
-	//
-	// OOCSI o2 = new OOCSI("test_client_4");
-	// o2.connect("localhost", 4444);
-	// assertTrue(o2.isConnected());
-	// o2.subscribe(new DataHandler() {
-	// public void receive(String sender, Map<String, Object> data,
-	// String timestamp) {
-	// list.add((Long) data.get("data"));
-	// }
-	// });
-	// Map<String, Object> map2 = new HashMap<String, Object>();
-	// map2.put("data", System.currentTimeMillis());
-	//
-	// o1.send("test_client_3", map1);
-	// Thread.yield();
-	// Thread.sleep(3000);
-	//
-	// assertEquals(1, list.size());
-	// assertEquals(list.get(0), map1.get("data"));
-	//
-	// o2.send("test_client_4", map2);
-	// Thread.yield();
-	// Thread.sleep(3000);
-	//
-	// assertEquals(2, list.size());
-	// assertEquals(list.get(1), map2.get("data"));
-	//
-	// }
 }

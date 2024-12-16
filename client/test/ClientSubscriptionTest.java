@@ -562,7 +562,8 @@ public class ClientSubscriptionTest {
 		assertTrue(o1.isConnected());
 
 		// o1.subscribe("channel_filter", new DataHandler() {
-		o1.subscribe("channel_transform[transform(supersize,size*10);transform(superpos,pos*1000)]", new DataHandler() {
+		o1.subscribe("channel_transform_dt[transform(supersize,size*10);transform(superpos,pos*1000)]",
+		        new DataHandler() {
 			public void receive(String sender, Map<String, Object> data, long timestamp) {
 				list.add(sender + data.toString());
 			}
@@ -577,7 +578,7 @@ public class ClientSubscriptionTest {
 		// baseline
 		assertEquals(0, list.size());
 
-		new OOCSIMessage(o2, "channel_transform").data("size", 10).data("pos", 3).send();
+		new OOCSIMessage(o2, "channel_transform_dt").data("size", 10).data("pos", 3).send();
 
 		Thread.sleep(100);
 
@@ -587,7 +588,7 @@ public class ClientSubscriptionTest {
 		assertTrue(list.get(0).contains("superpos"));
 		assertTrue(list.get(0).contains("3000.0"));
 
-		new OOCSIMessage(o2, "channel_transform").data("pos", -10).send();
+		new OOCSIMessage(o2, "channel_transform_dt").data("pos", -10).send();
 
 		Thread.sleep(100);
 
@@ -597,7 +598,7 @@ public class ClientSubscriptionTest {
 		assertTrue(list.get(1).contains("superpos"));
 		assertTrue(list.get(1).contains("-10000.0"));
 
-		new OOCSIMessage(o2, "channel_transform").data("size", -10).data("pos", -0.4).send();
+		new OOCSIMessage(o2, "channel_transform_dt").data("size", -10).data("pos", -0.4).send();
 
 		Thread.sleep(100);
 

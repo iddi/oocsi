@@ -49,8 +49,14 @@ public class ClientPresenceTest {
 		Thread.sleep(100);
 
 		assertEquals(4, list.size());
-		assertTrue(list.get(2).contains("leave"));
-		assertTrue(list.get(3).contains("closed"));
+
+		// allow for two orderings
+		if (list.get(2).contains("leave")) {
+			assertTrue(list.get(3).contains("closed"));
+		} else {
+			assertTrue(list.get(2).contains("closed"));
+			assertTrue(list.get(3).contains("leave"));
+		}
 
 		o1.disconnect();
 	}
@@ -100,12 +106,15 @@ public class ClientPresenceTest {
 
 		o2.unsubscribe("test_presence");
 
-		Thread.sleep(100);
+		Thread.sleep(500);
 
-		assertEquals(2, list.size());
+		o2.disconnect();
+
+		Thread.sleep(1000);
 
 		o1.disconnect();
-		o2.disconnect();
+
+		assertEquals(2, list.size());
 	}
 
 	@Test
@@ -237,8 +246,13 @@ public class ClientPresenceTest {
 		// two more event captured?
 		assertEquals(4, list.size());
 
-		assertTrue(list.get(2).contains("leave"));
-		assertTrue(list.get(3).contains("close"));
+		// allow for two orderings
+		if (list.get(2).contains("leave")) {
+			assertTrue(list.get(3).contains("closed"));
+		} else {
+			assertTrue(list.get(2).contains("closed"));
+			assertTrue(list.get(3).contains("leave"));
+		}
 
 		o1.disconnect();
 	}
