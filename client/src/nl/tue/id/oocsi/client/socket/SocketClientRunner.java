@@ -13,7 +13,6 @@ import java.net.UnknownHostException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -52,7 +51,7 @@ public class SocketClientRunner implements Runnable {
 	private final Map<String, Handler> channels;
 	private final Map<String, Responder> services;
 	final List<OOCSICall> openCalls;
-	private final Queue<String> tempIncomingMessages;
+	private final LinkedBlockingQueue<String> tempIncomingMessages;
 
 	// thread pool
 	private ExecutorService executor;
@@ -433,10 +432,8 @@ public class SocketClientRunner implements Runnable {
 		Map<String, Object> dataMap = null;
 		try {
 			dataMap = Handler.parseData(data);
-		} catch (ClassNotFoundException e) {
-			dataMap = null;
-		} catch (IOException e) {
-			dataMap = null;
+		} catch (ClassNotFoundException | IOException e) {
+			// do nothing but catching the Exception
 		}
 		return dataMap;
 	}
@@ -482,18 +479,11 @@ public class SocketClientRunner implements Runnable {
 	 * @return
 	 */
 	private String syncPoll(int timeout) {
-		long start = System.currentTimeMillis();
-
 		try {
-			while (tempIncomingMessages.size() == 0 || start + timeout > System.currentTimeMillis()) {
-				Thread.yield();
-				Thread.sleep(50);
-			}
-			return tempIncomingMessages.size() > 0 ? tempIncomingMessages.poll() : null;
+			return tempIncomingMessages.poll(timeout, TimeUnit.MILLISECONDS);
 		} catch (InterruptedException e) {
+			return null;
 		}
-
-		return null;
 	}
 
 	/**
