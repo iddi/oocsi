@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import nl.tue.id.oocsi.server.OOCSIServer;
@@ -85,17 +86,24 @@ public class Channel implements IChannel {
 	 * send message on this channel
 	 * 
 	 * @param message
+	 * @return
 	 */
 	@Override
-	public void send(Message message) {
+	public boolean send(Message message) {
+		// keep track of successful sends
+		AtomicBoolean sendSuccessful = new AtomicBoolean(false);
 		List<String> scs = subChannels.values().stream().filter(subChannel -> {
 			// no echo in channels; use ECHO channel for that
 			return !message.getSender().equals(subChannel.getName());
 		}).map(subChannel -> {
 			// send event
-			subChannel.send(message);
-			return subChannel;
-		}).filter(sc -> !sc.isPrivate()).map(sc -> sc.getName()).collect(Collectors.toList());
+			if (subChannel.send(message)) {
+				sendSuccessful.compareAndExchange(false, true);
+				return subChannel;
+			} else {
+				return null;
+			}
+		}).filter(sc -> sc != null && !sc.isPrivate()).map(sc -> sc.getName()).collect(Collectors.toList());
 
 		// log message to all subChannels in one go
 		if (!scs.isEmpty()) {
@@ -121,6 +129,8 @@ public class Channel implements IChannel {
 				// do nothing
 			}
 		}
+
+		return sendSuccessful.getPlain();
 	}
 
 	/**

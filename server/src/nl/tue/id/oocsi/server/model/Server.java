@@ -45,8 +45,9 @@ public class Server extends Channel {
 	}
 
 	@Override
-	public void send(Message message) {
+	public boolean send(Message message) {
 		// disable direct send
+		return false;
 	}
 
 	/**

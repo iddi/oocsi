@@ -208,8 +208,6 @@ public class NIOSocketService extends AbstractService {
 				nioClientInputBuffer.remove(socketChannel);
 			}
 
-			e.printStackTrace();
-
 			try {
 				// then close channel
 				socketChannel.close();
@@ -482,7 +480,7 @@ public class NIOSocketService extends AbstractService {
 		 * 
 		 */
 		@Override
-		public void send(Message message) {
+		public boolean send(Message message) {
 
 			// update last action
 			touch();
@@ -496,6 +494,8 @@ public class NIOSocketService extends AbstractService {
 			} else if (type == ClientType.PD) {
 				send(message.getRecipient() + " timestamp=" + message.getTimestamp().getTime() + " sender="
 				        + message.getSender() + " " + serializePD(message.data));
+			} else {
+				return false;
 			}
 
 			// log this if recipient is this client exactly
@@ -503,9 +503,18 @@ public class NIOSocketService extends AbstractService {
 				OOCSIServer.logEvent(message.getSender(), "", message.getRecipient(), message.data,
 				        message.getTimestamp());
 			}
+
+			return true;
 		}
 
-		private void send(String string) {
+		private boolean send(String string) {
+			// clean the pending data queue if there are too many elements to sent out
+			boolean queueFull = false;
+			while (pendingData.size() > 20) {
+				queueFull = true;
+				pendingData.poll();
+			}
+
 			if (type == ClientType.PD) {
 				string += ';';
 			}
@@ -515,10 +524,8 @@ public class NIOSocketService extends AbstractService {
 				pendingData.offer(b);
 			}
 
-			// clean the pending data queue if there are too many elements to sent out
-			while (pendingData.size() > 20) {
-				pendingData.poll();
-			}
+			// return if the send was successful because the queue is not full
+			return !queueFull;
 		}
 
 		/**

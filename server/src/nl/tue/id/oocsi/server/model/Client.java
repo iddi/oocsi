@@ -31,7 +31,7 @@ abstract public class Client extends Channel {
 	 * 
 	 * @see nl.tue.id.oocsi.server.model.Channel#send(nl.tue.id.oocsi.server.protocol .Message)
 	 */
-	abstract public void send(Message message);
+	abstract public boolean send(Message message);
 
 	/**
 	 * disconnect this client from server

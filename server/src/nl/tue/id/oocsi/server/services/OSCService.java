@@ -85,7 +85,7 @@ public class OSCService extends AbstractService {
 			Channel oscOutPortChannel = new Channel(OSC, presence) {
 
 				@Override
-				public void send(Message message) {
+				public boolean send(Message message) {
 					try {
 						String recipient = message.getRecipient();
 						if (recipient.startsWith("osc://")) {
@@ -95,6 +95,8 @@ public class OSCService extends AbstractService {
 					} catch (IOException e) {
 						// do nothing
 					}
+
+					return true;
 				}
 			};
 			server.addChannel(oscOutPortChannel);

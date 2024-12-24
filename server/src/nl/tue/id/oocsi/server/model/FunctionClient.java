@@ -63,7 +63,7 @@ public class FunctionClient extends Client {
 	}
 
 	@Override
-	public synchronized void send(Message message) {
+	public synchronized boolean send(Message message) {
 
 		// filtering checks
 		for (String expression : filterExpression) {
@@ -82,11 +82,11 @@ public class FunctionClient extends Client {
 					e.addFunction(maxFct);
 				BigDecimal bd = e.eval();
 				if (bd.intValue() == 0) {
-					return;
+					return false;
 				}
 			} catch (Exception ex) {
 				// default behavior: filter out on error
-				return;
+				return false;
 			}
 		}
 
@@ -118,6 +118,8 @@ public class FunctionClient extends Client {
 		if (message.getRecipient().equals(getName())) {
 			OOCSIServer.logEvent(message.getSender(), "", message.getRecipient(), message.data, message.getTimestamp());
 		}
+
+		return true;
 	}
 
 	/**

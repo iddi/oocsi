@@ -69,7 +69,7 @@ public class SocketClient extends Client {
 	 * @see nl.tue.id.oocsi.server.model.Client#send(nl.tue.id.oocsi.server.protocol .Message)
 	 */
 	@Override
-	public synchronized void send(Message message) {
+	public synchronized boolean send(Message message) {
 		if (type == ClientType.OOCSI) {
 			send("send " + message.getRecipient() + " " + serializeJava(message.data) + " "
 			        + message.getTimestamp().getTime() + " " + message.getSender());
@@ -79,12 +79,16 @@ public class SocketClient extends Client {
 		} else if (type == ClientType.JSON) {
 			send(serializeJSON(message.data, message.getRecipient(), message.getTimestamp().getTime(),
 			        message.getSender()));
+		} else {
+			return false;
 		}
 
 		// log this if recipient is this client exactly
 		if (message.getRecipient().equals(getName())) {
 			OOCSIServer.logEvent(message.getSender(), "", message.getRecipient(), message.data, message.getTimestamp());
 		}
+
+		return true;
 	}
 
 	/**

@@ -8,8 +8,9 @@ public interface IChannel {
 	 * send message on this channel
 	 * 
 	 * @param message
+	 * @return
 	 */
-	void send(Message message);
+	boolean send(Message message);
 
 	/**
 	 * check whether this channel is private
