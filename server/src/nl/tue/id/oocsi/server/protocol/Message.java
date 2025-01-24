@@ -25,6 +25,10 @@ public class Message implements Serializable {
 	 * message attribute key to flag a message that should be delivered with a delay (in at least n seconds)
 	 */
 	public static final String DELAY_MESSAGE = "_DELAY";
+	/**
+	 * message attribute key to flag a message that should be delivered with a delay (in at least n seconds)
+	 */
+	public static final String SCHEDULE_MESSAGE = "_SCHEDULE";
 
 	/**
 	 * id of sender (individual client)

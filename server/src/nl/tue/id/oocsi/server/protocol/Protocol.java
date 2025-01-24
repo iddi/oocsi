@@ -1,5 +1,7 @@
 package nl.tue.id.oocsi.server.protocol;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -156,46 +158,72 @@ public class Protocol {
 	 * @param map       message data as map
 	 */
 	private void dispatchMessage(Client sender, String recipient, Channel c, Map<String, Object> map) {
+		final Date now = new Date();
+
+		// don't send if channel is null or does not accept message
+		if (c == null || !c.accept(recipient)) {
+			// log if not private message
+			if (!Channel.isPrivate(recipient)) {
+				OOCSIServer.logEvent(sender.getName(), recipient, "-", map, now);
+			}
+			return;
+		}
+
 		// check for delayed message by requesting the _DELAY attribute that provides the requested delay in seconds
 		if (map.containsKey(Message.DELAY_MESSAGE)) {
-			long delayTime = 0;
+			long delayTimeSec = 0;
 			// check for valid delay time
-			Object delay = map.get(Message.DELAY_MESSAGE);
+			Object delayValue = map.get(Message.DELAY_MESSAGE);
 			// extract delay time from Number
-			if (delay instanceof Number) {
-				Number delayMS = (Number) delay;
-				delayTime = delayMS.longValue();
-			}
-			// extract delay time from String
-			else if (delay instanceof String) {
-				String delayMS = (String) delay;
-				try {
-					delayTime = Long.parseLong(delayMS);
-				} catch (Exception e) {
-					delayTime = 0;
+			try {
+				if (delayValue instanceof Number) {
+					Number delayNr = (Number) delayValue;
+					delayTimeSec = delayNr.longValue();
 				}
+				// extract delay time from String
+				else if (delayValue instanceof String) {
+					String delayStr = (String) delayValue;
+					delayTimeSec = Long.parseLong(delayStr);
+				}
+			} catch (Exception e) {
+				// do nothing
 			}
 
 			// send with specified delay in seconds
-			if (delayTime > 0) {
+			if (delayTimeSec > 0) {
 				server.sendDelayedMessage(recipient, new Message(sender.getName(), recipient,
-				        new Date(System.currentTimeMillis() + delayTime * 1000), map));
+				        new Date(System.currentTimeMillis() + delayTimeSec * 1000), map));
 			}
 			// normal dispatch for broken _DELAY
-			else if (c != null && c.accept(recipient)) {
-				c.send(new Message(sender.getName(), recipient, new Date(), map));
+			else {
+				c.send(new Message(sender.getName(), recipient, now, map));
 			}
 		}
-		// no delay --> normal dispatch
-		else if (c != null && c.accept(recipient)) {
-			c.send(new Message(sender.getName(), recipient, new Date(), map));
+		// check for scheduled message by requesting the _SCHEDULE attribute that provides the requested schedule time
+		else if (map.containsKey(Message.SCHEDULE_MESSAGE)) {
+			Date scheduledTime = now;
+			// check for valid delay time
+			Object scheduleValue = map.get(Message.SCHEDULE_MESSAGE);
+			if (scheduleValue instanceof String) {
+				String scheduleDateStr = (String) scheduleValue;
+				SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+				try {
+					scheduledTime = sdf.parse(scheduleDateStr);
+				} catch (ParseException e) {
+					// do nothing
+				}
+			}
+
+			// check schedule time and send
+			if (scheduledTime.after(now)) {
+				server.sendDelayedMessage(recipient, new Message(sender.getName(), recipient, scheduledTime, map));
+			} else {
+				c.send(new Message(sender.getName(), recipient, now, map));
+			}
 		}
-		// only log if no messages will go out to the channel
+		// no delay or schedule --> normal dispatch
 		else {
-			// log if not private message
-			if (!Channel.isPrivate(recipient)) {
-				OOCSIServer.logEvent(sender.getName(), recipient, "-", map, new Date());
-			}
+			c.send(new Message(sender.getName(), recipient, now, map));
 		}
 	}
 

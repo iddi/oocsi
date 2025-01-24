@@ -118,13 +118,13 @@ public class Channel implements IChannel {
 		if (message.data.containsKey(Message.RETAIN_MESSAGE)) {
 			Object retainTimeoutRaw = message.data.getOrDefault(Message.RETAIN_MESSAGE, "0");
 			try {
-				// retrieve timeout and restrict timeout to 2 days
-				long timeout = Long.parseLong(retainTimeoutRaw.toString());
-				timeout = Math.min(3600 * 24 * 2, timeout);
+				// retrieve timeout and restrict timeout to 2 days max
+				long timeoutSec = Long.parseLong(retainTimeoutRaw.toString());
+				timeoutSec = Math.min(3600 * 24 * 2, timeoutSec);
 				// set timeout and store retained message
-				message.validUntil = new Date(System.currentTimeMillis() + timeout * 1000);
+				message.validUntil = new Date(System.currentTimeMillis() + (timeoutSec * 1000));
 				retainedMessage = message;
-				OOCSIServer.log("Retained message stored for channel '" + this.token + "' for " + timeout + "secs.");
+				OOCSIServer.log("Retained message stored for channel '" + this.token + "' for " + timeoutSec + "secs.");
 			} catch (Exception e) {
 				// do nothing
 			}
