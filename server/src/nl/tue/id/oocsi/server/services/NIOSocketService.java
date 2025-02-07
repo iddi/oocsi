@@ -235,7 +235,10 @@ public class NIOSocketService extends AbstractService {
 				sb.delete(0, nlIndex + 1);
 			}
 
-			// parse input line
+			// remove any whitespace at begin and end
+			inputLine = inputLine.trim();
+
+			// check input line for exceptional values that cannot be handled safely
 			// do some filtering for SSH clients connecting and other abuse
 			if (inputLine.length() > 200) {
 				OOCSIServer.log("Killed client connection for [length]: " + inputLine);
@@ -249,6 +252,15 @@ public class NIOSocketService extends AbstractService {
 				OOCSIServer.log("Killed client connection for [suspicious client]: " + inputLine);
 				return;
 			}
+			if (inputLine.matches(".*\\s.*")) {
+				OOCSIServer.log(
+				        "Killed client connection because client name contains whitespace characters: " + inputLine);
+				return;
+			}
+
+			// check input line for workable deviations from protocol
+			// remove starting or trailing slashes
+			inputLine = inputLine.replaceAll("^/|/$", "");
 
 			// if there are one or more hashes in the inputLine, we need to generate a client name
 			for (int i = 0; i < 20 && inputLine.contains("#"); i++) {
