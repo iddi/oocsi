@@ -13,7 +13,6 @@
                 <attribute name="Class-Path" value="."/>
             </manifest>
             <fileset dir="${dir.workspace}/Making/iddi/oocsi/server/bin"/>
-        	<zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/Making/iddi/oocsi/server/libs/javaosc-core-0.3.jar"/>
            	<zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/Making/iddi/oocsi/server/libs/jackson-core-2.10.5.jar"/>
            	<zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/Making/iddi/oocsi/server/libs/jackson-annotations-2.10.5.jar"/>
            	<zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/Making/iddi/oocsi/server/libs/jackson-databind-2.10.5.1.jar"/>

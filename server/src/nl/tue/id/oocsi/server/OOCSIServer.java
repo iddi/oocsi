@@ -20,7 +20,6 @@ import nl.tue.id.oocsi.server.model.Server;
 import nl.tue.id.oocsi.server.protocol.Message;
 import nl.tue.id.oocsi.server.services.AbstractService;
 import nl.tue.id.oocsi.server.services.NIOSocketService;
-import nl.tue.id.oocsi.server.services.OSCService;
 import nl.tue.id.oocsi.server.services.PresenceTracker;
 
 /**
@@ -165,14 +164,11 @@ public class OOCSIServer extends Server {
 		OOCSIServer.log("Started OOCSI server v" + OOCSIServer.VERSION + " for max. " + maxClients + " parallel clients"
 		        + (isLogging ? " and activated logging" : "") + ".");
 
-		// start OSC server
-		OSCService osc = new OSCService(this, port + 1);
-
 		// start TCP/socket server
 		NIOSocketService tcp = new NIOSocketService(this, port, users);
 
 		// start services
-		startServices(new AbstractService[] { tcp, osc });
+		startServices(new AbstractService[] { tcp });
 
 		// start timer for posting channel and client information to the respective channels
 		Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(new StatusTimeTask(), 5, 1, TimeUnit.SECONDS);
@@ -227,10 +223,6 @@ public class OOCSIServer extends Server {
 	public Channel getChannel(String channelName) {
 		Channel c = super.getChannel(channelName);
 
-		// intercept for OSC
-		if (c == null && channelName.startsWith("osc://")) {
-			c = getChannel(OSCService.OSC);
-		}
 
 		return c;
 	}

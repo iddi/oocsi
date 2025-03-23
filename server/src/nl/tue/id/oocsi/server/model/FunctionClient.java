@@ -3,15 +3,20 @@ package nl.tue.id.oocsi.server.model;
 import java.math.BigDecimal;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.udojava.evalex.AbstractFunction;
-import com.udojava.evalex.AbstractLazyFunction;
-import com.udojava.evalex.Expression;
-import com.udojava.evalex.Expression.LazyNumber;
+import com.ezylang.evalex.Expression;
+import com.ezylang.evalex.config.ExpressionConfiguration;
+import com.ezylang.evalex.data.EvaluationValue;
+import com.ezylang.evalex.functions.AbstractFunction;
+import com.ezylang.evalex.functions.FunctionParameter;
+import com.ezylang.evalex.parser.ParseException;
+import com.ezylang.evalex.parser.Token;
 
 import nl.tue.id.oocsi.server.OOCSIServer;
 import nl.tue.id.oocsi.server.protocol.Message;
@@ -22,8 +27,10 @@ public class FunctionClient extends Client {
 	private Client delegate;
 
 	// reference: https://github.com/uklimaschewski/EvalEx
-	private List<String> filterExpression = new LinkedList<String>();
-	private List<String> transformExpression = new LinkedList<String>();
+	private List<String> filterExpression = new LinkedList<>();
+	private List<Map.Entry<String, String>> transformExpression = new LinkedList<>();
+
+	private final ExpressionConfiguration configuration;
 
 	private WindowFunction sumFct = new SumOverWindowFunction();
 	private WindowFunction meanFct = new MeanOverWindowFunction();
@@ -36,12 +43,12 @@ public class FunctionClient extends Client {
 		this.functionString = functionString;
 		this.delegate = delegateClient;
 
-		initFunctions(functionString);
+		configuration = initFunctions(functionString);
 	}
 
-	private void initFunctions(String functionString) {
+	private ExpressionConfiguration initFunctions(String functionString) {
 		final Pattern filterPattern = Pattern.compile("filter\\((.*)\\)");
-		final Pattern transformPattern = Pattern.compile("transform\\((.*)\\)");
+		final Pattern transformPattern = Pattern.compile("transform\\(([^,]+),(.*)\\)");
 
 		// functions are separated by ';'
 		String[] functions = functionString.split(";");
@@ -56,10 +63,14 @@ public class FunctionClient extends Client {
 			Matcher transformMatcher = transformPattern.matcher(fct);
 			if (transformMatcher.find()) {
 				// init transform expression
-				transformExpression.add(transformMatcher.group());
+				transformExpression.add(Map.entry(transformMatcher.group(1), transformMatcher.group(2)));
 				continue;
 			}
 		}
+
+		return ExpressionConfiguration.defaultConfiguration().withAdditionalFunctions(Map.entry("sum", sumFct),
+		        Map.entry("mean", meanFct), Map.entry("stdev", stdevFct), Map.entry("emin", minFct),
+		        Map.entry("emax", maxFct));
 	}
 
 	@Override
@@ -70,18 +81,8 @@ public class FunctionClient extends Client {
 			// apply expression
 			try {
 				final Expression e = loadExpression(expression, message, true);
-				if (expression.contains("sum(") || expression.contains("SUM("))
-					e.addFunction(sumFct);
-				if (expression.contains("mean(") || expression.contains("MEAN("))
-					e.addFunction(meanFct);
-				if (expression.contains("stdev(") || expression.contains("STDEV("))
-					e.addFunction(stdevFct);
-				if (expression.contains("emin(") || expression.contains("EMIN("))
-					e.addFunction(minFct);
-				if (expression.contains("emax(") || expression.contains("EMAX("))
-					e.addFunction(maxFct);
-				BigDecimal bd = e.eval();
-				if (bd.intValue() == 0) {
+				EvaluationValue result = e.evaluate();
+				if (!result.getBooleanValue()) {
 					return false;
 				}
 			} catch (Exception ex) {
@@ -91,28 +92,21 @@ public class FunctionClient extends Client {
 		}
 
 		// transformation
-		for (String expression : transformExpression) {
+		Message transformedMessage = message.cloneForRecipient(message.getRecipient() + ("[" + functionString + "]"));
+		for (Map.Entry<String, String> entry : transformExpression) {
 			try {
+				String key = entry.getKey();
+				String expression = entry.getValue();
 				Expression e = loadExpression(expression, message, false);
-				if (expression.contains("sum(") || expression.contains("SUM("))
-					e.addFunction(sumFct);
-				if (expression.contains("mean(") || expression.contains("MEAN("))
-					e.addFunction(meanFct);
-				if (expression.contains("stdev(") || expression.contains("STDEV("))
-					e.addFunction(stdevFct);
-				if (expression.contains("emin(") || expression.contains("EMIN("))
-					e.addFunction(minFct);
-				if (expression.contains("emax(") || expression.contains("EMAX("))
-					e.addFunction(maxFct);
-				e.addLazyFunction(new AbstractTransform(message));
-				e.eval();
+				EvaluationValue result = e.evaluate();
+				transformedMessage.addData(key, result.getNumberValue().floatValue());
 			} catch (Exception ex) {
-				// System.out.println("problem");
+				ex.printStackTrace();
 			}
 		}
 
 		// send message with a function client specific recipient
-		delegate.send(message.cloneForRecipient(message.getRecipient() + ("[" + functionString + "]")));
+		delegate.send(transformedMessage);
 
 		// log this if recipient is this client exactly
 		if (message.getRecipient().equals(getName())) {
@@ -129,16 +123,18 @@ public class FunctionClient extends Client {
 	 * @param message
 	 * @param abortOnMissing
 	 * @return
+	 * @throws ParseException
 	 */
-	private Expression loadExpression(final String expression, Message message, boolean abortOnMissing) {
-		final Expression e = new Expression(expression);
-		List<String> vars = e.getUsedVariables();
+	private Expression loadExpression(final String expression, Message message, boolean abortOnMissing)
+	        throws ParseException {
+		final Expression e = new Expression(expression, configuration);
+		Set<String> vars = e.getUsedVariables();
 		for (String key : vars) {
 			Object value = message.data.get(key);
 			if (value != null) {
-				e.and(key, value.toString());
+				e.and(key, BigDecimal.valueOf(Float.parseFloat(value.toString())));
 			} else if (!abortOnMissing) {
-				e.and(key, new BigDecimal(0));
+				e.and(key, BigDecimal.valueOf(0));
 			}
 		}
 		return e;
@@ -174,22 +170,23 @@ public class FunctionClient extends Client {
 		delegate.pong();
 	}
 
+	@FunctionParameter(name = "value")
+	@FunctionParameter(name = "windowLength")
 	abstract class WindowFunction extends AbstractFunction {
 
 		private Queue<BigDecimal> queue = new ConcurrentLinkedQueue<BigDecimal>();
 		protected int queueLength = -1;
 
-		protected WindowFunction(String name, int numParams) {
-			super(name, numParams);
-		}
-
 		@Override
-		public synchronized BigDecimal eval(List<BigDecimal> parameters) {
+		public synchronized EvaluationValue evaluate(Expression expression, Token functionToken,
+		        EvaluationValue... parameterValues) {
 
+			EvaluationValue value = parameterValues[0];
+			EvaluationValue windowLength = parameterValues[1];
 			// not initialized?
 			if (queueLength == -1) {
 				// initialize!
-				queueLength = Math.min(parameters.get(1).intValue(), 50);
+				queueLength = Math.min(windowLength.getNumberValue().intValue(), 50);
 			}
 
 			// make space
@@ -198,44 +195,37 @@ public class FunctionClient extends Client {
 			}
 
 			// insert element
-			BigDecimal value = parameters.get(0);
-			queue.offer(value);
+			queue.offer(value.getNumberValue());
 
-			// return the added element
 			return evalQueue(queue);
 		}
 
-		abstract public BigDecimal evalQueue(Queue<BigDecimal> queue);
+		abstract public EvaluationValue evalQueue(Queue<BigDecimal> queue);
 
 	}
 
 	// summary statistics over windows
-
+	@FunctionParameter(name = "value")
+	@FunctionParameter(name = "windowLength")
 	class SumOverWindowFunction extends WindowFunction {
 
-		protected SumOverWindowFunction() {
-			super("sum", 2);
-		}
-
 		@Override
-		public synchronized BigDecimal evalQueue(Queue<BigDecimal> queue) {
+		public synchronized EvaluationValue evalQueue(Queue<BigDecimal> queue) {
 			BigDecimal result = new BigDecimal(0);
 			for (BigDecimal number : queue) {
 				result = result.add(number);
 			}
-			return result;
+			return EvaluationValue.numberValue(result);
 		}
 	}
 
+	@FunctionParameter(name = "value")
+	@FunctionParameter(name = "windowLength")
 	class MeanOverWindowFunction extends WindowFunction {
 
-		protected MeanOverWindowFunction() {
-			super("mean", 2);
-		}
-
 		@Override
-		public synchronized BigDecimal evalQueue(Queue<BigDecimal> queue) {
-			return new BigDecimal(mean(queue));
+		public synchronized EvaluationValue evalQueue(Queue<BigDecimal> queue) {
+			return EvaluationValue.numberValue(new BigDecimal(mean(queue)));
 		}
 
 		/**
@@ -253,20 +243,18 @@ public class FunctionClient extends Client {
 		}
 	}
 
+	@FunctionParameter(name = "value")
+	@FunctionParameter(name = "windowLength")
 	class StandardDeviationOverWindowFunction extends WindowFunction {
 
-		protected StandardDeviationOverWindowFunction() {
-			super("stdev", 2);
-		}
-
 		@Override
-		public synchronized BigDecimal evalQueue(Queue<BigDecimal> queue) {
+		public synchronized EvaluationValue evalQueue(Queue<BigDecimal> queue) {
 			double result = 0;
 			double mean = mean(queue);
 			for (BigDecimal number : queue) {
 				result += Math.pow(number.doubleValue() - mean, 2);
 			}
-			return new BigDecimal(Math.sqrt(result / queueLength));
+			return EvaluationValue.numberValue(new BigDecimal(Math.sqrt(result / queueLength)));
 		}
 
 		/**
@@ -284,61 +272,24 @@ public class FunctionClient extends Client {
 		}
 	}
 
+	@FunctionParameter(name = "value")
+	@FunctionParameter(name = "windowLength")
 	class MinOverWindowFunction extends WindowFunction {
 
-		protected MinOverWindowFunction() {
-			super("emin", 2);
-		}
-
 		@Override
-		public synchronized BigDecimal evalQueue(Queue<BigDecimal> queue) {
-			return queue.stream().min((a, b) -> a.compareTo(b)).orElse(new BigDecimal(0));
+		public synchronized EvaluationValue evalQueue(Queue<BigDecimal> queue) {
+			return EvaluationValue.numberValue(queue.stream().min((a, b) -> a.compareTo(b)).orElse(new BigDecimal(0)));
 		}
 	}
 
+	@FunctionParameter(name = "value")
+	@FunctionParameter(name = "windowLength")
 	class MaxOverWindowFunction extends WindowFunction {
 
-		protected MaxOverWindowFunction() {
-			super("emax", 2);
-		}
-
 		@Override
-		public synchronized BigDecimal evalQueue(Queue<BigDecimal> queue) {
-			return queue.stream().max((a, b) -> a.compareTo(b)).orElse(new BigDecimal(0));
+		public synchronized EvaluationValue evalQueue(Queue<BigDecimal> queue) {
+			return EvaluationValue.numberValue(queue.stream().max((a, b) -> a.compareTo(b)).orElse(new BigDecimal(0)));
 		}
 	}
 
-	class AbstractTransform extends AbstractLazyFunction {
-
-		private Message message;
-
-		protected AbstractTransform(Message message) {
-			super("transform", 2);
-			this.message = message;
-		}
-
-		@Override
-		public synchronized LazyNumber lazyEval(List<LazyNumber> parameters) {
-
-			String key = parameters.get(0).getString();
-			String expression = parameters.get(1).getString();
-
-			if (key == null || key.length() == 0 || expression == null || expression.length() == 0) {
-				return parameters.get(0);
-			}
-
-			// compute transformation
-			try {
-				final Expression e = loadExpression(expression, message, true);
-				BigDecimal bd = e.eval();
-
-				// store in message
-				message.data.put(key, bd.floatValue());
-			} catch (Exception ex) {
-				// do nothing
-			}
-
-			return parameters.get(0);
-		}
-	}
 }
