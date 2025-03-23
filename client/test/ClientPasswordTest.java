@@ -1,9 +1,9 @@
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import org.junit.Test;
 
@@ -48,7 +48,7 @@ public class ClientPasswordTest {
 
 	@Test
 	public void testPasswordProtectedClient() throws InterruptedException {
-		final List<String> list = new ArrayList<String>();
+		final List<String> list = new Vector<String>();
 
 		OOCSIClient o1 = new OOCSIClient("test_priv_client_1:12345");
 		o1.connect("localhost", 4444);

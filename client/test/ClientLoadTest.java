@@ -1,9 +1,9 @@
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
@@ -58,7 +58,7 @@ public class ClientLoadTest {
 
 	@Test
 	public void testSendingBigMessages() throws InterruptedException {
-		final List<Object> list = new ArrayList<Object>();
+		final List<Object> list = new Vector<Object>();
 
 		OOCSIClient o1 = new OOCSIClient("test_client_big_message_1");
 		o1.connect("localhost", 4444);

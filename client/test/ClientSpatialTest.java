@@ -303,6 +303,8 @@ public class ClientSpatialTest {
 			OOCSISpatial.createSpatial(client2, "spatialChannel2", "integer_distance", 9, 2);
 		}
 
+		Thread.sleep(150);
+
 		// starting routing...
 
 		{
@@ -418,6 +420,8 @@ public class ClientSpatialTest {
 			OOCSISpatial.createSpatial(client2, "spatialChannel", "integer_distance", 9, 2);
 		}
 
+		Thread.sleep(150);
+
 		// send a message to all neighbors (two hops)
 		assertEquals("os2_rt_4", os1.routing("os2_rt_8"));
 
@@ -466,6 +470,8 @@ public class ClientSpatialTest {
 			client2.connect("localhost", 4444);
 			OOCSISpatial.createSpatial(client2, "spatialChannel2", "integer_distance2", 8, 2);
 		}
+
+		Thread.sleep(150);
 
 		// start routing...
 

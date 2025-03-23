@@ -1,10 +1,10 @@
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -126,7 +126,7 @@ public class ClientConnectionTest {
 
 	@Test
 	public void testConnectReconnectSubscriptions() throws InterruptedException {
-		final List<String> list = new ArrayList<String>();
+		final List<String> list = new Vector<String>();
 
 		OOCSIClient o = new OOCSIClient("test_client_0_reconnect_subscriptions1") {
 			// @Override
@@ -185,7 +185,7 @@ public class ClientConnectionTest {
 
 	@Test
 	public void testSendReceive() throws InterruptedException {
-		final List<String> list = new ArrayList<String>();
+		final List<String> list = new Vector<String>();
 
 		OOCSIClient o1 = new OOCSIClient("test_client_1r");
 		o1.connect("localhost", 4444);
@@ -225,7 +225,7 @@ public class ClientConnectionTest {
 
 	@Test
 	public void testSendReceive2() throws InterruptedException {
-		final List<Long> list = new ArrayList<Long>();
+		final List<Long> list = new Vector<Long>();
 
 		OOCSIClient o1 = new OOCSIClient("test_client_3s");
 		o1.connect("localhost", 4444);
@@ -269,7 +269,7 @@ public class ClientConnectionTest {
 
 	@Test
 	public void testRateLimit() throws InterruptedException {
-		final List<String> list = new ArrayList<String>();
+		final List<String> list = new Vector<String>();
 
 		OOCSIClient o1 = new OOCSIClient("test_client_rate_limit_1");
 		o1.connect("localhost", 4444);
@@ -288,6 +288,8 @@ public class ClientConnectionTest {
 				list.add(event.getSender() + event.getString("data", ""));
 			}
 		});
+
+		Thread.sleep(150);
 
 		assertEquals(0, list.size());
 
@@ -348,7 +350,7 @@ public class ClientConnectionTest {
 
 	@Test
 	public void testRateLimitPerClient() throws InterruptedException {
-		final List<String> list = new ArrayList<String>();
+		final List<String> list = new Vector<String>();
 
 		OOCSIClient o1 = new OOCSIClient("test_client_rate_limit_pc_1");
 		o1.connect("localhost", 4444);
@@ -423,7 +425,7 @@ public class ClientConnectionTest {
 
 	@Test
 	public void testChannelNameParsing() throws InterruptedException {
-		final List<String> list = new ArrayList<String>();
+		final List<String> list = new Vector<String>();
 
 		OOCSIClient o1 = new OOCSIClient("test_client_cnameparser_1");
 		o1.connect("localhost", 4444);
@@ -464,7 +466,7 @@ public class ClientConnectionTest {
 
 	@Test
 	public void testPrivateChannel() throws InterruptedException {
-		final List<String> list = new ArrayList<String>();
+		final List<String> list = new Vector<String>();
 
 		OOCSIClient o1 = new OOCSIClient("test_client_private_1");
 		o1.connect("localhost", 4444);
@@ -520,21 +522,18 @@ public class ClientConnectionTest {
 		o2.disconnect();
 	}
 
-	// @Test
-	// public void testConnectToMulticastServer() throws InterruptedException {
-	// OOCSIClient o = new OOCSIClient("test_client_0_multicast");
-	//
-	// o.connect();
-	//
-	// assertTrue(o.isConnected());
-	//
-	// Thread.sleep(500);
-	//
-	// o.disconnect();
-	//
-	// Thread.sleep(500);
-	//
-	// assertTrue(!o.isConnected());
-	// }
+	@Test
+	public void testEnumeratedClientName() throws InterruptedException {
+		OOCSIClient o1 = new OOCSIClient("test_client_enum_###");
+		o1.connect("localhost", 4444);
+		assertTrue(o1.isConnected());
 
+		OOCSIClient o2 = new OOCSIClient("test_client_enum_###");
+		o2.connect("localhost", 4444);
+		assertTrue(o2.isConnected());
+
+		OOCSIClient o3 = new OOCSIClient("test_client_enum_###");
+		o3.connect("localhost", 4444);
+		assertTrue(o3.isConnected());
+	}
 }

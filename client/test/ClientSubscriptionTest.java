@@ -1,9 +1,9 @@
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import org.junit.Test;
 
@@ -15,7 +15,7 @@ public class ClientSubscriptionTest {
 
 	@Test
 	public void testMultipleSubscriptions() throws InterruptedException {
-		final List<String> list = new ArrayList<String>();
+		final List<String> list = new Vector<String>();
 
 		OOCSIClient o1 = new OOCSIClient("test_multi_subscription1");
 		o1.connect("localhost", 4444);
@@ -48,11 +48,14 @@ public class ClientSubscriptionTest {
 		o4.connect("localhost", 4444);
 		assertTrue(o4.isConnected());
 
+		Thread.sleep(150);
+
 		// baseline
 		assertEquals(0, list.size());
 
 		new OOCSIMessage(o4, "test_multi_subscriptions_a").data("size", 1).send();
-		Thread.sleep(100);
+
+		Thread.sleep(200);
 
 		// all clients connected and receiving
 		assertEquals(3, list.size());
@@ -83,7 +86,7 @@ public class ClientSubscriptionTest {
 
 	@Test
 	public void testMultipleSubscriptionsSingleClient() throws InterruptedException {
-		final List<String> list = new ArrayList<String>();
+		final List<String> list = new Vector<String>();
 
 		OOCSIClient o1 = new OOCSIClient("test_multi_subscriptionb1");
 		o1.connect("localhost", 4444);
@@ -158,7 +161,7 @@ public class ClientSubscriptionTest {
 
 	@Test
 	public void testFilteringBrokenSpec() throws InterruptedException {
-		final List<String> list = new ArrayList<String>();
+		final List<String> list = new Vector<String>();
 
 		OOCSIClient o1 = new OOCSIClient("test_channel_filtering_1b");
 		o1.connect("localhost", 4444);
@@ -210,7 +213,7 @@ public class ClientSubscriptionTest {
 
 	@Test
 	public void testFilteringSingleVarExpression() throws InterruptedException {
-		final List<String> list = new ArrayList<String>();
+		final List<String> list = new Vector<String>();
 
 		OOCSIClient o1 = new OOCSIClient("test_channel_filtering_1");
 		o1.connect("localhost", 4444);
@@ -261,7 +264,7 @@ public class ClientSubscriptionTest {
 
 	@Test
 	public void testFilteringMultipleVarsExpression() throws InterruptedException {
-		final List<String> list = new ArrayList<String>();
+		final List<String> list = new Vector<String>();
 
 		OOCSIClient o1 = new OOCSIClient("test_channel_filtering_3");
 		o1.connect("localhost", 4444);
@@ -322,7 +325,7 @@ public class ClientSubscriptionTest {
 
 	@Test
 	public void testFilteringMultipleExpressionVars() throws InterruptedException {
-		final List<String> list = new ArrayList<String>();
+		final List<String> list = new Vector<String>();
 
 		OOCSIClient o1 = new OOCSIClient("test_channel_filtering_5");
 		o1.connect("localhost", 4444);
@@ -383,7 +386,7 @@ public class ClientSubscriptionTest {
 
 	@Test
 	public void testFilteringMultipleVarsFctCall() throws InterruptedException {
-		final List<String> list = new ArrayList<String>();
+		final List<String> list = new Vector<String>();
 
 		OOCSIClient o1 = new OOCSIClient("test_channel_filtering_7");
 		o1.connect("localhost", 4444);
@@ -444,7 +447,7 @@ public class ClientSubscriptionTest {
 
 	@Test
 	public void testFilteringAggregate() throws InterruptedException {
-		final List<String> list = new ArrayList<String>();
+		final List<String> list = new Vector<String>();
 
 		OOCSIClient o1 = new OOCSIClient("test_channel_filtering_agg_1");
 		o1.connect("localhost", 4444);
@@ -495,7 +498,7 @@ public class ClientSubscriptionTest {
 
 	@Test
 	public void testTransform() throws InterruptedException {
-		final List<String> list = new ArrayList<String>();
+		final List<String> list = new Vector<String>();
 
 		OOCSIClient o1 = new OOCSIClient("test_channel_transform_1");
 		o1.connect("localhost", 4444);
@@ -555,7 +558,7 @@ public class ClientSubscriptionTest {
 
 	@Test
 	public void testDoubleTransform() throws InterruptedException {
-		final List<String> list = new ArrayList<String>();
+		final List<String> list = new Vector<String>();
 
 		OOCSIClient o1 = new OOCSIClient("test_channel_transform_3");
 		o1.connect("localhost", 4444);
@@ -564,10 +567,10 @@ public class ClientSubscriptionTest {
 		// o1.subscribe("channel_filter", new DataHandler() {
 		o1.subscribe("channel_transform_dt[transform(supersize,size*10);transform(superpos,pos*1000)]",
 		        new DataHandler() {
-			public void receive(String sender, Map<String, Object> data, long timestamp) {
-				list.add(sender + data.toString());
-			}
-		});
+			        public void receive(String sender, Map<String, Object> data, long timestamp) {
+				        list.add(sender + data.toString());
+			        }
+		        });
 
 		OOCSIClient o2 = new OOCSIClient("test_channel_transform_4");
 		o2.connect("localhost", 4444);
@@ -614,13 +617,13 @@ public class ClientSubscriptionTest {
 
 	@Test
 	public void testAggregatedTransform() throws InterruptedException {
-		final List<String> list = new ArrayList<String>();
+		final List<String> list = new Vector<String>();
 
 		OOCSIClient o1 = new OOCSIClient("test_channel_transform_5");
 		o1.connect("localhost", 4444);
 		assertTrue(o1.isConnected());
 
-		o1.subscribe("channel_transform[transform(minsize,stdev(size*10,2));transform(superpos,mean(pos*1000,2))]",
+		o1.subscribe("channel_transform_at[transform(minsize,stdev(size*10,2));transform(superpos,mean(pos*1000,2))]",
 		        new DataHandler() {
 			        public void receive(String sender, Map<String, Object> data, long timestamp) {
 				        list.add(sender + data.toString());
@@ -636,17 +639,26 @@ public class ClientSubscriptionTest {
 		// baseline
 		assertEquals(0, list.size());
 
-		new OOCSIMessage(o2, "channel_transform").data("size", 10).data("pos", 3).send();
-		new OOCSIMessage(o2, "channel_transform").data("size", 10).data("pos", 4).send();
-		new OOCSIMessage(o2, "channel_transform").data("size", 20).data("pos", 5).send();
-		new OOCSIMessage(o2, "channel_transform").data("size", 20).data("pos", 6).send();
-		new OOCSIMessage(o2, "channel_transform").data("size", 20).data("pos", 7).send();
-		new OOCSIMessage(o2, "channel_transform").data("size", 10).data("pos", 8).send();
-		new OOCSIMessage(o2, "channel_transform").data("size", 10).data("pos", 9).send();
+		new OOCSIMessage(o2, "channel_transform_at").data("size", 10).data("pos", 3).send();
+		Thread.sleep(50);
+		new OOCSIMessage(o2, "channel_transform_at").data("size", 10).data("pos", 4).send();
+		Thread.sleep(50);
+		new OOCSIMessage(o2, "channel_transform_at").data("size", 20).data("pos", 5).send();
+		Thread.sleep(50);
+		new OOCSIMessage(o2, "channel_transform_at").data("size", 20).data("pos", 6).send();
+		Thread.sleep(50);
+		new OOCSIMessage(o2, "channel_transform_at").data("size", 20).data("pos", 7).send();
+		Thread.sleep(50);
+		new OOCSIMessage(o2, "channel_transform_at").data("size", 10).data("pos", 8).send();
+		Thread.sleep(50);
+		new OOCSIMessage(o2, "channel_transform_at").data("size", 10).data("pos", 9).send();
 
-		Thread.sleep(100);
+		Thread.sleep(500);
 
 		assertEquals(7, list.size());
+//		System.out.println(list.get(0));
+//		System.out.println(list.get(1));
+//		System.out.println(list.get(6));
 		assertTrue(list.get(0).contains("minsize"));
 		assertTrue(list.get(0).contains("=35.35"));
 		assertTrue(list.get(6).contains("minsize"));
@@ -660,14 +672,14 @@ public class ClientSubscriptionTest {
 
 	@Test
 	public void testAggregatedTransformMinMax() throws InterruptedException {
-		final List<String> list = new ArrayList<String>();
+		final List<String> list = new Vector<String>();
 
 		OOCSIClient o1 = new OOCSIClient("test_channel_transform_7");
 		o1.connect("localhost", 4444);
 		assertTrue(o1.isConnected());
 
 		// o1.subscribe("channel_filter", new DataHandler() {
-		o1.subscribe("channel_transform[transform(maxval,EMAX(size,5));transform(minval,EMIN(pos,3))]",
+		o1.subscribe("channel_transform_atmm[transform(maxval,EMAX(size,5));transform(minval,EMIN(pos,3))]",
 		        new DataHandler() {
 			        public void receive(String sender, Map<String, Object> data, long timestamp) {
 				        list.add(sender + data.toString());
@@ -678,24 +690,24 @@ public class ClientSubscriptionTest {
 		o2.connect("localhost", 4444);
 		assertTrue(o2.isConnected());
 
-		Thread.sleep(100);
+		Thread.sleep(150);
 
 		// baseline
 		assertEquals(0, list.size());
 
-		new OOCSIMessage(o2, "channel_transform").data("size", 20).data("pos", 2).send();
+		new OOCSIMessage(o2, "channel_transform_atmm").data("size", 20).data("pos", 2).send();
 		Thread.sleep(10);
-		new OOCSIMessage(o2, "channel_transform").data("size", 10).data("pos", 4).send();
+		new OOCSIMessage(o2, "channel_transform_atmm").data("size", 10).data("pos", 4).send();
 		Thread.sleep(10);
-		new OOCSIMessage(o2, "channel_transform").data("size", 10).data("pos", 4).send();
+		new OOCSIMessage(o2, "channel_transform_atmm").data("size", 10).data("pos", 4).send();
 		Thread.sleep(10);
-		new OOCSIMessage(o2, "channel_transform").data("size", 10).data("pos", 4).send();
+		new OOCSIMessage(o2, "channel_transform_atmm").data("size", 10).data("pos", 4).send();
 		Thread.sleep(10);
-		new OOCSIMessage(o2, "channel_transform").data("size", 10).data("pos", 2).send();
+		new OOCSIMessage(o2, "channel_transform_atmm").data("size", 10).data("pos", 2).send();
 		Thread.sleep(10);
-		new OOCSIMessage(o2, "channel_transform").data("size", 10).data("pos", 4).send();
+		new OOCSIMessage(o2, "channel_transform_atmm").data("size", 10).data("pos", 4).send();
 		Thread.sleep(10);
-		new OOCSIMessage(o2, "channel_transform").data("size", 10).data("pos", 4).send();
+		new OOCSIMessage(o2, "channel_transform_atmm").data("size", 10).data("pos", 4).send();
 
 		Thread.sleep(200);
 

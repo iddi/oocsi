@@ -1,9 +1,9 @@
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import org.junit.Test;
 
@@ -66,7 +66,7 @@ public class ClientRequestTest {
 		String clientNameRecipient = "test_client_message_contents_1";
 		String clientNameSender = "test_client_message_contents_2";
 
-		final List<OOCSIEvent> events = new ArrayList<OOCSIEvent>();
+		final List<OOCSIEvent> events = new Vector<OOCSIEvent>();
 
 		// create recipient, connect and subscribe for event on a channel
 		OOCSIClient recipient = new OOCSIClient(clientNameRecipient);

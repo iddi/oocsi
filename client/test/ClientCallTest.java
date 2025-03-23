@@ -95,6 +95,8 @@ public class ClientCallTest {
 			}
 		});
 
+		Thread.sleep(150);
+
 		{
 			OOCSICall call = new OOCSICall(o1, "addnineteen", 500, 1).data("addnineteen", 1);
 			call.sendAndWait();
@@ -177,6 +179,8 @@ public class ClientCallTest {
 				response.data("addedthat", pp + 9);
 			}
 		});
+
+		Thread.sleep(150);
 
 		{
 			OOCSICall call = new OOCSICall(o1, "addnineteen", "addnineteen", 500, 1).data("addnineteen", 1);

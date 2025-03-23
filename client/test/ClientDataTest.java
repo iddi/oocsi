@@ -2,8 +2,8 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Vector;
 
 import org.junit.Test;
 
@@ -20,7 +20,7 @@ public class ClientDataTest {
 
 	@Test
 	public void testStringData() throws InterruptedException {
-		final List<OOCSIEvent> events = new ArrayList<OOCSIEvent>();
+		final List<OOCSIEvent> events = new Vector<OOCSIEvent>();
 
 		OOCSIClient o1 = new OOCSIClient("string1");
 		o1.connect("localhost", 4444);
@@ -49,7 +49,7 @@ public class ClientDataTest {
 	@Test
 	public void testArrayData() throws InterruptedException {
 
-		final List<OOCSIEvent> events = new ArrayList<OOCSIEvent>();
+		final List<OOCSIEvent> events = new Vector<OOCSIEvent>();
 
 		OOCSIClient o1 = new OOCSIClient("array1");
 		o1.connect("localhost", 4444);
@@ -64,6 +64,8 @@ public class ClientDataTest {
 				events.add(event);
 			}
 		});
+
+		Thread.sleep(150);
 
 		// test boolean array
 		{

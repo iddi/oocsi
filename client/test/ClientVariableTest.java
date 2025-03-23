@@ -24,6 +24,8 @@ public class ClientVariableTest {
 		OOCSIVariable<Boolean> of21 = new OOCSIVariable<>(client2, "localVariableTestChannel", "boolean1");
 		OOCSIVariable<Boolean> of22 = new OOCSIVariable<>(client2, "localVariableTestChannel", "boolean2");
 
+		Thread.sleep(150);
+
 		// initially ---
 
 		assertNull(of21.get());
@@ -63,20 +65,22 @@ public class ClientVariableTest {
 
 		OOCSIClient client2 = new OOCSIClient();
 		client2.connect("localhost", 4444);
-		OOCSIVariable<Integer> of21 = new OOCSIInt(client2, "localVariableTestChannel1", "integer1");
-		OOCSIVariable<Integer> of22 = new OOCSIInt(client2, "localVariableTestChannel1", "integer2");
+		OOCSIVariable<Integer> of21 = new OOCSIInt(client2, "localVariableTestChannel1", "integer1", 0);
+		OOCSIVariable<Integer> of22 = new OOCSIInt(client2, "localVariableTestChannel1", "integer2", 0);
+
+		Thread.sleep(150);
 
 		// initially ---
 
-//		assertNull(of21.get());
-//		assertNull(of22.get());
+		assertEquals(0, (int) of21.get());
+		assertEquals(0, (int) of22.get());
 
 		// towards ---
 
 		of11.set(1);
 		of12.set(-1);
 
-		Thread.sleep(1000);
+		Thread.sleep(500);
 
 		assertEquals(1, (int) of21.get());
 		assertEquals(-1, (int) of22.get());
@@ -86,7 +90,7 @@ public class ClientVariableTest {
 		of21.set(-10);
 		of22.set(10);
 
-		Thread.sleep(1000);
+		Thread.sleep(500);
 
 		assertEquals(-10, (int) of11.get());
 		assertEquals(10, (int) of12.get());
@@ -107,6 +111,8 @@ public class ClientVariableTest {
 		client2.connect("localhost", 4444);
 		OOCSIVariable<Float> of21 = new OOCSIFloat(client2, "localVariableTestChannel3", "float1");
 		OOCSIVariable<Float> of22 = new OOCSIFloat(client2, "localVariableTestChannel3", "float2");
+
+		Thread.sleep(150);
 
 		// initially ---
 
@@ -149,6 +155,8 @@ public class ClientVariableTest {
 		client2.connect("localhost", 4444);
 		OOCSIFloat of21 = new OOCSIFloat(client2, "localVariableTestChannel2", "float3").min(3f).max(5f);
 		OOCSIFloat of22 = new OOCSIFloat(client2, "localVariableTestChannel2", "float4");
+
+		Thread.sleep(150);
 
 		// initially ---
 
@@ -199,6 +207,8 @@ public class ClientVariableTest {
 		client2.connect("localhost", 4444);
 		OOCSIFloat of21 = new OOCSIFloat(client2, "localVariableTestChannel4", "float1").limit(5, 1);
 
+		Thread.sleep(150);
+
 		// initially ---
 
 		assertEquals(0f, of21.get(), 0);
@@ -237,6 +247,8 @@ public class ClientVariableTest {
 		client2.connect("localhost", 4444);
 		OOCSIFloat of21 = new OOCSIFloat(client2, "localVariableTestChannel5", "float1").smooth(2);
 		OOCSIFloat of22 = new OOCSIFloat(client2, "localVariableTestChannel5", "float2");
+
+		Thread.sleep(150);
 
 		// initially ---
 
@@ -294,6 +306,8 @@ public class ClientVariableTest {
 		OOCSIFloat of21 = new OOCSIFloat(client2, "localVariableTestChannel21", "float1s").smooth(2, 1f);
 		OOCSIFloat of22 = new OOCSIFloat(client2, "localVariableTestChannel21", "float2s").smooth(2, 2f);
 
+		Thread.sleep(150);
+
 		// initially ---
 
 		assertEquals(0f, of21.get(), 0);
@@ -302,14 +316,14 @@ public class ClientVariableTest {
 		// towards ---
 
 		of11.set(1.f);
-		Thread.sleep(50);
-		of11.set(2.f);
-		Thread.sleep(50);
+		Thread.sleep(150);
 		of12.set(1.f);
-		Thread.sleep(50);
+		Thread.sleep(150);
+		of11.set(2.f);
+		Thread.sleep(150);
 		of12.set(2.f);
 
-		Thread.sleep(500);
+		Thread.sleep(150);
 
 		assertEquals(1.5f, of21.get(), 0);
 		assertEquals(1.5f, of22.get(), 0);
@@ -355,6 +369,8 @@ public class ClientVariableTest {
 		client1.connect("localhost", 4444);
 		OOCSIFloat of11 = new OOCSIFloat(client1, "localVariableTestChannel23", "float1").reference(4f).timeout(500);
 		OOCSIFloat of12 = new OOCSIFloat(client1, "localVariableTestChannel23", "float2").reference(4f).timeout(1000);
+
+		Thread.sleep(150);
 
 		// initialization should be reference value
 		assertEquals(4f, of11.get(), 0);
