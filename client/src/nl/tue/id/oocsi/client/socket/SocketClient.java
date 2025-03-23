@@ -294,6 +294,11 @@ public class SocketClient {
 			}
 		} else {
 			channels.remove(channelName);
+
+			// unregister at server
+			if (runner != null) {
+				runner.send("unsubscribe " + channelName);
+			}
 		}
 	}
 

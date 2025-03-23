@@ -2,6 +2,7 @@ package nl.tue.id.oocsi.client;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
 
 import nl.tue.id.oocsi.client.data.OOCSIDevice;
@@ -51,22 +52,15 @@ public class OOCSIClient {
 			log(" - OOCSI connection aborted");
 			return;
 		} else if (name.contains("#")) {
-			char[] newName = name.toCharArray();
-
-			// replace "#" with random number
-			for (int i = 0; i < newName.length; i++) {
-				if (newName[i] == '#') {
-					int rand = (int) Math.random() * 9;
-					newName[i] = Integer.toString(rand).charAt(0);
-				}
+			Random random = new Random();
+			StringBuilder result = new StringBuilder();
+			for (char c : name.toCharArray()) {
+				result.append(c == '#' ? random.nextInt(10) : c);
 			}
-
-			// convert modified char array to a new String
-			this.name = new String(newName);
-		} else {
-			this.name = name;
+			name = result.toString();
 		}
 
+		this.name = name;
 		sc = new SocketClient(name, channels, services) {
 			public void log(String message) {
 				OOCSIClient.this.log(message);
