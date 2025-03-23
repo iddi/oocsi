@@ -1,11 +1,14 @@
 package nl.tue.id.oocsi.server.services;
 
+import java.util.Collections;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
 
 import nl.tue.id.oocsi.server.model.Channel;
 import nl.tue.id.oocsi.server.model.Channel.ChangeListener;
 import nl.tue.id.oocsi.server.model.Client;
+import nl.tue.id.oocsi.server.model.Server;
 import nl.tue.id.oocsi.server.protocol.Message;
 
 public class PresenceTracker implements ChangeListener {
@@ -17,31 +20,36 @@ public class PresenceTracker implements ChangeListener {
 	private static final String LEAVE = "leave";
 	private static final String TIMEOUT = "timeout";
 
+	// mapping from tracked to tracking channel
 	private final ConcurrentMap<String, Channel> presenceTracking = new ConcurrentHashMap<String, Channel>();
-	private final ConcurrentMap<String, Long> presenceTimeout = new ConcurrentHashMap<String, Long>();
+	private final Server server;
+
+	public PresenceTracker(Server server) {
+		this.server = server;
+	}
 
 	/**
 	 * subscribe a listening client <code>subscriber</code> for presence on channel <code>presenceHostChannel</code>
 	 * 
-	 * @param presenceHostChannel
+	 * @param trackedChannel
 	 * @param subscriber
 	 */
-	public void subscribe(String presenceHostChannel, Channel subscriber) {
-		presenceTracking.putIfAbsent(presenceHostChannel,
-		        new Channel("presence(" + presenceHostChannel + ")", NULL_LISTENER));
-		presenceTracking.get(presenceHostChannel).addChannel(subscriber);
+	public void subscribe(String trackedChannelStr, Channel subscriber) {
+		presenceTracking.putIfAbsent(trackedChannelStr,
+		        new Channel("presence(" + trackedChannelStr + ")", NULL_LISTENER));
+		presenceTracking.get(trackedChannelStr).addChannel(subscriber);
 	}
 
 	/**
 	 * unsubscribe a listening <code>subscriber</code> from tracking presence on channel
 	 * <code>presenceHostChannel</code>
 	 * 
-	 * @param presenceHostChannel
+	 * @param trackedChannelStr
 	 * @param subscriber
 	 */
-	public void unsubscribe(String presenceHostChannel, Channel subscriber) {
-		if (presenceTracking.containsKey(presenceHostChannel)) {
-			presenceTracking.get(presenceHostChannel).removeChannel(subscriber);
+	public void unsubscribe(String trackedChannelStr, Channel subscriber) {
+		if (presenceTracking.containsKey(trackedChannelStr)) {
+			presenceTracking.get(trackedChannelStr).removeChannel(subscriber);
 		}
 	}
 
@@ -59,87 +67,82 @@ public class PresenceTracker implements ChangeListener {
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	@Override
-	public synchronized void created(Channel host) {
-		Channel listeners = presenceTracking.get(host.getName());
-		if (listeners != null) {
-			listeners.send(new Message(host.getName(), "presence(" + host.getName() + ")")
-			        .addData(host instanceof Client ? "client" : "channel", host.getName()).addData(CREATED, ""));
+	public synchronized void created(Channel trackedChannel) {
+		String trackedChannelStr = trackedChannel.getName();
+		Channel tracker = presenceTracking.get(trackedChannelStr);
+		if (tracker != null) {
+			tracker.send(new Message(trackedChannel.getName(), "presence(" + trackedChannel.getName() + ")")
+			        .addData(trackedChannel instanceof Client ? "client" : "channel", trackedChannel.getName())
+			        .addData(CREATED, ""));
 		}
 	}
 
 	@Override
-	public synchronized void closed(Channel host) {
-		Channel listeners = presenceTracking.get(host.getName());
-		if (listeners != null) {
-			listeners.send(new Message(host.getName(), "presence(" + host.getName() + ")")
-			        .addData(host instanceof Client ? "client" : "channel", host.getName()).addData(CLOSED, ""));
+	public synchronized void closed(Channel trackedChannel) {
+		String trackedChannelStr = trackedChannel.getName();
+		Channel tracker = presenceTracking.get(trackedChannelStr);
+		if (tracker != null) {
+			tracker.send(new Message(trackedChannel.getName(), "presence(" + trackedChannel.getName() + ")")
+			        .addData(trackedChannel instanceof Client ? "client" : "channel", trackedChannel.getName())
+			        .addData(CLOSED, ""));
 		}
 	}
 
 	@Override
-	public synchronized void join(Channel host, Channel guest) {
-		Channel listeners = presenceTracking.get(host.getName());
+	public synchronized void join(Channel trackedChannel, Channel guest) {
+		String trackedChannelStr = trackedChannel.getName();
+		Channel listeners = presenceTracking.get(trackedChannelStr);
 		if (listeners != null) {
-			listeners.send(new Message(host.getName(), "presence(" + host.getName() + ")")
-			        .addData(host instanceof Client ? "client" : "channel", host.getName())
+			listeners.send(new Message(trackedChannel.getName(), "presence(" + trackedChannel.getName() + ")")
+			        .addData(trackedChannel instanceof Client ? "client" : "channel", trackedChannel.getName())
 			        .addData(JOIN, guest.getName()));
 		}
 	}
 
 	@Override
-	public synchronized void refresh(Channel subscriber) {
+	public synchronized void refresh() {
 		presenceTracking.entrySet().stream().forEach(e -> {
-			Channel c = e.getValue();
-			// remove subscriber from all presence tracking channels
-			if (c.getChannels().contains(subscriber) && !subscriber.isPrivate()) {
-				String host = e.getKey();
-				long lastUpdate = presenceTimeout.getOrDefault(host + "_" + subscriber.getName(), -1L);
-				// if the subscriber was found AND is non-private
-				// then send out a refresh presence notice on the respective channel
-				Channel listeners = presenceTracking.get(host);
-				if (listeners != null && lastUpdate <= System.currentTimeMillis() - 9000) {
-					listeners.send(new Message(host, "presence(" + host + ")").addData("client", subscriber.getName())
-					        .addData(REFRESH, subscriber.getName()));
+			Channel tracker = e.getValue();
+			String trackedChannelStr = e.getKey();
+			Channel trackedChannel = server.getChannel(trackedChannelStr);
 
-					// update timeout
-					presenceTimeout.put(host + "_" + subscriber.getName(), System.currentTimeMillis());
-				}
-			}
+			// then send out a refresh presence notice on the respective channel
+			tracker.send(new Message(trackedChannelStr, "presence(" + trackedChannelStr + ")")
+			        .addData(trackedChannel != null && trackedChannel instanceof Client ? "client" : "channel",
+			                trackedChannelStr)
+			        .addData(REFRESH,
+			                trackedChannel == null ? Collections.EMPTY_LIST
+			                        : trackedChannel.getChannels().stream().map(channel -> channel.getName())
+			                                .collect(Collectors.toList())));
 		});
 	}
 
 	@Override
-	public synchronized void leave(Channel host, Channel guest) {
-		Channel listeners = presenceTracking.get(host.getName());
-		if (listeners != null) {
-			listeners.send(new Message(host.getName(), "presence(" + host.getName() + ")")
-			        .addData(host instanceof Client ? "client" : "channel", host.getName()).addData(LEAVE, guest));
-		}
-	}
-
-	@Override
-	public synchronized void leave(String host, String guest) {
-		Channel listeners = presenceTracking.get(host);
-		if (listeners != null) {
-			listeners.send(new Message(host, "presence(" + host + ")").addData("client", host).addData(LEAVE, guest));
+	public synchronized void leave(Channel trackedChannel, Channel guest) {
+		String trackedChannelStr = trackedChannel.getName();
+		Channel tracker = presenceTracking.get(trackedChannelStr);
+		if (tracker != null) {
+			tracker.send(new Message(trackedChannelStr, "presence(" + trackedChannelStr + ")")
+			        .addData(trackedChannel instanceof Client ? "client" : "channel", trackedChannelStr)
+			        .addData(LEAVE, guest.getName()));
 		}
 	}
 
 	@Override
 	public synchronized void timeout(Channel subscriber) {
 		presenceTracking.entrySet().stream().forEach(e -> {
-			Channel c = e.getValue();
-			// remove subscriber from all presence tracking channels
-			if (c.getChannels().remove(subscriber) && !subscriber.isPrivate()) {
+			Channel tracker = e.getValue();
+			// remove subscriber from all presence tracking channels; do this manually to avoid problems with the
+			// presence tracking (on top of presence tracking)
+			if (tracker.getChannels().remove(subscriber) && !subscriber.isPrivate()) {
 				// if the subscriber was found and removed AND is non-private
 				// then send out a timeout presence notice on the channel that
 				// subscriber was removed from
-				String host = e.getKey();
-				Channel listeners = presenceTracking.get(host);
-				if (listeners != null) {
-					listeners.send(new Message(host, "presence(" + host + ")").addData("channel", host).addData(TIMEOUT,
-					        subscriber.getName()));
-				}
+				String trackedChannelStr = e.getKey();
+				Channel trackedChannel = server.getChannel(trackedChannelStr);
+				tracker.send(new Message(trackedChannelStr, "presence(" + trackedChannelStr + ")")
+				        .addData(trackedChannel instanceof Client ? "client" : "channel", trackedChannelStr)
+				        .addData(TIMEOUT, subscriber.getName()));
 			}
 		});
 	}
@@ -151,27 +154,23 @@ public class PresenceTracker implements ChangeListener {
 	public final static ChangeListener NULL_LISTENER = new ChangeListener() {
 
 		@Override
-		public void created(Channel host) {
+		public void created(Channel trackedChannel) {
 		}
 
 		@Override
-		public void closed(Channel host) {
+		public void closed(Channel trackedChannel) {
 		}
 
 		@Override
-		public void join(Channel host, Channel guest) {
+		public void join(Channel trackedChannel, Channel guest) {
 		}
 
 		@Override
-		public void refresh(Channel subscriber) {
+		public void refresh() {
 		}
 
 		@Override
-		public void leave(Channel host, Channel guest) {
-		}
-
-		@Override
-		public void leave(String host, String guest) {
+		public void leave(Channel trackedChannel, Channel guest) {
 		}
 
 		@Override

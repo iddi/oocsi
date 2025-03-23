@@ -91,13 +91,12 @@ public class Protocol {
 				String recipient = tokens[1];
 				String message = tokens[2];
 
-				Channel c = server.getChannel(recipient);
 				if (message.startsWith("{")) {
-					dispatchMessage(sender, recipient, c, parseJSONMessage(message));
+					prepareDispatchMessage(sender, recipient, parseJSONMessage(message));
 				} else {
 					final Map<String, Object> map = new ConcurrentHashMap<String, Object>();
 					map.put("data", message);
-					dispatchMessage(sender, recipient, c, map);
+					prepareDispatchMessage(sender, recipient, map);
 				}
 			}
 		}
@@ -108,7 +107,6 @@ public class Protocol {
 				String recipient = tokens[1];
 				String message = tokens[2];
 
-				Channel c = server.getChannel(recipient);
 				if (message.length() > 0) {
 					Map<String, Object> map = null;
 					if (message.startsWith("{")) {
@@ -124,25 +122,22 @@ public class Protocol {
 
 					// only send if there is useful data
 					if (map != null) {
-						dispatchMessage(sender, recipient, c, map);
+						prepareDispatchMessage(sender, recipient, map);
 					}
 				}
 			}
 		}
 		// respond to ping
 		else if (inputLine.equals("ping")) {
-			server.refreshChannelPresence(sender);
 			sender.pong();
 			return ".";
 		}
 		// record ping acknowledgement
 		else if (inputLine.startsWith(".")) {
-			server.refreshChannelPresence(sender);
 			sender.pong();
 		}
 		// no catch
 		else {
-			server.refreshChannelPresence(sender);
 		}
 
 		// default response
@@ -150,24 +145,14 @@ public class Protocol {
 	}
 
 	/**
-	 * dispatch a message in the system; check for delayed messages and log messages that are sent to empty channels
+	 * prepare to dispatch a message: check for delayed messages
 	 * 
 	 * @param sender
 	 * @param recipient
-	 * @param c         outgoing channel
 	 * @param map       message data as map
 	 */
-	private void dispatchMessage(Client sender, String recipient, Channel c, Map<String, Object> map) {
+	private void prepareDispatchMessage(Client sender, String recipient, Map<String, Object> map) {
 		final Date now = new Date();
-
-		// don't send if channel is null or does not accept message
-		if (c == null || !c.accept(recipient)) {
-			// log if not private message
-			if (!Channel.isPrivate(recipient)) {
-				OOCSIServer.logEvent(sender.getName(), recipient, "-", map, now);
-			}
-			return;
-		}
 
 		// check for delayed message by requesting the _DELAY attribute that provides the requested delay in seconds
 		if (map.containsKey(Message.DELAY_MESSAGE)) {
@@ -196,7 +181,7 @@ public class Protocol {
 			}
 			// normal dispatch for broken _DELAY
 			else {
-				c.send(new Message(sender.getName(), recipient, now, map));
+				dispatchMessage(sender, recipient, now, map);
 			}
 		}
 		// check for scheduled message by requesting the _SCHEDULE attribute that provides the requested schedule time
@@ -218,13 +203,35 @@ public class Protocol {
 			if (scheduledTime.after(now)) {
 				server.sendDelayedMessage(recipient, new Message(sender.getName(), recipient, scheduledTime, map));
 			} else {
-				c.send(new Message(sender.getName(), recipient, now, map));
+				dispatchMessage(sender, recipient, now, map);
 			}
 		}
 		// no delay or schedule --> normal dispatch
 		else {
-			c.send(new Message(sender.getName(), recipient, now, map));
+			dispatchMessage(sender, recipient, now, map);
 		}
+	}
+
+	/**
+	 * dispatch message in the system and log messages that are sent to empty channels
+	 * 
+	 * @param sender
+	 * @param recipient
+	 * @param now
+	 * @param map
+	 */
+	private void dispatchMessage(Client sender, String recipient, Date now, Map<String, Object> map) {
+		// don't send if channel is null or does not accept message
+		Channel c = server.getChannel(recipient);
+		if (c == null || !c.accept(recipient)) {
+			// log if not private message
+			if (!Channel.isPrivate(recipient)) {
+				OOCSIServer.logEvent(sender.getName(), recipient, "-", map, now);
+			}
+			return;
+		}
+
+		c.send(new Message(sender.getName(), recipient, now, map));
 	}
 
 	/**

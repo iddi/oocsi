@@ -65,9 +65,6 @@ public class OOCSIServer extends Server {
 	 * @throws IOException
 	 */
 	public OOCSIServer() {
-
-		super(new PresenceTracker());
-
 		// thread-safe singleton assignment
 		if (INSTANCE == null) {
 			synchronized (OOCSIServer.class) {
@@ -175,6 +172,11 @@ public class OOCSIServer extends Server {
 
 		// start timer for pinging clients that have not sent any data in the last 5 seconds
 		Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(new PingTask(), 5, 5, TimeUnit.SECONDS);
+
+		// start timer for presence tracking refreshes
+		Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(() -> {
+			refreshPresence();
+		}, 5, 5, TimeUnit.SECONDS);
 	}
 
 	/**

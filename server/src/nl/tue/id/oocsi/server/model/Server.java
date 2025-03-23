@@ -12,7 +12,6 @@ import nl.tue.id.oocsi.server.OOCSIServer;
 import nl.tue.id.oocsi.server.protocol.Message;
 import nl.tue.id.oocsi.server.protocol.Protocol;
 import nl.tue.id.oocsi.server.services.PresenceTracker;
-import nl.tue.id.oocsi.server.services.SocketClient;
 
 /**
  * data structure for server
@@ -25,17 +24,17 @@ public class Server extends Channel {
 
 	protected final Map<String, Client> clients = new ConcurrentHashMap<String, Client>();
 	protected final Protocol protocol;
-	protected final PresenceTracker presence;
+	protected PresenceTracker presence;
 	protected final Map<String, Message> delayedMessages;
 
 	/**
 	 * create new server data structure
 	 */
-	public Server(PresenceTracker presence) {
-		super("SERVER", presence);
+	public Server() {
+		super("SERVER", PresenceTracker.NULL_LISTENER);
 
-		// add presence tracker as such
-		this.presence = presence;
+		// create presence tracker
+		presence = new PresenceTracker(this);
 
 		// start protocol controller
 		protocol = new Protocol(this);
@@ -107,36 +106,6 @@ public class Server extends Channel {
 
 		// clean too old clients
 		closeStaleClients();
-
-		// check earlier connection from same client, if yes, remove to enable reconnect
-		if (clients.containsKey(clientName)) {
-			Client existingClient = clients.get(clientName);
-			if (existingClient instanceof SocketClient && client instanceof SocketClient) {
-				SocketClient socketClientOld = (SocketClient) existingClient;
-				SocketClient socketClientNew = (SocketClient) client;
-				if (socketClientOld.getIPAddress() != null && socketClientNew.getIPAddress() != null) {
-					if (socketClientOld.getIPAddress().equals(socketClientNew.getIPAddress())) {
-						// check mini-timeout (last action of old socket at least 2 seconds ago)
-						if (socketClientOld.lastAction() < System.currentTimeMillis() - 2000) {
-
-							// kill old client connection
-							presence.leave(clientName, clientName);
-							removeClient(existingClient);
-
-							// log
-							OOCSIServer.logConnection(clientName, clientName, "replaced client at same IP", new Date());
-
-							// add new client connection
-							addChannel(client);
-							clients.put(clientName, client);
-							presence.join(client, client);
-
-							return true;
-						}
-					}
-				}
-			}
-		}
 
 		// add client to client list and sub channels
 		if (!clients.containsKey(clientName) && !subChannels.containsKey(clientName) && getClient(clientName) == null
@@ -220,6 +189,17 @@ public class Server extends Channel {
 	}
 
 	/**
+	 * refresh presence trackers and send out channel client lists
+	 * 
+	 */
+	public void refreshPresence() {
+		try {
+			presence.refresh();
+		} catch (Exception e) {
+		}
+	}
+
+	/**
 	 * subscribe <subscriber> to <channel>
 	 * 
 	 * @param subscriber
@@ -248,7 +228,7 @@ public class Server extends Channel {
 			}
 
 			// add presenceChannel to presence tracking if not existing
-			// the presenceChannel might not exist yet
+			// note: we use the name: String because the actual channel might not exist yet
 			presence.subscribe(presenceChannelName, subscriber);
 
 			return;
@@ -320,7 +300,7 @@ public class Server extends Channel {
 			}
 
 			// remove the presence subscription for this channel
-			presence.unsubscribe(presenceChannelName, subscriber);
+			presence.unsubscribe(channelName, subscriber);
 
 			return;
 		}
@@ -340,15 +320,6 @@ public class Server extends Channel {
 			closeEmptyChannels();
 			OOCSIServer.logConnection(subscriber.getName(), channelName, "unsubscribed", new Date());
 		}
-	}
-
-	/**
-	 * refreshes presence for the given client/channel
-	 * 
-	 * @param guest
-	 */
-	public void refreshChannelPresence(Channel guest) {
-		presence.refresh(guest);
 	}
 
 	/**

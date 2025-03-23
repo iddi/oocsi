@@ -118,8 +118,9 @@ public class Channel implements IChannel {
 		if (message.data.containsKey(Message.RETAIN_MESSAGE)) {
 			Object retainTimeoutRaw = message.data.getOrDefault(Message.RETAIN_MESSAGE, "0");
 			try {
-				// retrieve timeout and restrict timeout to 2 days max
+				// retrieve timeout
 				long timeoutSec = Long.parseLong(retainTimeoutRaw.toString());
+				// restrict timeout to 2 days max
 				timeoutSec = Math.min(3600 * 24 * 2, timeoutSec);
 				// set timeout and store retained message
 				message.validUntil = new Date(System.currentTimeMillis() + (timeoutSec * 1000));
@@ -272,17 +273,16 @@ public class Channel implements IChannel {
 	}
 
 	public static interface ChangeListener {
+
 		public void created(Channel host);
 
 		public void closed(Channel host);
 
 		public void join(Channel host, Channel guest);
 
-		public void refresh(Channel subscriber);
+		public void refresh();
 
 		public void leave(Channel host, Channel guest);
-
-		public void leave(String host, String guest);
 
 		public void timeout(Channel subscriber);
 
