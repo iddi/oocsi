@@ -4,8 +4,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.nio.ByteBuffer;
-import java.nio.channels.CancelledKeyException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -15,13 +15,11 @@ import java.nio.charset.Charset;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -99,78 +97,57 @@ public class NIOSocketService extends AbstractService {
 		try {
 			serverSocketChannel = ServerSocketChannel.open();
 			serverSocketChannel.configureBlocking(false);
-			serverSocketChannel.socket().bind(new InetSocketAddress(port));
+			ServerSocket serverSocket = serverSocketChannel.socket();
+			serverSocket.setPerformancePreferences(0, 2, 1);
+			serverSocket.setReuseAddress(true);
+			serverSocket.bind(new InetSocketAddress(port));
 
-			Selector readSelector = Selector.open();
-			serverSocketChannel.register(readSelector, SelectionKey.OP_ACCEPT);
-			Selector writeSelector = Selector.open();
-
-			// start writer loop in separate thread
-			Executors.newSingleThreadExecutor().execute(() -> {
-				try {
-					while (serverSocketActive) {
-						// check if there is anything to write
-						if (!writableNIOClients()) {
-							try {
-								Thread.sleep(10);
-							} catch (InterruptedException e) {
-							}
-
-							continue;
-						}
-
-						writeSelector.selectNow();
-						Iterator<SelectionKey> keys = writeSelector.selectedKeys().iterator();
-						while (keys.hasNext()) {
-							try {
-								SelectionKey selectionKey = (SelectionKey) keys.next();
-								if (selectionKey.isWritable()) {
-									handleWriteOp(selectionKey);
-								}
-							} catch (CancelledKeyException cke) {
-							} catch (Exception e) {
-								e.printStackTrace();
-							}
-							keys.remove();
-						}
-					}
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			});
+			Selector selector = Selector.open();
+			serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
 
 			// accept and read loop
 			while (serverSocketActive) {
-				readSelector.select();
-				for (SelectionKey selectionKey : readSelector.selectedKeys()) {
+				// select and just wait briefly if nothing is selected, then repeat
+				if (selector.selectNow() == 0) {
 					try {
+						Thread.sleep(4);
+					} catch (InterruptedException e) {
+					}
+				}
+
+				// if action can be taken, take it
+				for (SelectionKey selectionKey : selector.selectedKeys()) {
+					try {
+						// accept operation
 						if (selectionKey.isAcceptable()) {
 							SocketChannel socketChannel = serverSocketChannel.accept();
 							if (socketChannel != null) {
 								socketChannel.configureBlocking(false);
-								socketChannel.register(selectionKey.selector(), SelectionKey.OP_READ);
-								socketChannel.register(writeSelector, SelectionKey.OP_WRITE);
+								socketChannel.register(selector, SelectionKey.OP_READ);
+								socketChannel.socket().setPerformancePreferences(0, 2, 1);
+								socketChannel.socket().setTcpNoDelay(true);
 							}
-						} else if (selectionKey.isReadable()) {
-							handleReadOp(selectionKey);
+						} else {
+							// read operation
+							if (selectionKey.isValid() && selectionKey.isReadable()) {
+								handleReadOp(selectionKey);
+							}
+
+							// perform write operation, then cancel interest
+							if (selectionKey.isValid() && selectionKey.isWritable()) {
+								handleWriteOp(selectionKey);
+								selectionKey.interestOpsAnd(~SelectionKey.OP_WRITE);
+							}
 						}
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
+
 				}
 			}
-		} catch (IOException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
-	}
-
-	/**
-	 * check whether there is any outgoing data from any client
-	 * 
-	 * @return
-	 */
-	private boolean writableNIOClients() {
-		return nioClients.values().parallelStream().anyMatch(nc -> !nc.pendingData.isEmpty());
 	}
 
 	/**
@@ -272,7 +249,7 @@ public class NIOSocketService extends AbstractService {
 			}
 
 			// if ok, register NIOSocketClient
-			NIOSocketClient newClient = new NIOSocketClient(inputLine, presence);
+			NIOSocketClient newClient = new NIOSocketClient(inputLine, presence, selectionKey);
 			// register for NIO
 			nioClients.put(socketChannel, newClient);
 
@@ -319,7 +296,7 @@ public class NIOSocketService extends AbstractService {
 						nioClientInputBuffer.remove(socketChannel);
 						socketChannel.close();
 					} catch (IOException e) {
-						e.printStackTrace();
+						// e.printStackTrace();
 					}
 				}
 
@@ -337,7 +314,6 @@ public class NIOSocketService extends AbstractService {
 	private void handleWriteOp(SelectionKey selectionKey) {
 		try {
 			SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
-			socketChannel.socket().setTcpNoDelay(true);
 			NIOSocketClient client = nioClients.get(socketChannel);
 			if (client != null) {
 				if (client.isConnected()) {
@@ -358,10 +334,8 @@ public class NIOSocketService extends AbstractService {
 			}
 		} catch (ClosedChannelException e) {
 			// it's ok, don't raise alert
-			e.printStackTrace();
 		} catch (IOException e) {
 			// it's ok, don't raise alert
-			e.printStackTrace();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -404,21 +378,24 @@ public class NIOSocketService extends AbstractService {
 	class NIOSocketClient extends Client {
 		private final ObjectMapper JSON_OBJECT_MAPPER = new ObjectMapper();
 
-		private ClientType type = ClientType.OOCSI;
-		private boolean isConnected = true;
+		private final ClientType type;
+		private final SelectionKey selectionKey;
 
+		private boolean isConnected = true;
 		private Queue<ByteBuffer> pendingData = new ConcurrentLinkedQueue<ByteBuffer>();
 
-		public NIOSocketClient(String token, ChangeListener presence) {
+		public NIOSocketClient(String token, ChangeListener presence, SelectionKey selectionKey) {
 			super(token.replace(";", "").replace("(JSON)", "").trim(), presence);
+
+			this.selectionKey = selectionKey;
 
 			// select client type
 			if (token.contains(";")) {
-				type = ClientType.PD;
+				this.type = ClientType.PD;
 			} else if (token.contains("(JSON)")) {
-				type = ClientType.JSON;
+				this.type = ClientType.JSON;
 			} else {
-				type = ClientType.OOCSI;
+				this.type = ClientType.OOCSI;
 			}
 		}
 
@@ -535,6 +512,9 @@ public class NIOSocketService extends AbstractService {
 			if (b != null) {
 				pendingData.offer(b);
 			}
+
+			// signal send interest
+			selectionKey.interestOpsOr(SelectionKey.OP_WRITE);
 
 			// return if the send was successful because the queue is not full
 			return !queueFull;
