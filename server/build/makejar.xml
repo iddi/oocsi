@@ -16,7 +16,7 @@
            	<zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/Making/iddi/oocsi/server/libs/jackson-core-2.10.5.jar"/>
            	<zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/Making/iddi/oocsi/server/libs/jackson-annotations-2.10.5.jar"/>
            	<zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/Making/iddi/oocsi/server/libs/jackson-databind-2.10.5.1.jar"/>
-           	<zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/Making/iddi/oocsi/server/libs/EvalEx/EvalEx-2.1.jar"/>
+           	<zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/Making/iddi/oocsi/server/libs/EvalEx/EvalEx-3.4.0.jar"/>
            	<fileset dir="${dir.workspace}/Making/iddi/oocsi/client/bin"/>
         </jar>
     </target>
