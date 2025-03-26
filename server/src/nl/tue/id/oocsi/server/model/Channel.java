@@ -22,6 +22,7 @@ public class Channel implements IChannel {
 	protected final Date created = new Date();
 	protected final ChangeListener presence;
 	protected final Map<String, Channel> subChannels = new ConcurrentHashMap<String, Channel>();
+	private final long creation = System.currentTimeMillis();
 
 	protected String token;
 	protected Message retainedMessage;
@@ -161,7 +162,8 @@ public class Channel implements IChannel {
 	 * @return
 	 */
 	public Collection<Channel> getChannels() {
-		return subChannels.values().stream().filter(c -> !c.isPrivate()).collect(Collectors.toList());
+		return subChannels.values().stream().filter(c -> !c.isPrivate())
+		        .sorted((a, b) -> Long.compare(a.creation, b.creation)).collect(Collectors.toList());
 	}
 
 	/**
@@ -170,7 +172,8 @@ public class Channel implements IChannel {
 	 * @return
 	 */
 	public String getChannelList() {
-		return getChannels().stream().map(c -> c.getName()).collect(Collectors.joining(", "));
+		return getChannels().stream().sorted((a, b) -> Long.compare(a.creation, b.creation)).map(c -> c.getName())
+		        .collect(Collectors.joining(", "));
 	}
 
 	/**
