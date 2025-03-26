@@ -23,8 +23,12 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -376,7 +380,7 @@ public class NIOSocketService extends AbstractService {
 	 *
 	 */
 	class NIOSocketClient extends Client {
-		private final ObjectMapper JSON_OBJECT_MAPPER = new ObjectMapper();
+		private final ObjectMapper JSON_OBJECT_MAPPER;
 
 		private final ClientType type;
 		private final SelectionKey selectionKey;
@@ -397,6 +401,10 @@ public class NIOSocketService extends AbstractService {
 			} else {
 				this.type = ClientType.OOCSI;
 			}
+
+			// configure and build object mapper
+			JSON_OBJECT_MAPPER = JsonMapper.builder().configure(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY, true)
+			        .configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true).build();
 		}
 
 		@Override
@@ -568,8 +576,9 @@ public class NIOSocketService extends AbstractService {
 		private String serializePD(Map<String, Object> data) {
 			// map to blank separated list
 			StringBuilder sb = new StringBuilder();
-			for (String key : data.keySet()) {
-				Object value = data.get(key);
+			data.entrySet().stream().sorted((a, b) -> a.getKey().compareToIgnoreCase(b.getKey())).forEach(e -> {
+				String key = e.getKey();
+				Object value = e.getValue();
 				if (value instanceof String) {
 					sb.append(key + "=" + (String) value + " ");
 				} else if (value instanceof ArrayNode) {
@@ -580,7 +589,7 @@ public class NIOSocketService extends AbstractService {
 					// otherwise, just toString()
 					sb.append(key + "=" + value.toString() + " ");
 				}
-			}
+			});
 			return sb.toString();
 		}
 
@@ -602,7 +611,12 @@ public class NIOSocketService extends AbstractService {
 			je.put("sender", sender);
 
 			// serialize
-			return je.toString();
+			try {
+				return JSON_OBJECT_MAPPER.writeValueAsString(je);
+			} catch (JsonProcessingException e) {
+				// fall back to normal toString
+				return je.toString();
+			}
 		}
 	}
 

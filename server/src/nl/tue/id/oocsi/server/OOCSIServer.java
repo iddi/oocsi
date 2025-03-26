@@ -132,19 +132,6 @@ public class OOCSIServer extends Server {
 	}
 
 	/**
-	 * return instance of server
-	 * 
-	 * @return
-	 */
-	public static OOCSIServer getInstance() {
-		return INSTANCE;
-	}
-
-	public void destroyInstance() {
-		INSTANCE = null;
-	}
-
-	/**
 	 * initialize the server and listen for client connects
 	 * 
 	 * @param args
