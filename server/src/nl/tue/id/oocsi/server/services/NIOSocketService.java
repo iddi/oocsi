@@ -522,7 +522,9 @@ public class NIOSocketService extends AbstractService {
 			}
 
 			// signal send interest
-			selectionKey.interestOpsOr(SelectionKey.OP_WRITE);
+			if (selectionKey.isValid()) {
+				selectionKey.interestOpsOr(SelectionKey.OP_WRITE);
+			}
 
 			// return if the send was successful because the queue is not full
 			return !queueFull;

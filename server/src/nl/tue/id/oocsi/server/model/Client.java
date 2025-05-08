@@ -72,4 +72,15 @@ abstract public class Client extends Channel {
 	public void touch() {
 		lastAction = System.currentTimeMillis();
 	}
+
+	/**
+	 * check whether we can send again (= lastAction is more than <code>ms</code> milliseconds ago)
+	 * 
+	 * @param ms
+	 * @return
+	 */
+	public boolean acceptWithThrottle(int ms) {
+		return lastAction + ms < System.currentTimeMillis();
+	}
+
 }
