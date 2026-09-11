@@ -1,6 +1,8 @@
 package nl.tue.id.oocsi.server;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -9,7 +11,9 @@ import java.util.List;
 import java.util.LongSummaryStatistics;
 import java.util.Map;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -48,8 +52,8 @@ public class OOCSIServer extends Server {
 	public static final String OOCSI_METRICS = "OOCSI_metrics";
 
 	// metrics
-	private static int messageCount = 0;
-	private static int messageTotal = 0;
+	private static final AtomicLong messageCount = new AtomicLong(0);
+	private static final AtomicLong messageTotal = new AtomicLong(0);
 	private static final long SERVER_START = System.currentTimeMillis();
 
 	// singleton server instance
@@ -57,22 +61,26 @@ public class OOCSIServer extends Server {
 
 	// services
 	AbstractService[] services;
+	private ScheduledExecutorService scheduler;
 
 	/**
 	 * initialize minimal server without any services running
 	 * 
-	 * @param args
 	 * @throws IOException
 	 */
 	public OOCSIServer() {
-		// thread-safe singleton assignment
-		if (INSTANCE == null) {
-			synchronized (OOCSIServer.class) {
-				if (INSTANCE == null) {
-					INSTANCE = this;
-				}
-			}
+		synchronized (OOCSIServer.class) {
+			INSTANCE = this;
 		}
+	}
+
+	/**
+	 * retrieve current server instance
+	 * 
+	 * @return
+	 */
+	public static OOCSIServer getInstance() {
+		return INSTANCE;
 	}
 
 	/**
@@ -154,15 +162,16 @@ public class OOCSIServer extends Server {
 		// start services
 		startServices(new AbstractService[] { tcp });
 
-		// start timer for posting channel and client information to the respective channels
-		Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(new StatusTimeTask(), 5, 1, TimeUnit.SECONDS);
-
-		// start timer for pinging clients that have not sent any data in the last 5 seconds
-		Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(new PingTask(), 5, 5, TimeUnit.SECONDS);
-
-		// start timer for presence tracking refreshes
-		Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(() -> {
-			refreshPresence();
+		// start timer for posting channel, pinging clients, and presence tracking
+		scheduler = Executors.newScheduledThreadPool(3);
+		scheduler.scheduleAtFixedRate(new StatusTimeTask(), 5, 1, TimeUnit.SECONDS);
+		scheduler.scheduleAtFixedRate(new PingTask(), 5, 5, TimeUnit.SECONDS);
+		scheduler.scheduleAtFixedRate(() -> {
+			try {
+				refreshPresence();
+			} catch (Throwable t) {
+				OOCSIServer.log("Exception in refreshPresence: " + t.getMessage());
+			}
 		}, 5, 5, TimeUnit.SECONDS);
 	}
 
@@ -178,11 +187,13 @@ public class OOCSIServer extends Server {
 
 		// start new services
 		for (final AbstractService service : services) {
-			new Thread(new Runnable() {
+			Thread t = new Thread(new Runnable() {
 				public void run() {
 					service.start();
 				}
-			}).start();
+			});
+			t.setDaemon(true);
+			t.start();
 		}
 
 		// keep record of newly started services
@@ -194,12 +205,20 @@ public class OOCSIServer extends Server {
 	 * 
 	 */
 	public void stop() {
-		if (services == null) {
-			return;
+		if (scheduler != null && !scheduler.isShutdown()) {
+			scheduler.shutdownNow();
 		}
 
-		for (AbstractService service : services) {
-			service.stop();
+		if (services != null) {
+			for (AbstractService service : services) {
+				service.stop();
+			}
+		}
+
+		synchronized (OOCSIServer.class) {
+			if (INSTANCE == this) {
+				INSTANCE = null;
+			}
 		}
 	}
 
@@ -278,7 +297,7 @@ public class OOCSIServer extends Server {
 	 * @param message
 	 */
 	public static void log(String message) {
-		if (INSTANCE.isLogging) {
+		if (INSTANCE != null && INSTANCE.isLogging) {
 			INSTANCE.internalLog(message);
 		}
 	}
@@ -328,10 +347,10 @@ public class OOCSIServer extends Server {
 		}
 
 		// log metrics
-		messageCount++;
-		messageTotal++;
+		messageCount.incrementAndGet();
+		messageTotal.incrementAndGet();
 
-		if (INSTANCE.isLogging) {
+		if (INSTANCE != null && INSTANCE.isLogging) {
 			if (channel.length() == 0) {
 				log(OOCSI_EVENTS + " " + sender + " --> " + recipients);
 			} else {
@@ -369,7 +388,7 @@ public class OOCSIServer extends Server {
 			return;
 		}
 
-		if (INSTANCE.isLogging) {
+		if (INSTANCE != null && INSTANCE.isLogging) {
 			log(OOCSI_CONNECTIONS + " " + client + "->" + channel + " (" + operation + ")");
 
 			Channel logChannel = INSTANCE.getChannel(OOCSI_CONNECTIONS);
@@ -402,6 +421,20 @@ public class OOCSIServer extends Server {
 				        "^([a-zA-Z0-9_\\-.]+:[a-zA-Z0-9_\\-.%$]+;)*([a-zA-Z0-9_\\-.]+:[a-zA-Z0-9_\\-.%$]+);*$")) {
 					users = userList.split(";");
 				}
+			} else if (argument.equals("-usersFile") && args.length >= i + 2) {
+				String usersFilePath = args[i + 1];
+				try {
+					java.nio.file.Path p = Paths.get(usersFilePath);
+					if (Files.exists(p)) {
+						String userList = Files.readString(p).trim();
+						if (userList.matches(
+						        "^([a-zA-Z0-9_\\-.]+:[a-zA-Z0-9_\\-.%$]+;)*([a-zA-Z0-9_\\-.]+:[a-zA-Z0-9_\\-.%$]+);*$")) {
+							users = userList.split(";");
+						}
+					}
+				} catch (Exception e) {
+					log("Failed to read users from file: " + usersFilePath);
+				}
 			}
 		}
 	}
@@ -430,7 +463,7 @@ public class OOCSIServer extends Server {
 			long start = System.currentTimeMillis();
 
 			// keep-alive ping-pong with socket clients
-			for (Client client : INSTANCE.getClients()) {
+			for (Client client : getClients()) {
 				// only ping if last action is at least 5 seconds ago
 				if (client.lastAction() + 5000 < start) {
 					client.ping();
@@ -486,35 +519,37 @@ public class OOCSIServer extends Server {
 			long afterCleans = System.currentTimeMillis();
 
 			// check if we have a subscriber for public channel information
-			Channel channels = INSTANCE.getChannel(OOCSI_CHANNELS);
+			Channel channels = getChannel(OOCSI_CHANNELS);
 			if (channels != null) {
 				Message message = new Message(SERVER, OOCSI_CHANNELS);
-				message.addData("channels", INSTANCE.getChannelList());
+				message.addData("channels", getChannelList());
 				channels.send(message);
 			}
 
 			// check if we have a subscriber for public client information
-			Channel clients = INSTANCE.getChannel(OOCSI_CLIENTS);
+			Channel clients = getChannel(OOCSI_CLIENTS);
 			if (clients != null) {
 				Message message = new Message(SERVER, OOCSI_CLIENTS);
-				message.addData("clients", INSTANCE.getClientList());
+				message.addData("clients", getClientList());
 				clients.send(message);
 			}
 
 			// check first-level channels for channel subscribers
-			for (Channel channel : INSTANCE.getChannels()) {
-				Channel channelSubscription = INSTANCE.getChannel(channel.getName() + "/?");
-				if (channelSubscription != null) {
-					Message message = new Message(SERVER, channelSubscription.getName());
-					message.addData("channels", channel.getChannelList());
-					channelSubscription.send(message);
+			for (Channel channel : getChannels()) {
+				if (!channel.isPrivate()) {
+					Channel channelSubscription = getChannel(channel.getName() + "/?");
+					if (channelSubscription != null) {
+						Message message = new Message(SERVER, channelSubscription.getName());
+						message.addData("channels", channel.getChannelList());
+						channelSubscription.send(message);
+					}
 				}
 			}
 
 			long afterFirstMetrics = System.currentTimeMillis();
 
 			// check if we have a subscriber for public client information
-			Channel metrics = INSTANCE.getChannel(OOCSI_METRICS);
+			Channel metrics = getChannel(OOCSI_METRICS);
 			if (metrics != null) {
 				Message message = new Message(SERVER, OOCSI_METRICS);
 
@@ -522,23 +557,23 @@ public class OOCSIServer extends Server {
 				message.addData("uptime", System.currentTimeMillis() - SERVER_START);
 
 				// total messages since startup
-				message.addData("messagesTotal", messageTotal);
+				message.addData("messagesTotal", messageTotal.get());
 
 				// messages per second
-				message.addData("messages", messageCount);
+				message.addData("messages", messageCount.get());
 
 				// channel count
-				message.addData("channels", INSTANCE.subChannels.size());
+				message.addData("channels", subChannels.size());
 
 				// client count
-				message.addData("clients", INSTANCE.clients.size());
+				message.addData("clients", OOCSIServer.this.clients.size());
 
 				// report!
 				metrics.send(message);
 			}
 
 			// reset message count
-			messageCount = 0;
+			messageCount.set(0);
 
 			// log out if status task took too long
 			if (System.currentTimeMillis() - start > 100) {

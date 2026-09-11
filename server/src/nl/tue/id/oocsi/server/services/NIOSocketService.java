@@ -6,7 +6,9 @@ import java.io.ObjectOutputStream;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.ByteBuffer;
+import java.nio.channels.CancelledKeyException;
 import java.nio.channels.ClosedChannelException;
+import java.nio.channels.ClosedSelectorException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
@@ -15,11 +17,12 @@ import java.nio.charset.Charset;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Queue;
-import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -39,14 +42,19 @@ import nl.tue.id.oocsi.server.protocol.Message;
 
 public class NIOSocketService extends AbstractService {
 
+	private static final int MAX_PRE_AUTH_BUFFER = 256;
+	private static final int MAX_BUFFER_SIZE = 65536;
+
 	private final int port;
 	private final String[] registeredUsers;
 
 	// current list of connected NIO clients
 	private final Map<SocketChannel, NIOSocketClient> nioClients = new ConcurrentHashMap<>();
 	private final Map<SocketChannel, StringBuffer> nioClientInputBuffer = new ConcurrentHashMap<>();
-	private boolean serverSocketActive = true;
+	private final Queue<SocketChannel> pendingWriteInterest = new ConcurrentLinkedQueue<>();
+	private volatile boolean serverSocketActive = true;
 	private ServerSocketChannel serverSocketChannel;
+	private Selector selector;
 
 	/**
 	 * create a TCP socket service for OOCSI based on Java NIO
@@ -106,21 +114,40 @@ public class NIOSocketService extends AbstractService {
 			serverSocket.setReuseAddress(true);
 			serverSocket.bind(new InetSocketAddress(port));
 
-			Selector selector = Selector.open();
+			selector = Selector.open();
 			serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
 
 			// accept and read loop
-			while (serverSocketActive) {
-				// select and just wait briefly if nothing is selected, then repeat
-				if (selector.selectNow() == 0) {
-					try {
-						Thread.sleep(4);
-					} catch (InterruptedException e) {
+			while (serverSocketActive && selector.isOpen()) {
+				// process pending write interests
+				SocketChannel ch;
+				while ((ch = pendingWriteInterest.poll()) != null) {
+					SelectionKey k = ch.keyFor(selector);
+					if (k != null && k.isValid()) {
+						try {
+							k.interestOpsOr(SelectionKey.OP_WRITE);
+						} catch (CancelledKeyException ignored) {
+						}
 					}
 				}
 
-				// if action can be taken, take it
-				for (SelectionKey selectionKey : selector.selectedKeys()) {
+				try {
+					if (selector.select(20) == 0) {
+						continue;
+					}
+				} catch (ClosedSelectorException e) {
+					break;
+				}
+
+				Iterator<SelectionKey> it = selector.selectedKeys().iterator();
+				while (it.hasNext()) {
+					SelectionKey selectionKey = it.next();
+					it.remove();
+
+					if (!selectionKey.isValid()) {
+						continue;
+					}
+
 					try {
 						// accept operation
 						if (selectionKey.isAcceptable()) {
@@ -140,17 +167,22 @@ public class NIOSocketService extends AbstractService {
 							// perform write operation, then cancel interest
 							if (selectionKey.isValid() && selectionKey.isWritable()) {
 								handleWriteOp(selectionKey);
-								selectionKey.interestOpsAnd(~SelectionKey.OP_WRITE);
+								if (selectionKey.isValid()) {
+									selectionKey.interestOpsAnd(~SelectionKey.OP_WRITE);
+								}
 							}
 						}
+					} catch (CancelledKeyException | ClosedChannelException e) {
+						// channel closed or cancelled during processing
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
-
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			if (serverSocketActive) {
+				e.printStackTrace();
+			}
 		}
 	}
 
@@ -205,6 +237,14 @@ public class NIOSocketService extends AbstractService {
 			String inputLine = new String(byteBuffer.array(), 0, read);
 			StringBuffer sb = nioClientInputBuffer.computeIfAbsent(socketChannel, s -> new StringBuffer())
 			        .append(inputLine);
+			if (sb.length() > MAX_PRE_AUTH_BUFFER) {
+				nioClientInputBuffer.remove(socketChannel);
+				try {
+					socketChannel.close();
+				} catch (IOException ignored) {
+				}
+				return;
+			}
 			int nlIndex = sb.indexOf("\n");
 			// if no newline found, buffer input till next read
 			if (nlIndex == -1) {
@@ -221,21 +261,14 @@ public class NIOSocketService extends AbstractService {
 
 			// check input line for exceptional values that cannot be handled safely
 			// do some filtering for SSH clients connecting and other abuse
-			if (inputLine.length() > 200) {
-				OOCSIServer.log("Killed client connection for [length]: " + inputLine);
-				return;
-			}
-			if (!inputLine.matches("\\p{ASCII}+$")) {
-				OOCSIServer.log("Killed client connection for [non-ASCII chars]: " + inputLine);
-				return;
-			}
-			if (inputLine.contains("OpenSSH") || inputLine.contains("libssh")) {
-				OOCSIServer.log("Killed client connection for [suspicious client]: " + inputLine);
-				return;
-			}
-			if (inputLine.matches(".*\\s.*")) {
-				OOCSIServer.log(
-				        "Killed client connection because client name contains whitespace characters: " + inputLine);
+			if (inputLine.length() > 200 || !inputLine.matches("\\p{ASCII}+$")
+			        || inputLine.contains("OpenSSH") || inputLine.contains("libssh")
+			        || inputLine.matches(".*\\s.*")) {
+				nioClientInputBuffer.remove(socketChannel);
+				try {
+					socketChannel.close();
+				} catch (IOException ignored) {
+				}
 				return;
 			}
 
@@ -281,6 +314,17 @@ public class NIOSocketService extends AbstractService {
 			String inputLine = new String(byteBuffer.array(), 0, read);
 			StringBuffer sb = nioClientInputBuffer.computeIfAbsent(socketChannel, s -> new StringBuffer())
 			        .append(inputLine);
+
+			if (sb.length() > MAX_BUFFER_SIZE) {
+				nioClientInputBuffer.remove(socketChannel);
+				nioClients.remove(socketChannel);
+				server.removeClient(client);
+				try {
+					socketChannel.close();
+				} catch (IOException ignored) {
+				}
+				return;
+			}
 
 			// find first newline
 			int nlIndex = sb.indexOf("\n");
@@ -347,11 +391,10 @@ public class NIOSocketService extends AbstractService {
 
 	private String replaceHashesWithDigits(String input) {
 		StringBuilder result = new StringBuilder(input.length());
-		Random RAND = new Random();
 		for (int i = 0; i < input.length(); i++) {
 			char c = input.charAt(i);
 			if (c == '#') {
-				result.append(RAND.nextInt(10));
+				result.append(ThreadLocalRandom.current().nextInt(10));
 			} else {
 				result.append(c);
 			}
@@ -364,13 +407,22 @@ public class NIOSocketService extends AbstractService {
 		// stop loops
 		serverSocketActive = false;
 
+		if (selector != null) {
+			selector.wakeup();
+			try {
+				selector.close();
+			} catch (IOException ignored) {
+			}
+		}
+
 		// close server socket
 		if (serverSocketChannel != null) {
 			try {
 				serverSocketChannel.close();
-				serverSocketChannel.socket().close();
-			} catch (IOException e) {
-				e.printStackTrace();
+				if (serverSocketChannel.socket() != null) {
+					serverSocketChannel.socket().close();
+				}
+			} catch (IOException ignored) {
 			}
 		}
 	}
@@ -522,8 +574,11 @@ public class NIOSocketService extends AbstractService {
 			}
 
 			// signal send interest
-			if (selectionKey.isValid()) {
-				selectionKey.interestOpsOr(SelectionKey.OP_WRITE);
+			if (selectionKey.isValid() && selectionKey.channel() instanceof SocketChannel) {
+				pendingWriteInterest.offer((SocketChannel) selectionKey.channel());
+				if (selector != null) {
+					selector.wakeup();
+				}
 			}
 
 			// return if the send was successful because the queue is not full
