@@ -12,9 +12,11 @@ import java.util.regex.Pattern;
 
 import com.ezylang.evalex.Expression;
 import com.ezylang.evalex.config.ExpressionConfiguration;
+import com.ezylang.evalex.config.FunctionDictionaryIfc;
 import com.ezylang.evalex.config.MapBasedFunctionDictionary;
 import com.ezylang.evalex.data.EvaluationValue;
 import com.ezylang.evalex.functions.AbstractFunction;
+import com.ezylang.evalex.functions.FunctionIfc;
 import com.ezylang.evalex.functions.FunctionParameter;
 import com.ezylang.evalex.parser.ParseException;
 import com.ezylang.evalex.parser.Token;
@@ -69,14 +71,41 @@ public class FunctionClient extends Client {
 			}
 		}
 
+		FunctionDictionaryIfc delegateDict = ExpressionConfiguration.defaultConfiguration().getFunctionDictionary();
+		FunctionDictionaryIfc safeDict = new FunctionDictionaryIfc() {
+			private final Set<String> blockedFunctions = Set.of("FACT", "STR_MATCHES");
+
+			@Override
+			public FunctionIfc getFunction(String functionName) {
+				if (functionName != null && blockedFunctions.contains(functionName.toUpperCase())) {
+					return null;
+				}
+				return delegateDict.getFunction(functionName);
+			}
+
+			@Override
+			public void addFunction(String functionName, FunctionIfc function) {
+				delegateDict.addFunction(functionName, function);
+			}
+
+			@Override
+			public boolean hasFunction(String functionName) {
+				if (functionName != null && blockedFunctions.contains(functionName.toUpperCase())) {
+					return false;
+				}
+				return delegateDict.hasFunction(functionName);
+			}
+		};
+
+		safeDict.addFunction("sum", sumFct);
+		safeDict.addFunction("mean", meanFct);
+		safeDict.addFunction("stdev", stdevFct);
+		safeDict.addFunction("emin", minFct);
+		safeDict.addFunction("emax", maxFct);
+
 		return ExpressionConfiguration.defaultConfiguration().toBuilder()
-		        .functionDictionary(MapBasedFunctionDictionary.ofFunctions(
-		                Map.entry("sum", sumFct),
-		                Map.entry("mean", meanFct),
-		                Map.entry("stdev", stdevFct),
-		                Map.entry("emin", minFct),
-		                Map.entry("emax", maxFct)
-		        )).build();
+		        .functionDictionary(safeDict)
+		        .build();
 	}
 
 	@Override

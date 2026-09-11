@@ -113,7 +113,7 @@ public class OOCSISpatial extends OOCSISystemCommunicator<Position> {
 		client.register(DESTINATION, new Responder(client) {
 			@SuppressWarnings("unchecked")
 			@Override
-			public synchronized void respond(OOCSIEvent event, OOCSIData response) {
+			public void respond(OOCSIEvent event, OOCSIData response) {
 				if (event.has(DESTINATION)) {
 					String destination = event.getString(DESTINATION);
 					String path = event.getString(ROUTING_PATH, "");
@@ -127,8 +127,8 @@ public class OOCSISpatial extends OOCSISystemCommunicator<Position> {
 						response.data(DESTINATION_RESPONSE, metric.distance(positions.get(destination)));
 					} else {
 						float minDistance = Float.MAX_VALUE;
-						int timeoutMS2 = 2000 - path.split(",").length * 100;
-						MultiMessage mm = neighborCall(DESTINATION).data(DESTINATION, destination).data(ROUTING_PATH,
+						int timeoutMS2 = 2500 - path.split(",").length * 100;
+						MultiMessage mm = neighborCall(DESTINATION, timeoutMS2).data(DESTINATION, destination).data(ROUTING_PATH,
 						        path + client.getName() + ",");
 						mm.sendAndWait(timeoutMS2);
 						for (OOCSIMessage om : mm.getMessages()) {
@@ -233,9 +233,20 @@ public class OOCSISpatial extends OOCSISystemCommunicator<Position> {
 	 * @return
 	 */
 	public MultiMessage neighborCall(String callName) {
+		return neighborCall(callName, 2000);
+	}
+
+	/**
+	 * return a message container that includes OOCSICalls to all neighbors with specified timeout
+	 * 
+	 * @param callName
+	 * @param timeoutMS
+	 * @return
+	 */
+	public MultiMessage neighborCall(String callName, int timeoutMS) {
 		MultiMessage mm = new MultiMessage(client);
 		for (String nb : getNeighbors()) {
-			mm.add(new OOCSICall(client, nb, callName, 2000, 100));
+			mm.add(new OOCSICall(client, nb, callName, timeoutMS, 100));
 		}
 
 		return mm;
@@ -269,9 +280,9 @@ public class OOCSISpatial extends OOCSISystemCommunicator<Position> {
 
 		// send to all neighbors to ask their neighbors
 		// add my name to path, so I don't have to answer my own question when my neighbor calls back
-		MultiMessage mm = neighborCall(DESTINATION).data(DESTINATION, destination).data(ROUTING_PATH,
+		MultiMessage mm = neighborCall(DESTINATION, 3000).data(DESTINATION, destination).data(ROUTING_PATH,
 		        client.getName() + ",");
-		mm.sendAndWait();
+		mm.sendAndWait(3000);
 
 		float minDistance = Float.MAX_VALUE;
 		String neighbor = null;
@@ -284,7 +295,9 @@ public class OOCSISpatial extends OOCSISystemCommunicator<Position> {
 					if (pathLength > -1 && pathLength < Float.MAX_VALUE) {
 						// add distance to neighbor to path length
 						pathLength = metric.distance(positions.get(event.getSender())) + pathLength;
-						if (pathLength > -1 && pathLength < minDistance) {
+						if (pathLength > -1 && (pathLength < minDistance || (pathLength == minDistance
+						        && (neighbor == null || metric.distance(positions.get(event.getSender())) < metric
+						                .distance(positions.get(neighbor)))))) {
 							// if ok, this is now the smallest distance
 							minDistance = pathLength;
 							neighbor = event.getSender();

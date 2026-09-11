@@ -128,7 +128,8 @@ public class MultiMessage extends OOCSIMessage {
 			}
 			// or until all calls have responses
 			else {
-				for (int i = 0; i < 10; i++) {
+				long end = System.currentTimeMillis() + timeoutMS;
+				while (System.currentTimeMillis() < end) {
 					boolean delivered = true;
 					for (OOCSIMessage msg : messages) {
 						if (msg instanceof OOCSICall) {
@@ -140,7 +141,7 @@ public class MultiMessage extends OOCSIMessage {
 						break;
 					}
 
-					Thread.sleep(timeoutMS / 10);
+					Thread.sleep(Math.min(20, Math.max(1, timeoutMS / 10)));
 				}
 			}
 		} catch (InterruptedException e) {

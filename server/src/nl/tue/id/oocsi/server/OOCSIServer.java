@@ -164,7 +164,7 @@ public class OOCSIServer extends Server {
 
 		// start timer for posting channel, pinging clients, and presence tracking
 		scheduler = Executors.newScheduledThreadPool(3);
-		scheduler.scheduleAtFixedRate(new StatusTimeTask(), 5, 1, TimeUnit.SECONDS);
+		scheduler.scheduleAtFixedRate(new StatusTimeTask(), 1, 1, TimeUnit.SECONDS);
 		scheduler.scheduleAtFixedRate(new PingTask(), 5, 5, TimeUnit.SECONDS);
 		scheduler.scheduleAtFixedRate(() -> {
 			try {
