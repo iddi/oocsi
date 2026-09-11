@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -29,6 +30,16 @@ import nl.tue.id.oocsi.server.model.Server;
  * 
  */
 public class Protocol {
+
+	private static final Set<String> INTERNAL_CHANNELS = Set.of(
+	        OOCSIServer.OOCSI_EVENTS,
+	        OOCSIServer.OOCSI_CONNECTIONS,
+	        OOCSIServer.OOCSI_CHANNELS,
+	        OOCSIServer.OOCSI_CLIENTS,
+	        OOCSIServer.OOCSI_METRICS
+	);
+
+	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
 	private final Server server;
 
@@ -154,6 +165,11 @@ public class Protocol {
 	private void prepareDispatchMessage(Client sender, String recipient, Map<String, Object> map) {
 		final Date now = new Date();
 
+		// prevent clients from writing to internal management channels
+		if (INTERNAL_CHANNELS.contains(recipient)) {
+			return;
+		}
+
 		// check for delayed message by requesting the _DELAY attribute that provides the requested delay in seconds
 		if (map.containsKey(Message.DELAY_MESSAGE)) {
 			long delayTimeSec = 0;
@@ -174,12 +190,15 @@ public class Protocol {
 				// do nothing
 			}
 
+			// cap delay to a safe upper bound (1 year max) to avoid long overflow
+			delayTimeSec = Math.min(Math.max(0, delayTimeSec), 86400L * 365);
+
 			// send with specified delay in seconds
 			if (delayTimeSec > 0) {
 				server.sendDelayedMessage(recipient, new Message(sender.getName(), recipient,
-				        new Date(System.currentTimeMillis() + delayTimeSec * 1000), map));
+				        new Date(System.currentTimeMillis() + delayTimeSec * 1000L), map));
 			}
-			// normal dispatch for broken _DELAY
+			// normal dispatch for broken or zero _DELAY
 			else {
 				dispatchMessage(sender, recipient, now, map);
 			}
@@ -244,8 +263,7 @@ public class Protocol {
 	public static Map<String, Object> parseJSONMessage(String message) {
 		Map<String, Object> map = new HashMap<String, Object>();
 		try {
-			ObjectMapper om = new ObjectMapper();
-			JsonNode jn = om.readTree(message);
+			JsonNode jn = OBJECT_MAPPER.readTree(message);
 			if (jn.isObject()) {
 				ObjectNode on = (ObjectNode) jn;
 				for (Iterator<Entry<String, JsonNode>> iterator = on.fields(); iterator.hasNext();) {
@@ -272,8 +290,7 @@ public class Protocol {
 					}
 				}
 			}
-		} catch (JsonMappingException e) {
-		} catch (JsonProcessingException e) {
+		} catch (Throwable t) {
 		}
 
 		return map;

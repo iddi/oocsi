@@ -132,9 +132,9 @@ public class PresenceTracker implements ChangeListener {
 	public synchronized void timeout(Channel subscriber) {
 		presenceTracking.entrySet().stream().forEach(e -> {
 			Channel tracker = e.getValue();
-			// remove subscriber from all presence tracking channels; do this manually to avoid problems with the
+			// remove subscriber from all presence tracking channels; do this directly to avoid problems with the
 			// presence tracking (on top of presence tracking)
-			if (tracker.getChannels().remove(subscriber) && !subscriber.isPrivate()) {
+			if (tracker.removeSubChannel(subscriber.getName()) && !subscriber.isPrivate()) {
 				// if the subscriber was found and removed AND is non-private
 				// then send out a timeout presence notice on the channel that
 				// subscriber was removed from

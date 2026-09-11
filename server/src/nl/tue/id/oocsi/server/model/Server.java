@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -21,6 +22,17 @@ import nl.tue.id.oocsi.server.services.PresenceTracker;
  * 
  */
 public class Server extends Channel {
+
+	public static final Set<String> RESERVED_NAMES = Set.of(
+	        OOCSIServer.SERVER,
+	        OOCSIServer.OOCSI_CONNECTIONS,
+	        OOCSIServer.OOCSI_EVENTS,
+	        OOCSIServer.OOCSI_CHANNELS,
+	        OOCSIServer.OOCSI_CLIENTS,
+	        OOCSIServer.OOCSI_METRICS
+	);
+
+	protected static final int MAX_CLIENT_SUBSCRIPTIONS = 200;
 
 	protected final Map<String, Client> clients = new ConcurrentHashMap<String, Client>();
 	protected final Protocol protocol;
@@ -103,18 +115,20 @@ public class Server extends Channel {
 	 */
 	public boolean addClient(Client client) {
 		String clientName = client.getName();
+		if (clientName == null || RESERVED_NAMES.contains(clientName)) {
+			return false;
+		}
 
 		// clean too old clients
 		closeStaleClients();
 
 		// add client to client list and sub channels
-		if (!clients.containsKey(clientName) && !subChannels.containsKey(clientName) && getClient(clientName) == null
-		        && clientName != OOCSIServer.OOCSI_CONNECTIONS && clientName != OOCSIServer.OOCSI_EVENTS) {
-			addChannel(client);
-			clients.put(clientName, client);
-			presence.join(client, client);
-
-			return true;
+		if (!subChannels.containsKey(clientName) && getClient(clientName) == null) {
+			if (clients.putIfAbsent(clientName, client) == null) {
+				addChannel(client);
+				presence.join(client, client);
+				return true;
+			}
 		}
 
 		return false;
@@ -199,6 +213,17 @@ public class Server extends Channel {
 		}
 	}
 
+	private int countClientSubscriptions(Channel subscriber) {
+		String subName = subscriber.getName();
+		int count = 0;
+		for (Channel ch : subChannels.values()) {
+			if (ch.getChannel(subName) != null) {
+				count++;
+			}
+		}
+		return count;
+	}
+
 	/**
 	 * subscribe <subscriber> to <channel>
 	 * 
@@ -207,23 +232,24 @@ public class Server extends Channel {
 	 */
 	public void subscribe(Client subscriber, String channel) {
 
-		// remove password for private channel
-		String channelName = channel.replaceFirst(":.*", "").trim();
+		if (subscriber == null || channel == null) {
+			return;
+		}
 
-		// check channel length first
-		if (channelName.length() == 0) {
+		if (countClientSubscriptions(subscriber) >= MAX_CLIENT_SUBSCRIPTIONS) {
 			return;
 		}
 
 		// ------------------------------------------------------------------------------------------------------------
 		// check for presence subscription
 		Pattern presencePattern = Pattern.compile("presence\\(([\\w_-]+)\\)");
-		Matcher presenceMatcher = presencePattern.matcher(channelName);
+		Matcher presenceMatcher = presencePattern.matcher(channel.trim());
 		if (presenceMatcher.find()) {
 
 			// extract presence channel name, or abort
 			String presenceChannelName = presenceMatcher.group(1);
-			if (presenceChannelName == null || presenceChannelName.trim().length() == 0) {
+			if (presenceChannelName == null || presenceChannelName.trim().length() == 0
+			        || RESERVED_NAMES.contains(presenceChannelName)) {
 				return;
 			}
 
@@ -237,40 +263,44 @@ public class Server extends Channel {
 		// ------------------------------------------------------------------------------------------------------------
 		// functions for filtering and transformation
 		String functions = null;
-		Pattern functionPattern = Pattern.compile("([\\w_-]+)\\[(.*)\\]");
-		Matcher functionMatcher = functionPattern.matcher(channelName);
+		Matcher functionMatcher = Pattern.compile("\\[(.*)\\]").matcher(channel);
 		if (functionMatcher.find()) {
-			channelName = functionMatcher.group(1);
-			functions = functionMatcher.group(2);
+			functions = functionMatcher.group(1);
+			if (functions != null && functions.length() > 512) {
+				return;
+			}
 		} else {
 			// check the functions part
 			Pattern brokenPattern = Pattern.compile("\\[[^\\]]*");
-			Matcher brokenMatcher = brokenPattern.matcher(channelName);
+			Matcher brokenMatcher = brokenPattern.matcher(channel);
 			if (brokenMatcher.find()) {
 				// if function extension is broken, quit
 				return;
 			}
 		}
 
+		String cleanToken = channel.replaceAll("\\[[^\\]]*\\]", "").trim();
+		String channelName = cleanToken.replaceFirst(":.*", "").trim();
+
+		// check channel length first
+		if (channelName.length() == 0) {
+			return;
+		}
+
 		// find channel
-		Channel c = getChannel(channelName);
+		Channel c = subChannels.get(channelName);
 
 		// create channel if not existing
 		if (c == null) {
-			if (functions != null) {
-				// TODO assumption that functions are used without password
-				// and vice versa
-				c = new Channel(channelName, presence);
-			} else {
-				c = new Channel(subscriber.getName().equals(channelName) ? channelName : channel, presence);
-			}
+			c = new Channel(subscriber.getName().equals(channelName) ? channelName : cleanToken, presence);
 			addChannel(c);
 		}
 
-		// add subscriber to channel
-		if (functions != null || c.validate(channel)) {
+		// add subscriber to channel if authorized
+		boolean authorized = !c.isPrivate() || c.validate(cleanToken);
+		if (authorized) {
 			if (functions != null) {
-				c.addChannel(new FunctionClient(subscriber, channelName, functions, presence));
+				c.addChannel(new FunctionClient(subscriber, subscriber.getName(), functions, presence));
 			} else {
 
 				c.addChannel(subscriber);

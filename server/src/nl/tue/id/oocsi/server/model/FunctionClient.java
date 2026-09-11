@@ -12,6 +12,7 @@ import java.util.regex.Pattern;
 
 import com.ezylang.evalex.Expression;
 import com.ezylang.evalex.config.ExpressionConfiguration;
+import com.ezylang.evalex.config.MapBasedFunctionDictionary;
 import com.ezylang.evalex.data.EvaluationValue;
 import com.ezylang.evalex.functions.AbstractFunction;
 import com.ezylang.evalex.functions.FunctionParameter;
@@ -68,9 +69,14 @@ public class FunctionClient extends Client {
 			}
 		}
 
-		return ExpressionConfiguration.defaultConfiguration().withAdditionalFunctions(Map.entry("sum", sumFct),
-		        Map.entry("mean", meanFct), Map.entry("stdev", stdevFct), Map.entry("emin", minFct),
-		        Map.entry("emax", maxFct));
+		return ExpressionConfiguration.defaultConfiguration().toBuilder()
+		        .functionDictionary(MapBasedFunctionDictionary.ofFunctions(
+		                Map.entry("sum", sumFct),
+		                Map.entry("mean", meanFct),
+		                Map.entry("stdev", stdevFct),
+		                Map.entry("emin", minFct),
+		                Map.entry("emax", maxFct)
+		        )).build();
 	}
 
 	@Override

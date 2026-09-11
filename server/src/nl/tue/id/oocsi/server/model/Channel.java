@@ -1,5 +1,7 @@
 package nl.tue.id.oocsi.server.model;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
@@ -25,7 +27,7 @@ public class Channel implements IChannel {
 	private final long creation = System.currentTimeMillis();
 
 	protected String token;
-	protected Message retainedMessage;
+	protected volatile Message retainedMessage;
 
 	public Channel(String token, ChangeListener changeListener) {
 		this.token = token;
@@ -70,7 +72,10 @@ public class Channel implements IChannel {
 	 * @return
 	 */
 	public boolean validate(String channelToken) {
-		return token.equals(channelToken);
+		if (token == null || channelToken == null) {
+			return false;
+		}
+		return MessageDigest.isEqual(token.getBytes(StandardCharsets.UTF_8), channelToken.getBytes(StandardCharsets.UTF_8));
 	}
 
 	/**
@@ -91,6 +96,28 @@ public class Channel implements IChannel {
 	 */
 	@Override
 	public boolean send(Message message) {
+		// new message erases always retained message
+		retainedMessage = null;
+
+		// check for retained message flag and store message before broadcasting
+		if (message.data.containsKey(Message.RETAIN_MESSAGE)) {
+			Object retainTimeoutRaw = message.data.getOrDefault(Message.RETAIN_MESSAGE, "0");
+			try {
+				// retrieve timeout
+				long timeoutSec = Long.parseLong(retainTimeoutRaw.toString());
+				// restrict timeout to positive durations up to 2 days max
+				if (timeoutSec > 0) {
+					timeoutSec = Math.min(3600 * 24 * 2, timeoutSec);
+					// set timeout and store retained message
+					message.validUntil = new Date(System.currentTimeMillis() + (timeoutSec * 1000));
+					retainedMessage = message;
+					OOCSIServer.log("Retained message stored for channel '" + getName() + "' for " + timeoutSec + "secs.");
+				}
+			} catch (Exception e) {
+				// do nothing
+			}
+		}
+
 		// keep track of successful sends
 		AtomicBoolean sendSuccessful = new AtomicBoolean(false);
 		List<String> scs = subChannels.values().stream().filter(subChannel -> {
@@ -112,27 +139,17 @@ public class Channel implements IChannel {
 			        message.getTimestamp());
 		}
 
-		// new message erases always retained message
-		retainedMessage = null;
-
-		// check for retained message flag and store message
-		if (message.data.containsKey(Message.RETAIN_MESSAGE)) {
-			Object retainTimeoutRaw = message.data.getOrDefault(Message.RETAIN_MESSAGE, "0");
-			try {
-				// retrieve timeout
-				long timeoutSec = Long.parseLong(retainTimeoutRaw.toString());
-				// restrict timeout to 2 days max
-				timeoutSec = Math.min(3600 * 24 * 2, timeoutSec);
-				// set timeout and store retained message
-				message.validUntil = new Date(System.currentTimeMillis() + (timeoutSec * 1000));
-				retainedMessage = message;
-				OOCSIServer.log("Retained message stored for channel '" + this.token + "' for " + timeoutSec + "secs.");
-			} catch (Exception e) {
-				// do nothing
-			}
-		}
-
 		return sendSuccessful.getPlain();
+	}
+
+	/**
+	 * remove sub-channel by name directly from backing map
+	 * 
+	 * @param channelName
+	 * @return
+	 */
+	public boolean removeSubChannel(String channelName) {
+		return subChannels.remove(channelName.replaceFirst(":.*", "")) != null;
 	}
 
 	/**
