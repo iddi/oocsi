@@ -51,13 +51,6 @@ public class OOCSIClient {
 			log("[ERROR] OOCSI name cannot contain spaces");
 			log(" - OOCSI connection aborted");
 			return;
-		} else if (name.contains("#")) {
-			Random random = new Random();
-			StringBuilder result = new StringBuilder();
-			for (char c : name.toCharArray()) {
-				result.append(c == '#' ? random.nextInt(10) : c);
-			}
-			name = result.toString();
 		}
 
 		this.name = name;

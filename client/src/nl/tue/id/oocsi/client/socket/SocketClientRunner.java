@@ -25,7 +25,7 @@ import nl.tue.id.oocsi.client.socket.SocketClient.OOCSIAuthenticationException;
 
 public class SocketClientRunner implements Runnable {
 
-	final private String name;
+	private String name;
 	final private String hostname;
 	final private int port;
 
@@ -95,6 +95,8 @@ public class SocketClientRunner implements Runnable {
 	public void run() {
 		try {
 			int connections = 0;
+			long backoffMs = 1000;
+			long maxBackoffMs = 60000;
 
 			// SESSIONS
 			// only do if we either always reconnect, or it's the first connection
@@ -102,23 +104,29 @@ public class SocketClientRunner implements Runnable {
 				connections++;
 
 				// ATTEMPTS
-				// try 100 times per (re-)connection attempt
-				reconnectCountDown = 100;
+				// try reconnectCountDown times per (re-)connection attempt
+				reconnectCountDown = reconnect ? 100 : 1;
 				while (reconnectCountDown-- > 0) {
 					// try to connect
 					if (hostname != null && connectAttempt(hostname, port)) {
 						// connection is fine, stop trials
+						backoffMs = 1000;
 						break;
 					}
 
-					// another trial, sleep before
-					sleep(1000);
+					if (reconnect && reconnectCountDown > 0) {
+						// another trial, sleep before with exponential backoff and jitter
+						long jitter = java.util.concurrent.ThreadLocalRandom.current().nextLong(500);
+						sleep((int) Math.min(backoffMs + jitter, maxBackoffMs));
+						backoffMs = Math.min(backoffMs * 2, maxBackoffMs);
+					}
 				}
 
 				if (isConnected()) {
 					// connection rest forever
 					runCommunication();
-				} else {
+					backoffMs = 1000;
+				} else if (reconnect) {
 					// take a rest before trying again
 					sleep(5000);
 				}
@@ -187,10 +195,46 @@ public class SocketClientRunner implements Runnable {
 		// check if we are ok to connect
 		String serverWelcomeMessage;
 		if (!socket.isClosed() && (serverWelcomeMessage = input.readLine()) != null) {
-			// name is not ok
-			if (!serverWelcomeMessage.contains("welcome " + name)) {
+			if (serverWelcomeMessage.contains("name already registered") || serverWelcomeMessage.contains("already registered")) {
+				internalDisconnect();
+				log(" - transient connection issue: " + serverWelcomeMessage);
+				if (!reconnect) {
+					reconnectCountDown = 0;
+				}
+				return false;
+			}
+
+			boolean accepted = false;
+			String baseName = name.replaceFirst(":.*", "");
+			int welcomeIdx = serverWelcomeMessage.indexOf("welcome ");
+			if (welcomeIdx != -1) {
+				String remainder = serverWelcomeMessage.substring(welcomeIdx + "welcome ".length());
+				int endIdx = remainder.indexOf('"');
+				if (endIdx == -1) {
+					endIdx = remainder.indexOf('\'');
+				}
+				if (endIdx == -1) {
+					endIdx = remainder.indexOf('}');
+				}
+				String assignedName = (endIdx != -1 ? remainder.substring(0, endIdx) : remainder).trim();
+				if (baseName.contains("#")) {
+					String pattern = "^" + java.util.regex.Pattern.quote(baseName).replace("#", "\\E\\d\\Q") + "$";
+					if (assignedName.matches(pattern)) {
+						if (name.contains(":")) {
+							this.name = assignedName + name.substring(name.indexOf(":"));
+						} else {
+							this.name = assignedName;
+						}
+						accepted = true;
+					}
+				} else if (baseName.equals(assignedName)) {
+					accepted = true;
+				}
+			}
+
+			if (!accepted) {
 				disconnect();
-				log(" - disconnected (client name '" + name + "' not accepted)");
+				log(" - disconnected (client name '" + name + "' not accepted: " + serverWelcomeMessage + ")");
 				throw new OOCSIAuthenticationException();
 			}
 
@@ -235,6 +279,15 @@ public class SocketClientRunner implements Runnable {
 		// connect
 		SocketAddress sockaddr = new InetSocketAddress(hostname, port);
 		socket.connect(sockaddr);
+	}
+
+	/**
+	 * return client name
+	 * 
+	 * @return
+	 */
+	public String getName() {
+		return name;
 	}
 
 	/**
