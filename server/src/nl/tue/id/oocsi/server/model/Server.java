@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -38,6 +39,7 @@ public class Server extends Channel {
 	protected final Protocol protocol;
 	protected PresenceTracker presence;
 	protected final Map<String, Message> delayedMessages;
+	protected final Map<String, AtomicInteger> subscriptionCounts = new ConcurrentHashMap<>();
 
 	/**
 	 * create new server data structure
@@ -69,7 +71,8 @@ public class Server extends Channel {
 	 */
 	public void sendDelayedMessage(String sender, Message message) {
 		synchronized (delayedMessages) {
-			delayedMessages.put(sender, message);
+			String key = sender + ":" + message.getRecipient();
+			delayedMessages.put(key, message);
 		}
 	}
 
@@ -155,6 +158,7 @@ public class Server extends Channel {
 			// remove client from client list and sub channels (recursively)
 			removeChannel(client, true);
 			clients.remove(clientName);
+			subscriptionCounts.remove(clientName);
 
 			// disconnect client
 			client.disconnect();
@@ -214,14 +218,11 @@ public class Server extends Channel {
 	}
 
 	private int countClientSubscriptions(Channel subscriber) {
-		String subName = subscriber.getName();
-		int count = 0;
-		for (Channel ch : subChannels.values()) {
-			if (ch.getChannel(subName) != null) {
-				count++;
-			}
+		if (subscriber == null) {
+			return 0;
 		}
-		return count;
+		AtomicInteger count = subscriptionCounts.get(subscriber.getName());
+		return count != null ? count.get() : 0;
 	}
 
 	/**
@@ -236,7 +237,8 @@ public class Server extends Channel {
 			return;
 		}
 
-		if (countClientSubscriptions(subscriber) >= MAX_CLIENT_SUBSCRIPTIONS) {
+		AtomicInteger subCount = subscriptionCounts.computeIfAbsent(subscriber.getName(), k -> new AtomicInteger(0));
+		if (subCount.get() >= MAX_CLIENT_SUBSCRIPTIONS) {
 			return;
 		}
 
@@ -287,6 +289,30 @@ public class Server extends Channel {
 			return;
 		}
 
+		// check for /? subscription on reserved or private channels
+		String baseForSlash = null;
+		String tokenWithoutSlash = cleanToken;
+		if (channelName.endsWith("/?")) {
+			baseForSlash = channelName.substring(0, channelName.length() - 2).trim();
+			tokenWithoutSlash = cleanToken.substring(0, cleanToken.length() - 2).trim();
+		} else if (cleanToken.contains("/?")) {
+			tokenWithoutSlash = cleanToken.replace("/?", "").trim();
+			baseForSlash = tokenWithoutSlash.replaceFirst(":.*", "").trim();
+		}
+
+		if (baseForSlash != null) {
+			if (RESERVED_NAMES.contains(baseForSlash)) {
+				return;
+			}
+			Channel baseChannel = subChannels.get(baseForSlash);
+			if (baseChannel != null && baseChannel.isPrivate()
+			        && !baseChannel.validate(tokenWithoutSlash)) {
+				return;
+			}
+			channelName = baseForSlash + "/?";
+			cleanToken = baseForSlash + "/?";
+		}
+
 		// find channel
 		Channel c = subChannels.get(channelName);
 
@@ -305,6 +331,7 @@ public class Server extends Channel {
 
 				c.addChannel(subscriber);
 			}
+			subCount.incrementAndGet();
 			OOCSIServer.logConnection(subscriber.getName(), channelName, "subscribed", new Date());
 		}
 	}
@@ -347,6 +374,10 @@ public class Server extends Channel {
 		Channel c = getChannel(channelName);
 		if (c != null) {
 			c.removeChannel(subscriber);
+			AtomicInteger count = subscriptionCounts.get(subscriber.getName());
+			if (count != null && count.get() > 0) {
+				count.decrementAndGet();
+			}
 			closeEmptyChannels();
 			OOCSIServer.logConnection(subscriber.getName(), channelName, "unsubscribed", new Date());
 		}

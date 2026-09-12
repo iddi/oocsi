@@ -96,9 +96,6 @@ public class Channel implements IChannel {
 	 */
 	@Override
 	public boolean send(Message message) {
-		// new message erases always retained message
-		retainedMessage = null;
-
 		// check for retained message flag and store message before broadcasting
 		if (message.data.containsKey(Message.RETAIN_MESSAGE)) {
 			Object retainTimeoutRaw = message.data.getOrDefault(Message.RETAIN_MESSAGE, "0");
@@ -112,6 +109,9 @@ public class Channel implements IChannel {
 					message.validUntil = new Date(System.currentTimeMillis() + (timeoutSec * 1000));
 					retainedMessage = message;
 					OOCSIServer.log("Retained message stored for channel '" + getName() + "' for " + timeoutSec + "secs.");
+				} else {
+					// explicit clearing: _RETAIN: 0 deletes the stored retained message
+					retainedMessage = null;
 				}
 			} catch (Exception e) {
 				// do nothing

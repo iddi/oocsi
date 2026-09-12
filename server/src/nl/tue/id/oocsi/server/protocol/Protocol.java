@@ -195,7 +195,7 @@ public class Protocol {
 
 			// send with specified delay in seconds
 			if (delayTimeSec > 0) {
-				server.sendDelayedMessage(recipient, new Message(sender.getName(), recipient,
+				server.sendDelayedMessage(sender.getName(), new Message(sender.getName(), recipient,
 				        new Date(System.currentTimeMillis() + delayTimeSec * 1000L), map));
 			}
 			// normal dispatch for broken or zero _DELAY
@@ -220,7 +220,7 @@ public class Protocol {
 
 			// check schedule time and send
 			if (scheduledTime.after(now)) {
-				server.sendDelayedMessage(recipient, new Message(sender.getName(), recipient, scheduledTime, map));
+				server.sendDelayedMessage(sender.getName(), new Message(sender.getName(), recipient, scheduledTime, map));
 			} else {
 				dispatchMessage(sender, recipient, now, map);
 			}
