@@ -3,6 +3,7 @@ package nl.tue.id.oocsi.server;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -182,8 +183,12 @@ public class OOCSIServer extends Server {
 	 */
 	private void startServices(AbstractService[] services) {
 
-		// first stop all running services
-		stop();
+		// first stop all running services if any
+		if (this.services != null) {
+			for (AbstractService service : this.services) {
+				service.stop();
+			}
+		}
 
 		// start new services
 		for (final AbstractService service : services) {
@@ -338,9 +343,13 @@ public class OOCSIServer extends Server {
 	        Date timestamp) {
 
 		// don't ever send to these internal channels
-		recipients.remove(OOCSI_EVENTS);
-		recipients.remove(OOCSI_METRICS);
-		recipients.remove(OOCSI_CONNECTIONS);
+		if (recipients.contains(OOCSI_EVENTS) || recipients.contains(OOCSI_METRICS)
+		        || recipients.contains(OOCSI_CONNECTIONS)) {
+			recipients = new ArrayList<>(recipients);
+			recipients.remove(OOCSI_EVENTS);
+			recipients.remove(OOCSI_METRICS);
+			recipients.remove(OOCSI_CONNECTIONS);
+		}
 
 		if (SERVER.equals(sender) || OOCSI_EVENTS.equals(sender) || recipients.isEmpty()) {
 			return;
