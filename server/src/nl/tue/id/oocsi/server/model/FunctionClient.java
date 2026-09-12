@@ -73,7 +73,7 @@ public class FunctionClient extends Client {
 
 		FunctionDictionaryIfc delegateDict = ExpressionConfiguration.defaultConfiguration().getFunctionDictionary();
 		FunctionDictionaryIfc safeDict = new FunctionDictionaryIfc() {
-			private final Set<String> blockedFunctions = Set.of("FACT", "STR_MATCHES");
+			private final Set<String> blockedFunctions = Set.of("FACT", "STR_MATCHES", "STR_FORMAT", "DT_DATE_NEW", "DT_DURATION_NEW");
 
 			@Override
 			public FunctionIfc getFunction(String functionName) {
