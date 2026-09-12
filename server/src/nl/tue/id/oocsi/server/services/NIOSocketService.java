@@ -14,6 +14,7 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
@@ -164,12 +165,9 @@ public class NIOSocketService extends AbstractService {
 								handleReadOp(selectionKey);
 							}
 
-							// perform write operation, then cancel interest
+							// perform write operation
 							if (selectionKey.isValid() && selectionKey.isWritable()) {
 								handleWriteOp(selectionKey);
-								if (selectionKey.isValid()) {
-									selectionKey.interestOpsAnd(~SelectionKey.OP_WRITE);
-								}
 							}
 						}
 					} catch (CancelledKeyException | ClosedChannelException e) {
@@ -234,7 +232,7 @@ public class NIOSocketService extends AbstractService {
 		NIOSocketClient client = nioClients.get(socketChannel);
 		if (client == null) {
 			// do the client init based on read
-			String inputLine = new String(byteBuffer.array(), 0, read);
+			String inputLine = new String(byteBuffer.array(), 0, read, StandardCharsets.UTF_8);
 			StringBuffer sb = nioClientInputBuffer.computeIfAbsent(socketChannel, s -> new StringBuffer())
 			        .append(inputLine);
 			if (sb.length() > MAX_PRE_AUTH_BUFFER) {
@@ -311,7 +309,7 @@ public class NIOSocketService extends AbstractService {
 			}
 		} else {
 			// do the client init based on read
-			String inputLine = new String(byteBuffer.array(), 0, read);
+			String inputLine = new String(byteBuffer.array(), 0, read, StandardCharsets.UTF_8);
 			StringBuffer sb = nioClientInputBuffer.computeIfAbsent(socketChannel, s -> new StringBuffer())
 			        .append(inputLine);
 
@@ -339,7 +337,7 @@ public class NIOSocketService extends AbstractService {
 				// check if client should be terminated
 				if (!client.isConnected()) {
 					try {
-						socketChannel.write(ByteBuffer.wrap("bye\n".getBytes()));
+						socketChannel.write(ByteBuffer.wrap("bye\n".getBytes(StandardCharsets.UTF_8)));
 						nioClients.remove(socketChannel);
 						nioClientInputBuffer.remove(socketChannel);
 						socketChannel.close();
@@ -367,14 +365,25 @@ public class NIOSocketService extends AbstractService {
 				if (client.isConnected()) {
 					Queue<ByteBuffer> pendingData = client.pendingData;
 					while (!pendingData.isEmpty() && client.isConnected()) {
-						ByteBuffer buf = pendingData.poll();
-						if (buf != null) {
-							socketChannel.write(buf);
+						ByteBuffer buf = pendingData.peek();
+						if (buf == null) {
+							pendingData.poll();
+							continue;
 						}
+						socketChannel.write(buf);
+						if (buf.hasRemaining()) {
+							// TCP send buffer is full; yield and retain OP_WRITE interest
+							return;
+						}
+						pendingData.poll();
+					}
+					// Queue drained: clear OP_WRITE interest
+					if (selectionKey.isValid()) {
+						selectionKey.interestOpsAnd(~SelectionKey.OP_WRITE);
 					}
 				} else {
 					// check if client should be terminated
-					socketChannel.write(ByteBuffer.wrap("bye\n".getBytes()));
+					socketChannel.write(ByteBuffer.wrap("bye\n".getBytes(StandardCharsets.UTF_8)));
 					nioClients.remove(socketChannel);
 					nioClientInputBuffer.remove(socketChannel);
 					socketChannel.close();
@@ -437,7 +446,7 @@ public class NIOSocketService extends AbstractService {
 		private final ClientType type;
 		private final SelectionKey selectionKey;
 
-		private boolean isConnected = true;
+		private volatile boolean isConnected = true;
 		private Queue<ByteBuffer> pendingData = new ConcurrentLinkedQueue<ByteBuffer>();
 
 		public NIOSocketClient(String token, ChangeListener presence, SelectionKey selectionKey) {
@@ -568,7 +577,7 @@ public class NIOSocketService extends AbstractService {
 				string += ';';
 			}
 
-			ByteBuffer b = ByteBuffer.wrap((string + "\n").getBytes(Charset.defaultCharset()).clone());
+			ByteBuffer b = ByteBuffer.wrap((string + "\n").getBytes(StandardCharsets.UTF_8).clone());
 			if (b != null) {
 				pendingData.offer(b);
 			}
