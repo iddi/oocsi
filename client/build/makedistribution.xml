@@ -2,13 +2,18 @@
 <project default="makeJar" name="Create client distribution bundle">
     <!--this file was created by Eclipse Runnable JAR Export Wizard-->
     <!--ANT 1.7 is required                                        -->
-    <target name="makeJar">
+    <target name="compile">
+        <mkdir dir="../bin"/>
+        <javac srcdir="../src" destdir="../bin" release="17" includeantruntime="false"/>
+    </target>
+    <target name="makeJar" depends="compile">
+        <mkdir dir="../dist"/>
         <jar destfile="../dist/oocsi-client.jar">
             <manifest>
                 <attribute name="Class-Path" value="."/>
                 <attribute name="Rsrc-Class-Path" value="./"/>
             </manifest>
-            <fileset dir="../../client/bin" includes="nl/">
+            <fileset dir="../bin" includes="nl/">
         		<exclude name="***Test***"/>
         	</fileset>
 		</jar>
