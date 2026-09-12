@@ -36,7 +36,7 @@ import nl.tue.id.oocsi.server.services.PresenceTracker;
 public class OOCSIServer extends Server {
 
 	// constants
-	public static final String VERSION = "1.3.8";
+	public static final String VERSION = "1.3.9";
 
 	// defaults for different services
 	private int maxClients = 100;
@@ -155,7 +155,7 @@ public class OOCSIServer extends Server {
 
 		// output status message
 		OOCSIServer.log("Started OOCSI server v" + OOCSIServer.VERSION + " for max. " + maxClients + " parallel clients"
-		        + (isLogging ? " and activated logging" : "") + ".");
+				+ (isLogging ? " and activated logging" : "") + ".");
 
 		// start TCP/socket server
 		NIOSocketService tcp = new NIOSocketService(this, port, users);
@@ -236,14 +236,13 @@ public class OOCSIServer extends Server {
 	public Channel getChannel(String channelName) {
 		Channel c = super.getChannel(channelName);
 
-
 		return c;
 	}
 
 	@Override
 	public Collection<Channel> getChannels() {
 		return super.getChannels().stream().filter(c -> !c.getName().contains("#") && !c.getName().contains("+"))
-		        .collect(Collectors.toList());
+				.collect(Collectors.toList());
 	}
 
 	@Override
@@ -326,7 +325,7 @@ public class OOCSIServer extends Server {
 	 * @param timestamp
 	 */
 	public static void logEvent(String sender, String channel, String recipient, Map<String, Object> data,
-	        Date timestamp) {
+			Date timestamp) {
 		logEvent(sender, channel, Collections.singletonList(recipient), data, timestamp);
 	}
 
@@ -340,11 +339,11 @@ public class OOCSIServer extends Server {
 	 * @param timestamp
 	 */
 	public static void logEvent(String sender, String channel, List<String> recipients, Map<String, Object> data,
-	        Date timestamp) {
+			Date timestamp) {
 
 		// don't ever send to these internal channels
 		if (recipients.contains(OOCSI_EVENTS) || recipients.contains(OOCSI_METRICS)
-		        || recipients.contains(OOCSI_CONNECTIONS)) {
+				|| recipients.contains(OOCSI_CONNECTIONS)) {
 			recipients = new ArrayList<>(recipients);
 			recipients.remove(OOCSI_EVENTS);
 			recipients.remove(OOCSI_METRICS);
@@ -371,7 +370,7 @@ public class OOCSIServer extends Server {
 
 				// strip secret data items starting with '_'
 				LongSummaryStatistics lss = data.entrySet().stream().filter(e -> !e.getKey().startsWith("_"))
-				        .collect(Collectors.summarizingLong(e -> e.getValue().toString().length()));
+						.collect(Collectors.summarizingLong(e -> e.getValue().toString().length()));
 
 				Map<String, Object> eventStats = new HashMap<>();
 				eventStats.put("size", lss.getSum());
@@ -427,7 +426,7 @@ public class OOCSIServer extends Server {
 			} else if (argument.equals("-users") && args.length >= i + 2) {
 				String userList = args[i + 1];
 				if (userList.matches(
-				        "^([a-zA-Z0-9_\\-.]+:[a-zA-Z0-9_\\-.%$]+;)*([a-zA-Z0-9_\\-.]+:[a-zA-Z0-9_\\-.%$]+);*$")) {
+						"^([a-zA-Z0-9_\\-.]+:[a-zA-Z0-9_\\-.%$]+;)*([a-zA-Z0-9_\\-.]+:[a-zA-Z0-9_\\-.%$]+);*$")) {
 					users = userList.split(";");
 				}
 			} else if (argument.equals("-usersFile") && args.length >= i + 2) {
@@ -437,7 +436,7 @@ public class OOCSIServer extends Server {
 					if (Files.exists(p)) {
 						String userList = Files.readString(p).trim();
 						if (userList.matches(
-						        "^([a-zA-Z0-9_\\-.]+:[a-zA-Z0-9_\\-.%$]+;)*([a-zA-Z0-9_\\-.]+:[a-zA-Z0-9_\\-.%$]+);*$")) {
+								"^([a-zA-Z0-9_\\-.]+:[a-zA-Z0-9_\\-.%$]+;)*([a-zA-Z0-9_\\-.]+:[a-zA-Z0-9_\\-.%$]+);*$")) {
 							users = userList.split(";");
 						}
 					}
