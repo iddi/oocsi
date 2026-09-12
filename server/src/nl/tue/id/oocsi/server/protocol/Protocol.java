@@ -88,12 +88,16 @@ public class Protocol {
 		// client subscribes to channel
 		else if (inputLine.startsWith("subscribe") && inputLine.contains(" ")) {
 			String channel = inputLine.split(" ", 2)[1];
-			server.subscribe(sender, channel);
+			if (Server.isValidSubscription(channel)) {
+				server.subscribe(sender, channel);
+			}
 		}
 		// client unsubscribes from channel
 		else if (inputLine.startsWith("unsubscribe") && inputLine.contains(" ")) {
 			String channel = inputLine.split(" ", 2)[1];
-			server.unsubscribe(sender, channel);
+			if (Server.isValidSubscription(channel)) {
+				server.unsubscribe(sender, channel);
+			}
 		}
 		// create new message from raw text input
 		else if (inputLine.startsWith("sendraw")) {
@@ -165,8 +169,8 @@ public class Protocol {
 	private void prepareDispatchMessage(Client sender, String recipient, Map<String, Object> map) {
 		final Date now = new Date();
 
-		// prevent clients from writing to internal management channels
-		if (INTERNAL_CHANNELS.contains(recipient)) {
+		// prevent clients from writing to internal management channels or invalid recipients
+		if (recipient == null || !Server.isValidChannelName(recipient) || INTERNAL_CHANNELS.contains(recipient)) {
 			return;
 		}
 

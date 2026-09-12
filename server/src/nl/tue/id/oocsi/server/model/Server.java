@@ -35,6 +35,133 @@ public class Server extends Channel {
 
 	protected static final int MAX_CLIENT_SUBSCRIPTIONS = 200;
 
+	private static final Pattern CLIENT_NAME_PATTERN = Pattern.compile("^[a-zA-Z0-9_\\-.:@#/]+$");
+	private static final Pattern CHANNEL_NAME_PATTERN = Pattern.compile("^[a-zA-Z0-9_\\-.:/?!@#$%*^<>=+~]+$");
+	private static final Pattern PRESENCE_SUBSCRIPTION_PATTERN = Pattern.compile("^presence\\(([a-zA-Z0-9_\\-.:/?!@#$%*^<>=+~]+)\\)$");
+	private static final Pattern FUNCTION_FILTER_PATTERN = Pattern.compile("^filter\\([a-zA-Z0-9_+\\-*/%^><=!&|() ,.:\'\"]+\\)$");
+	private static final Pattern FUNCTION_TRANSFORM_PATTERN = Pattern.compile("^transform\\([a-zA-Z0-9_\\-]+,[a-zA-Z0-9_+\\-*/%^><=!&|() ,.:\'\"]+\\)$");
+	private static final Pattern SCRIPT_OR_HTML = Pattern.compile("(?i)<\\s*/?\\s*[a-zA-Z][a-zA-Z0-9]*\\b|javascript:|on\\w+\\s*=");
+
+	public static boolean isValidClientName(String clientName) {
+		if (clientName == null || clientName.isEmpty() || clientName.length() > 200) {
+			return false;
+		}
+		String baseName = clientName.replaceFirst(":.*", "").trim();
+		if (baseName.isEmpty() || RESERVED_NAMES.contains(baseName)) {
+			return false;
+		}
+		if (SCRIPT_OR_HTML.matcher(clientName).find()) {
+			return false;
+		}
+		return CLIENT_NAME_PATTERN.matcher(clientName).matches();
+	}
+
+	public static boolean isValidChannelName(String channelName) {
+		if (channelName == null || channelName.isEmpty() || channelName.length() > 200) {
+			return false;
+		}
+		String baseName = channelName.replaceFirst(":.*", "").trim();
+		if (baseName.isEmpty()) {
+			return false;
+		}
+		if (SCRIPT_OR_HTML.matcher(channelName).find()) {
+			return false;
+		}
+		return CHANNEL_NAME_PATTERN.matcher(channelName).matches();
+	}
+
+	public static boolean isValidSubscription(String subscription) {
+		if (subscription == null || subscription.isEmpty() || subscription.length() > 512) {
+			return false;
+		}
+		String sub = subscription.trim();
+		if (sub.isEmpty() || SCRIPT_OR_HTML.matcher(sub).find()) {
+			return false;
+		}
+
+		// 1. Presence subscription
+		Matcher presenceMatcher = PRESENCE_SUBSCRIPTION_PATTERN.matcher(sub);
+		if (presenceMatcher.matches()) {
+			String presenceChannel = presenceMatcher.group(1);
+			if (RESERVED_NAMES.contains(presenceChannel)) {
+				return false;
+			}
+			return isValidChannelName(presenceChannel);
+		}
+
+		// 2. Function subscription
+		if (sub.contains("[")) {
+			if (!sub.endsWith("]")) {
+				return false;
+			}
+			int firstOpen = sub.indexOf('[');
+			int lastOpen = sub.lastIndexOf('[');
+			int firstClose = sub.indexOf(']');
+			int lastClose = sub.lastIndexOf(']');
+			if (firstOpen != lastOpen || firstClose != lastClose || firstOpen >= firstClose) {
+				return false;
+			}
+
+			String channelSpec = sub.substring(0, firstOpen).trim();
+			String functions = sub.substring(firstOpen + 1, firstClose).trim();
+			if (channelSpec.isEmpty() || functions.isEmpty() || functions.length() > 512) {
+				return false;
+			}
+
+			// Validate channel part
+			String baseName = channelSpec.replaceFirst(":.*", "").trim();
+			if (baseName.endsWith("/?")) {
+				baseName = baseName.substring(0, baseName.length() - 2).trim();
+			}
+			if (!isValidChannelName(baseName)) {
+				return false;
+			}
+
+			// Validate function expressions
+			String[] parts = functions.split(";");
+			for (String part : parts) {
+				String fct = part.trim();
+				if (fct.isEmpty()) {
+					return false;
+				}
+				if (!FUNCTION_FILTER_PATTERN.matcher(fct).matches()
+				        && !FUNCTION_TRANSFORM_PATTERN.matcher(fct).matches()) {
+					return false;
+				}
+				if (SCRIPT_OR_HTML.matcher(fct).find()) {
+					return false;
+				}
+				if (!hasBalancedParentheses(fct)) {
+					return false;
+				}
+			}
+			return true;
+		}
+
+		// 3. Plain channel
+		String baseName = sub.replaceFirst(":.*", "").trim();
+		if (baseName.endsWith("/?")) {
+			baseName = baseName.substring(0, baseName.length() - 2).trim();
+		}
+		return isValidChannelName(baseName);
+	}
+
+	private static boolean hasBalancedParentheses(String s) {
+		int count = 0;
+		for (int i = 0; i < s.length(); i++) {
+			char c = s.charAt(i);
+			if (c == '(') {
+				count++;
+			} else if (c == ')') {
+				count--;
+				if (count < 0) {
+					return false;
+				}
+			}
+		}
+		return count == 0;
+	}
+
 	protected final Map<String, Client> clients = new ConcurrentHashMap<String, Client>();
 	protected final Protocol protocol;
 	protected PresenceTracker presence;
@@ -117,8 +244,11 @@ public class Server extends Channel {
 	 * @return
 	 */
 	public boolean addClient(Client client) {
+		if (client == null) {
+			return false;
+		}
 		String clientName = client.getName();
-		if (clientName == null || RESERVED_NAMES.contains(clientName)) {
+		if (!isValidClientName(clientName)) {
 			return false;
 		}
 
@@ -233,7 +363,7 @@ public class Server extends Channel {
 	 */
 	public void subscribe(Client subscriber, String channel) {
 
-		if (subscriber == null || channel == null) {
+		if (subscriber == null || channel == null || !isValidSubscription(channel)) {
 			return;
 		}
 
@@ -244,14 +374,14 @@ public class Server extends Channel {
 
 		// ------------------------------------------------------------------------------------------------------------
 		// check for presence subscription
-		Pattern presencePattern = Pattern.compile("presence\\(([\\w_-]+)\\)");
+		Pattern presencePattern = Pattern.compile("presence\\(([a-zA-Z0-9_\\-.:/?!@#$%*^<>=+~]+)\\)");
 		Matcher presenceMatcher = presencePattern.matcher(channel.trim());
 		if (presenceMatcher.find()) {
 
 			// extract presence channel name, or abort
 			String presenceChannelName = presenceMatcher.group(1);
 			if (presenceChannelName == null || presenceChannelName.trim().length() == 0
-			        || RESERVED_NAMES.contains(presenceChannelName)) {
+			        || !isValidChannelName(presenceChannelName)) {
 				return;
 			}
 
@@ -284,8 +414,8 @@ public class Server extends Channel {
 		String cleanToken = channel.replaceAll("\\[[^\\]]*\\]", "").trim();
 		String channelName = cleanToken.replaceFirst(":.*", "").trim();
 
-		// check channel length first
-		if (channelName.length() == 0) {
+		// check channel length and validity first
+		if (channelName.length() == 0 || !isValidChannelName(channelName)) {
 			return;
 		}
 
@@ -344,10 +474,14 @@ public class Server extends Channel {
 	 */
 	public void unsubscribe(Channel subscriber, String channelName) {
 
+		if (subscriber == null || channelName == null || !isValidSubscription(channelName)) {
+			return;
+		}
+
 		// ------------------------------------------------------------------------------------------------------------
 		// check for presence unsubscribe
-		Pattern presencePattern = Pattern.compile("presence\\(([\\w_-]+)\\)");
-		Matcher presenceMatcher = presencePattern.matcher(channelName);
+		Pattern presencePattern = Pattern.compile("presence\\(([a-zA-Z0-9_\\-.:/?!@#$%*^<>=+~]+)\\)");
+		Matcher presenceMatcher = presencePattern.matcher(channelName.trim());
 		if (presenceMatcher.find()) {
 
 			// extract presence channel name, or abort
@@ -357,14 +491,14 @@ public class Server extends Channel {
 			}
 
 			// remove the presence subscription for this channel
-			presence.unsubscribe(channelName, subscriber);
+			presence.unsubscribe(presenceChannelName, subscriber);
 
 			return;
 		}
 
 		// ------------------------------------------------------------------------------------------------------------
 		// functions for filtering and transformation
-		Pattern functionPattern = Pattern.compile("([\\w_-]+)\\[(.*)\\]");
+		Pattern functionPattern = Pattern.compile("([a-zA-Z0-9_\\-.:/?!@#$%*^<>=+~]+)\\[(.*)\\]");
 		Matcher functionMatcher = functionPattern.matcher(channelName);
 		if (functionMatcher.find()) {
 			channelName = functionMatcher.group(1);

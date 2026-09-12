@@ -257,11 +257,15 @@ public class NIOSocketService extends AbstractService {
 			// remove any whitespace at begin and end
 			inputLine = inputLine.trim();
 
+			// remove starting or trailing slashes
+			inputLine = inputLine.replaceAll("^/|/$", "");
+
 			// check input line for exceptional values that cannot be handled safely
-			// do some filtering for SSH clients connecting and other abuse
-			if (inputLine.length() > 200 || !inputLine.matches("\\p{ASCII}+$")
+			// do some filtering for SSH clients connecting, invalid client names, and other abuse
+			String clientHandle = inputLine.replace(";", "").replace("(JSON)", "").trim().replaceFirst(":.*", "");
+			if (inputLine.length() == 0 || inputLine.length() > 200 || !inputLine.matches("\\p{ASCII}+$")
 			        || inputLine.contains("OpenSSH") || inputLine.contains("libssh")
-			        || inputLine.matches(".*\\s.*")) {
+			        || inputLine.matches(".*\\s.*") || !Server.isValidClientName(clientHandle)) {
 				nioClientInputBuffer.remove(socketChannel);
 				try {
 					socketChannel.close();
@@ -269,10 +273,6 @@ public class NIOSocketService extends AbstractService {
 				}
 				return;
 			}
-
-			// check input line for workable deviations from protocol
-			// remove starting or trailing slashes
-			inputLine = inputLine.replaceAll("^/|/$", "");
 
 			// if there are one or more hashes in the inputLine, we need to generate a client name
 			for (int i = 0; i < 20 && inputLine.contains("#"); i++) {
