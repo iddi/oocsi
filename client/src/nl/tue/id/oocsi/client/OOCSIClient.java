@@ -72,11 +72,12 @@ public class OOCSIClient {
 	}
 
 	/**
-	 * connect to OOCSI network without a concrete server given, i.e., wait for multi-cast messages broadcasting a
-	 * server to connect to
+	 * connect to OOCSI network without a concrete server given.
 	 * 
-	 * @return
+	 * @return false as multicast lookup is removed; use connect(hostname, port) instead
+	 * @deprecated Multicast lookup has been removed. Use connect(hostname, port) instead.
 	 */
+	@Deprecated
 	public boolean connect() {
 		return sc.startMulticastLookup();
 	}

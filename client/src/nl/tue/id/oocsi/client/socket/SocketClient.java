@@ -1,16 +1,8 @@
 package nl.tue.id.oocsi.client.socket;
 
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.InetAddress;
-import java.net.MulticastSocket;
-import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.util.Map;
-
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 
 import nl.tue.id.oocsi.client.data.JSONWriter;
 import nl.tue.id.oocsi.client.protocol.Handler;
@@ -26,8 +18,6 @@ import nl.tue.id.oocsi.client.services.Responder;
 public class SocketClient {
 
 	static final String SELF = "SELF";
-	private static final int MULTICAST_PORT = 4448;
-	private static final String MULTICAST_GROUP = "224.0.0.144";
 
 	private final String name;
 	private boolean reconnect = false;
@@ -53,103 +43,25 @@ public class SocketClient {
 	 * start pinging for a multi-cast lookup
 	 * 
 	 * @return
-	 * @deprecated Multicast lookup without authentication is deprecated. Specify explicit server endpoints instead.
+	 * @deprecated Multicast lookup has been removed. Specify explicit server endpoints instead.
 	 */
 	@Deprecated
 	public boolean startMulticastLookup() {
-		log("WARNING: Unauthenticated multicast lookup is deprecated and vulnerable to spoofing. Specify explicit host and port.");
-		return startMulticastLookup(null);
+		log("WARNING: Multicast lookup has been removed. Specify explicit host and port via connect(host, port).");
+		return false;
 	}
 
 	/**
 	 * start pinging for a multi-cast lookup with optional pre-shared key validation
 	 * 
-	 * @param preSharedKey optional key to verify HMAC beacon, or null for legacy mode
+	 * @param preSharedKey optional key
 	 * @return
-	 * @deprecated Multicast lookup is deprecated. Specify explicit server endpoints instead.
+	 * @deprecated Multicast lookup has been removed. Specify explicit server endpoints instead.
 	 */
 	@Deprecated
 	public boolean startMulticastLookup(String preSharedKey) {
-		try (MulticastSocket socket = new MulticastSocket(MULTICAST_PORT)) {
-			socket.setSoTimeout(10000);
-			InetAddress group = InetAddress.getByName(MULTICAST_GROUP);
-			socket.joinGroup(group);
-
-			// check for multi-cast message from server for 5 * 1 second
-			for (int i = 0; !isConnected() && i < 5; i++) {
-
-				// connect to multi-cast server host name
-				connectFromMulticast(socket, preSharedKey);
-
-				// no proper signal
-				Thread.sleep(1000);
-			}
-
-			// nothing found for 10 * 5 seconds
-			socket.leaveGroup(group);
-			return isConnected();
-		} catch (IOException ioe) {
-			// problem occurred with connection
-			return false;
-		} catch (InterruptedException ioe) {
-			// problem occurred with connection
-			return false;
-		}
-	}
-
-	/**
-	 * connection to a multi-cast server
-	 * 
-	 * @param socket
-	 * @param preSharedKey
-	 * @throws IOException
-	 */
-	private void connectFromMulticast(MulticastSocket socket, String preSharedKey) throws IOException {
-		try {
-			final byte[] buf = new byte[256];
-			final DatagramPacket packet = new DatagramPacket(buf, buf.length);
-			socket.receive(packet);
-
-			// pack String and unpack host name of server from String
-			String received = new String(packet.getData(), 0, packet.getLength());
-			if (received.startsWith("OOCSI@")) {
-				String payload = received.substring(6).replaceAll("\\(.*\\)", "");
-				String[] parts = payload.split(":");
-				if (parts.length >= 2 && parts[0].length() > 0 && parts[1].length() > 0) {
-					if (preSharedKey != null && !preSharedKey.isEmpty()) {
-						if (parts.length < 3) {
-							return;
-						}
-						String expectedMac = computeHmacSha256(parts[0] + ":" + parts[1], preSharedKey);
-						if (!MessageDigest.isEqual(expectedMac.getBytes(StandardCharsets.UTF_8), parts[2].getBytes(StandardCharsets.UTF_8))) {
-							return;
-						}
-					}
-					// try to connect with given parts as server address
-					connect(parts[0], Integer.parseInt(parts[1]));
-				}
-			}
-		} catch (NumberFormatException nfe) {
-			// do nothing
-		} catch (SocketTimeoutException e) {
-			// likely timeout occurred
-		}
-	}
-
-	private static String computeHmacSha256(String data, String key) {
-		try {
-			Mac mac = Mac.getInstance("HmacSHA256");
-			SecretKeySpec secretKey = new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
-			mac.init(secretKey);
-			byte[] rawHmac = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
-			StringBuilder sb = new StringBuilder();
-			for (byte b : rawHmac) {
-				sb.append(String.format("%02x", b));
-			}
-			return sb.toString();
-		} catch (Exception e) {
-			return "";
-		}
+		log("WARNING: Multicast lookup has been removed. Specify explicit host and port via connect(host, port).");
+		return false;
 	}
 
 	/**

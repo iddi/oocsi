@@ -41,7 +41,7 @@ public class OOCSISpatial extends OOCSISystemCommunicator<Position> {
 	int timeout;
 
 	// dynamics
-	private Position metric;
+	private volatile Position metric;
 	public Map<String, Position> positions = new ConcurrentHashMap<String, Position>();
 	private boolean votingDone = true;
 
