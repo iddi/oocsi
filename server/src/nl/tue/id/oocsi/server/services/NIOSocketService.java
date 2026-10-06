@@ -13,7 +13,6 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Date;
@@ -243,7 +242,7 @@ public class NIOSocketService extends AbstractService {
 		if (client == null) {
 			// do the client init based on read
 			StringBuilder sb = nioClientInputBuffer.computeIfAbsent(socketChannel, s -> new StringBuilder())
-			        .append(inputLine);
+					.append(inputLine);
 			if (sb.length() > MAX_PRE_AUTH_BUFFER) {
 				nioClientInputBuffer.remove(socketChannel);
 				try {
@@ -273,8 +272,8 @@ public class NIOSocketService extends AbstractService {
 			// do some filtering for SSH clients connecting, invalid client names, and other abuse
 			String clientHandle = Channel.parseChannelName(inputLine.replace(";", "").replace("(JSON)", "").trim());
 			if (inputLine.length() == 0 || inputLine.length() > 200 || !inputLine.matches("\\p{ASCII}+$")
-			        || inputLine.contains("OpenSSH") || inputLine.contains("libssh")
-			        || inputLine.matches(".*\\s.*") || !Server.isValidClientName(clientHandle)) {
+					|| inputLine.contains("OpenSSH") || inputLine.contains("libssh") || inputLine.matches(".*\\s.*")
+					|| !Server.isValidClientName(clientHandle)) {
 				nioClientInputBuffer.remove(socketChannel);
 				try {
 					socketChannel.close();
@@ -354,7 +353,7 @@ public class NIOSocketService extends AbstractService {
 		} else {
 			// do the client process based on read
 			StringBuilder sb = nioClientInputBuffer.computeIfAbsent(socketChannel, s -> new StringBuilder())
-			        .append(inputLine);
+					.append(inputLine);
 
 			if (sb.length() > MAX_BUFFER_SIZE) {
 				nioClientInputBuffer.remove(socketChannel);
@@ -499,8 +498,8 @@ public class NIOSocketService extends AbstractService {
 	 */
 	class NIOSocketClient extends Client {
 		private static final ObjectMapper JSON_OBJECT_MAPPER = JsonMapper.builder()
-		        .configure(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY, true)
-		        .configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true).build();
+				.configure(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY, true)
+				.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true).build();
 
 		private static final String LEGACY_UPGRADE_NOTICE = serializeOOCSIOutputStatic();
 
@@ -550,9 +549,9 @@ public class NIOSocketService extends AbstractService {
 		 */
 		public void sayHi() {
 			if (type == ClientType.JSON) {
-				send("{'message' : \"welcome " + getName() + "\"}");
+				internalSend("{'message' : \"welcome " + getName() + "\"}");
 			} else {
-				send("welcome " + getName());
+				internalSend("welcome " + getName());
 			}
 		}
 
@@ -568,7 +567,7 @@ public class NIOSocketService extends AbstractService {
 
 		@Override
 		public void ping() {
-			send("ping");
+			internalSend("ping");
 		}
 
 		@Override
@@ -600,7 +599,7 @@ public class NIOSocketService extends AbstractService {
 				this.disconnect();
 				server.removeClient(this);
 			} else if (outputLine.length() > 0) {
-				send(outputLine);
+				internalSend(outputLine);
 			}
 		}
 
@@ -615,13 +614,13 @@ public class NIOSocketService extends AbstractService {
 			touch();
 
 			if (type == ClientType.OOCSI) {
-				send("send " + message.getRecipient() + " " + serializeJava(message.data) + " "
-				        + message.getTimestamp().getTime() + " " + message.getSender());
+				internalSend("send " + message.getRecipient() + " " + serializeJava(message.data) + " "
+						+ message.getTimestamp().getTime() + " " + message.getSender());
 			} else if (type == ClientType.JSON) {
-				send(serializeJSON(message));
+				internalSend(serializeJSON(message));
 			} else if (type == ClientType.PD) {
-				send(message.getRecipient() + " timestamp=" + message.getTimestamp().getTime() + " sender="
-				        + message.getSender() + " " + serializePD(message.data));
+				internalSend(message.getRecipient() + " timestamp=" + message.getTimestamp().getTime() + " sender="
+						+ message.getSender() + " " + serializePD(message.data));
 			} else {
 				return false;
 			}
@@ -629,13 +628,13 @@ public class NIOSocketService extends AbstractService {
 			// log this if recipient is this client exactly
 			if (message.getRecipient().equals(getName())) {
 				OOCSIServer.logEvent(message.getSender(), "", message.getRecipient(), message.data,
-				        message.getTimestamp());
+						message.getTimestamp());
 			}
 
 			return true;
 		}
 
-		private boolean send(String string) {
+		private boolean internalSend(String string) {
 			// clean the pending data queue if there are too many elements to sent out
 			boolean queueFull = false;
 			while (pendingData.size() > 20) {
@@ -685,31 +684,6 @@ public class NIOSocketService extends AbstractService {
 		}
 
 		/**
-		 * @param data
-		 * @return
-		 */
-		@Deprecated
-		private String serializeOOCSIOutput(Map<String, Object> data) {
-			// map to serialized java object
-			final ByteArrayOutputStream baos = new ByteArrayOutputStream(1024);
-			try {
-				final ObjectOutputStream oos = new ObjectOutputStream(baos);
-				oos.writeObject(data);
-				final byte[] rawData = baos.toByteArray();
-				return new String(Base64.getEncoder().encode(rawData));
-			} catch (IOException e) {
-				try {
-					final ObjectOutputStream oos = new ObjectOutputStream(baos);
-					oos.writeObject(new HashMap<String, Object>());
-					final byte[] rawData = baos.toByteArray();
-					return new String(Base64.getEncoder().encode(rawData));
-				} catch (IOException e1) {
-					return "";
-				}
-			}
-		}
-
-		/**
 		 * serialize data for PD clients; this serialization needs to be flat, i.e., all key-value pairs are on the
 		 * highest level; array serialization prioritizes arrays of numbers; strings in array will not work well
 		 * 
@@ -726,7 +700,7 @@ public class NIOSocketService extends AbstractService {
 					sb.append(key + "=" + (String) value + " ");
 				} else if (value instanceof ArrayNode) {
 					String joinedArray = StreamSupport.stream(((ArrayNode) value).spliterator(), false)
-					        .map(JsonNode::asText).collect(Collectors.joining(","));
+							.map(JsonNode::asText).collect(Collectors.joining(","));
 					sb.append(key + "=" + joinedArray + " ");
 				} else {
 					// otherwise, just toString()

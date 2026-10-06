@@ -38,7 +38,7 @@ public class PresenceTracker implements ChangeListener {
 	 */
 	public void subscribe(String trackedChannelStr, Channel subscriber) {
 		presenceTracking.putIfAbsent(trackedChannelStr,
-		        new Channel("presence(" + trackedChannelStr + ")", NULL_LISTENER));
+				new Channel("presence(" + trackedChannelStr + ")", NULL_LISTENER));
 		presenceTracking.get(trackedChannelStr).addChannel(subscriber);
 	}
 
@@ -83,8 +83,8 @@ public class PresenceTracker implements ChangeListener {
 		Channel tracker = presenceTracking.get(trackedChannelStr);
 		if (tracker != null) {
 			tracker.send(new Message(trackedChannel.getName(), "presence(" + trackedChannel.getName() + ")")
-			        .addData(trackedChannel instanceof Client ? "client" : "channel", trackedChannel.getName())
-			        .addData(CREATED, ""));
+					.addData(trackedChannel instanceof Client ? "client" : "channel", trackedChannel.getName())
+					.addData(CREATED, ""));
 		}
 	}
 
@@ -94,8 +94,8 @@ public class PresenceTracker implements ChangeListener {
 		Channel tracker = presenceTracking.get(trackedChannelStr);
 		if (tracker != null) {
 			tracker.send(new Message(trackedChannel.getName(), "presence(" + trackedChannel.getName() + ")")
-			        .addData(trackedChannel instanceof Client ? "client" : "channel", trackedChannel.getName())
-			        .addData(CLOSED, ""));
+					.addData(trackedChannel instanceof Client ? "client" : "channel", trackedChannel.getName())
+					.addData(CLOSED, ""));
 		}
 	}
 
@@ -105,8 +105,8 @@ public class PresenceTracker implements ChangeListener {
 		Channel listeners = presenceTracking.get(trackedChannelStr);
 		if (listeners != null) {
 			listeners.send(new Message(trackedChannel.getName(), "presence(" + trackedChannel.getName() + ")")
-			        .addData(trackedChannel instanceof Client ? "client" : "channel", trackedChannel.getName())
-			        .addData(JOIN, guest.getName()));
+					.addData(trackedChannel instanceof Client ? "client" : "channel", trackedChannel.getName())
+					.addData(JOIN, guest.getName()));
 		}
 	}
 
@@ -123,12 +123,12 @@ public class PresenceTracker implements ChangeListener {
 
 			// then send out a refresh presence notice on the respective channel
 			tracker.send(new Message(trackedChannelStr, "presence(" + trackedChannelStr + ")")
-			        .addData(trackedChannel != null && trackedChannel instanceof Client ? "client" : "channel",
-			                trackedChannelStr)
-			        .addData(REFRESH,
-			                trackedChannel == null ? Collections.EMPTY_LIST
-			                        : trackedChannel.getChannels().stream().map(channel -> channel.getName())
-			                                .collect(Collectors.toList())));
+					.addData(trackedChannel != null && trackedChannel instanceof Client ? "client" : "channel",
+							trackedChannelStr)
+					.addData(REFRESH,
+							trackedChannel == null ? Collections.EMPTY_LIST
+									: trackedChannel.getChannels().stream().map(channel -> channel.getName())
+											.collect(Collectors.toList())));
 		});
 	}
 
@@ -138,8 +138,8 @@ public class PresenceTracker implements ChangeListener {
 		Channel tracker = presenceTracking.get(trackedChannelStr);
 		if (tracker != null) {
 			tracker.send(new Message(trackedChannelStr, "presence(" + trackedChannelStr + ")")
-			        .addData(trackedChannel instanceof Client ? "client" : "channel", trackedChannelStr)
-			        .addData(LEAVE, guest.getName()));
+					.addData(trackedChannel instanceof Client ? "client" : "channel", trackedChannelStr)
+					.addData(LEAVE, guest.getName()));
 		}
 	}
 
@@ -156,8 +156,8 @@ public class PresenceTracker implements ChangeListener {
 				String trackedChannelStr = e.getKey();
 				Channel trackedChannel = server.getChannel(trackedChannelStr);
 				tracker.send(new Message(trackedChannelStr, "presence(" + trackedChannelStr + ")")
-				        .addData(trackedChannel instanceof Client ? "client" : "channel", trackedChannelStr)
-				        .addData(TIMEOUT, subscriber.getName()));
+						.addData(trackedChannel instanceof Client ? "client" : "channel", trackedChannelStr)
+						.addData(TIMEOUT, subscriber.getName()));
 			}
 		});
 	}

@@ -2,7 +2,6 @@ package nl.tue.id.oocsi.server.model;
 
 import java.util.Collection;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -24,23 +23,21 @@ import nl.tue.id.oocsi.server.services.PresenceTracker;
  */
 public class Server extends Channel {
 
-	public static final Set<String> RESERVED_NAMES = Set.of(
-	        OOCSIServer.SERVER,
-	        OOCSIServer.OOCSI_CONNECTIONS,
-	        OOCSIServer.OOCSI_EVENTS,
-	        OOCSIServer.OOCSI_CHANNELS,
-	        OOCSIServer.OOCSI_CLIENTS,
-	        OOCSIServer.OOCSI_METRICS
-	);
+	public static final Set<String> RESERVED_NAMES = Set.of(OOCSIServer.SERVER, OOCSIServer.OOCSI_CONNECTIONS,
+			OOCSIServer.OOCSI_EVENTS, OOCSIServer.OOCSI_CHANNELS, OOCSIServer.OOCSI_CLIENTS, OOCSIServer.OOCSI_METRICS);
 
 	protected static final int MAX_CLIENT_SUBSCRIPTIONS = 200;
 
 	private static final Pattern CLIENT_NAME_PATTERN = Pattern.compile("^[a-zA-Z0-9_\\-.:@#/]+$");
 	private static final Pattern CHANNEL_NAME_PATTERN = Pattern.compile("^[a-zA-Z0-9_\\-.:/?!@#$%*^<>=+~]+$");
-	private static final Pattern PRESENCE_SUBSCRIPTION_PATTERN = Pattern.compile("^presence\\(([a-zA-Z0-9_\\-.:/?!@#$%*^<>=+~]+)\\)$");
-	private static final Pattern FUNCTION_FILTER_PATTERN = Pattern.compile("^filter\\([a-zA-Z0-9_+\\-*/%^><=!&|() ,.:\'\"]+\\)$");
-	private static final Pattern FUNCTION_TRANSFORM_PATTERN = Pattern.compile("^transform\\([a-zA-Z0-9_\\-]+,[a-zA-Z0-9_+\\-*/%^><=!&|() ,.:\'\"]+\\)$");
-	private static final Pattern SCRIPT_OR_HTML = Pattern.compile("(?i)<\\s*/?\\s*[a-zA-Z][a-zA-Z0-9]*\\b|javascript:|on\\w+\\s*=");
+	private static final Pattern PRESENCE_SUBSCRIPTION_PATTERN = Pattern
+			.compile("^presence\\(([a-zA-Z0-9_\\-.:/?!@#$%*^<>=+~]+)\\)$");
+	private static final Pattern FUNCTION_FILTER_PATTERN = Pattern
+			.compile("^filter\\([a-zA-Z0-9_+\\-*/%^><=!&|() ,.:\'\"]+\\)$");
+	private static final Pattern FUNCTION_TRANSFORM_PATTERN = Pattern
+			.compile("^transform\\([a-zA-Z0-9_\\-]+,[a-zA-Z0-9_+\\-*/%^><=!&|() ,.:\'\"]+\\)$");
+	private static final Pattern SCRIPT_OR_HTML = Pattern
+			.compile("(?i)<\\s*/?\\s*[a-zA-Z][a-zA-Z0-9]*\\b|javascript:|on\\w+\\s*=");
 
 	public static boolean isValidClientName(String clientName) {
 		if (clientName == null || clientName.isEmpty() || clientName.length() > 200) {
@@ -125,7 +122,7 @@ public class Server extends Channel {
 					return false;
 				}
 				if (!FUNCTION_FILTER_PATTERN.matcher(fct).matches()
-				        && !FUNCTION_TRANSFORM_PATTERN.matcher(fct).matches()) {
+						&& !FUNCTION_TRANSFORM_PATTERN.matcher(fct).matches()) {
 					return false;
 				}
 				if (SCRIPT_OR_HTML.matcher(fct).find()) {
@@ -311,7 +308,7 @@ public class Server extends Channel {
 		for (Client client : clients.values()) {
 			if (client.lastAction() + 120000 < now || !client.isConnected()) {
 				OOCSIServer
-				        .log("Client " + client.getName() + " has not responded for 120 secs and will be disconnected");
+						.log("Client " + client.getName() + " has not responded for 120 secs and will be disconnected");
 
 				// remove from presence tracking if tracking
 				presence.timeout(client);
@@ -341,14 +338,6 @@ public class Server extends Channel {
 		}
 	}
 
-	private int countClientSubscriptions(Channel subscriber) {
-		if (subscriber == null) {
-			return 0;
-		}
-		AtomicInteger count = subscriptionCounts.get(subscriber.getName());
-		return count != null ? count.get() : 0;
-	}
-
 	/**
 	 * subscribe <subscriber> to <channel>
 	 * 
@@ -375,7 +364,7 @@ public class Server extends Channel {
 			// extract presence channel name, or abort
 			String presenceChannelName = presenceMatcher.group(1);
 			if (presenceChannelName == null || presenceChannelName.trim().length() == 0
-			        || !isValidChannelName(presenceChannelName)) {
+					|| !isValidChannelName(presenceChannelName)) {
 				return;
 			}
 
@@ -429,8 +418,7 @@ public class Server extends Channel {
 				return;
 			}
 			Channel baseChannel = subChannels.get(baseForSlash);
-			if (baseChannel != null && baseChannel.isPrivate()
-			        && !baseChannel.validate(tokenWithoutSlash)) {
+			if (baseChannel != null && baseChannel.isPrivate() && !baseChannel.validate(tokenWithoutSlash)) {
 				return;
 			}
 			channelName = baseForSlash + "/?";

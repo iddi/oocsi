@@ -10,8 +10,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -31,13 +29,8 @@ import nl.tue.id.oocsi.server.model.Server;
  */
 public class Protocol {
 
-	private static final Set<String> INTERNAL_CHANNELS = Set.of(
-	        OOCSIServer.OOCSI_EVENTS,
-	        OOCSIServer.OOCSI_CONNECTIONS,
-	        OOCSIServer.OOCSI_CHANNELS,
-	        OOCSIServer.OOCSI_CLIENTS,
-	        OOCSIServer.OOCSI_METRICS
-	);
+	private static final Set<String> INTERNAL_CHANNELS = Set.of(OOCSIServer.OOCSI_EVENTS, OOCSIServer.OOCSI_CONNECTIONS,
+			OOCSIServer.OOCSI_CHANNELS, OOCSIServer.OOCSI_CLIENTS, OOCSIServer.OOCSI_METRICS);
 
 	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -129,7 +122,7 @@ public class Protocol {
 					} else {
 						// log legacy messages
 						OOCSIServer.log("[MsgParser] Received legacy Java message from " + sender.getName()
-						        + "\nRecipient:\n" + recipient + "\n");
+								+ "\nRecipient:\n" + recipient + "\n");
 
 						// no function message
 						map = new ConcurrentHashMap<>();
@@ -200,7 +193,7 @@ public class Protocol {
 			// send with specified delay in seconds
 			if (delayTimeSec > 0) {
 				server.sendDelayedMessage(sender.getName(), new Message(sender.getName(), recipient,
-				        new Date(System.currentTimeMillis() + delayTimeSec * 1000L), map));
+						new Date(System.currentTimeMillis() + delayTimeSec * 1000L), map));
 			}
 			// normal dispatch for broken or zero _DELAY
 			else {
@@ -224,7 +217,8 @@ public class Protocol {
 
 			// check schedule time and send
 			if (scheduledTime.after(now)) {
-				server.sendDelayedMessage(sender.getName(), new Message(sender.getName(), recipient, scheduledTime, map));
+				server.sendDelayedMessage(sender.getName(),
+						new Message(sender.getName(), recipient, scheduledTime, map));
 			} else {
 				dispatchMessage(sender, recipient, now, map);
 			}

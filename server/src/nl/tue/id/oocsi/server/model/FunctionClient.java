@@ -3,7 +3,6 @@ package nl.tue.id.oocsi.server.model;
 import java.math.BigDecimal;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -13,7 +12,6 @@ import java.util.regex.Pattern;
 import com.ezylang.evalex.Expression;
 import com.ezylang.evalex.config.ExpressionConfiguration;
 import com.ezylang.evalex.config.FunctionDictionaryIfc;
-import com.ezylang.evalex.config.MapBasedFunctionDictionary;
 import com.ezylang.evalex.data.EvaluationValue;
 import com.ezylang.evalex.functions.AbstractFunction;
 import com.ezylang.evalex.functions.FunctionIfc;
@@ -53,7 +51,8 @@ public class FunctionClient extends Client {
 	private ExpressionConfiguration initConfiguration() {
 		FunctionDictionaryIfc delegateDict = ExpressionConfiguration.defaultConfiguration().getFunctionDictionary();
 		FunctionDictionaryIfc safeDict = new FunctionDictionaryIfc() {
-			private final Set<String> blockedFunctions = Set.of("FACT", "STR_MATCHES", "STR_FORMAT", "DT_DATE_NEW", "DT_DURATION_NEW");
+			private final Set<String> blockedFunctions = Set.of("FACT", "STR_MATCHES", "STR_FORMAT", "DT_DATE_NEW",
+					"DT_DURATION_NEW");
 
 			@Override
 			public FunctionIfc getFunction(String functionName) {
@@ -83,9 +82,7 @@ public class FunctionClient extends Client {
 		safeDict.addFunction("emin", minFct);
 		safeDict.addFunction("emax", maxFct);
 
-		return ExpressionConfiguration.defaultConfiguration().toBuilder()
-		        .functionDictionary(safeDict)
-		        .build();
+		return ExpressionConfiguration.defaultConfiguration().toBuilder().functionDictionary(safeDict).build();
 	}
 
 	private void initExpressions(String functionString) {
@@ -105,7 +102,8 @@ public class FunctionClient extends Client {
 			Matcher transformMatcher = transformPattern.matcher(fct);
 			if (transformMatcher.find()) {
 				// init transform expression
-				transformExpressions.add(new PreparedTransform(transformMatcher.group(1), transformMatcher.group(2), configuration));
+				transformExpressions.add(
+						new PreparedTransform(transformMatcher.group(1), transformMatcher.group(2), configuration));
 				continue;
 			}
 		}
@@ -242,7 +240,7 @@ public class FunctionClient extends Client {
 
 		@Override
 		public synchronized EvaluationValue evaluate(Expression expression, Token functionToken,
-		        EvaluationValue... parameterValues) {
+				EvaluationValue... parameterValues) {
 
 			EvaluationValue value = parameterValues[0];
 			EvaluationValue windowLength = parameterValues[1];

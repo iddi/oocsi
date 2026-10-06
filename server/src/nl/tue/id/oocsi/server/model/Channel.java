@@ -8,7 +8,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import nl.tue.id.oocsi.server.OOCSIServer;
@@ -103,7 +102,8 @@ public class Channel implements IChannel {
 		if (token == null || channelToken == null) {
 			return false;
 		}
-		return MessageDigest.isEqual(token.getBytes(StandardCharsets.UTF_8), channelToken.getBytes(StandardCharsets.UTF_8));
+		return MessageDigest.isEqual(token.getBytes(StandardCharsets.UTF_8),
+				channelToken.getBytes(StandardCharsets.UTF_8));
 	}
 
 	/**
@@ -136,7 +136,8 @@ public class Channel implements IChannel {
 					// set timeout and store retained message
 					message.validUntil = new Date(System.currentTimeMillis() + (timeoutSec * 1000));
 					retainedMessage = message;
-					OOCSIServer.log("Retained message stored for channel '" + getName() + "' for " + timeoutSec + "secs.");
+					OOCSIServer
+							.log("Retained message stored for channel '" + getName() + "' for " + timeoutSec + "secs.");
 				} else {
 					// explicit clearing: _RETAIN: 0 deletes the stored retained message
 					retainedMessage = null;
@@ -170,8 +171,7 @@ public class Channel implements IChannel {
 
 		// log message to all subChannels in one go
 		if (scs != null) {
-			OOCSIServer.logEvent(sender, message.getRecipient(), scs, message.data,
-			        message.getTimestamp());
+			OOCSIServer.logEvent(sender, message.getRecipient(), scs, message.data, message.getTimestamp());
 		}
 
 		return sendSuccessful;
@@ -215,7 +215,7 @@ public class Channel implements IChannel {
 	 */
 	public Collection<Channel> getChannels() {
 		return subChannels.values().stream().filter(c -> !c.isPrivate())
-		        .sorted((a, b) -> Long.compare(a.creation, b.creation)).collect(Collectors.toList());
+				.sorted((a, b) -> Long.compare(a.creation, b.creation)).collect(Collectors.toList());
 	}
 
 	/**
@@ -225,7 +225,7 @@ public class Channel implements IChannel {
 	 */
 	public String getChannelList() {
 		return getChannels().stream().sorted((a, b) -> Long.compare(a.creation, b.creation)).map(c -> c.getName())
-		        .collect(Collectors.joining(", "));
+				.collect(Collectors.joining(", "));
 	}
 
 	/**
@@ -312,7 +312,7 @@ public class Channel implements IChannel {
 
 			// it is empty now, remove sub channel
 			if (!(subChannel instanceof Client) && subChannel.subChannels.size() == 0
-			        && (subChannel.retainedMessage == null || !subChannel.retainedMessage.isValid())) {
+					&& (subChannel.retainedMessage == null || !subChannel.retainedMessage.isValid())) {
 				// update presence information once for public clients
 				if (!subChannel.isPrivate()) {
 					// signal to presence tracker that a subchannel "channel" leaves "this" channel

@@ -156,7 +156,7 @@ public class Message implements Serializable {
 	 */
 	public String toString() {
 		return "{sender: " + sender + ", recipient: " + recipient + ", timestamp: " + timestamp + ", data: " + data
-		        + "}";
+				+ "}";
 	}
 
 }
