@@ -24,6 +24,7 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -37,6 +38,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import nl.tue.id.oocsi.server.OOCSIServer;
+import nl.tue.id.oocsi.server.model.Channel;
 import nl.tue.id.oocsi.server.model.Client;
 import nl.tue.id.oocsi.server.model.Server;
 import nl.tue.id.oocsi.server.protocol.Message;
@@ -51,9 +53,12 @@ public class NIOSocketService extends AbstractService {
 
 	// current list of connected NIO clients
 	private final Map<SocketChannel, NIOSocketClient> nioClients = new ConcurrentHashMap<>();
-	private final Map<SocketChannel, StringBuffer> nioClientInputBuffer = new ConcurrentHashMap<>();
+	private final Map<SocketChannel, StringBuilder> nioClientInputBuffer = new ConcurrentHashMap<>();
 	private final Queue<SocketChannel> pendingWriteInterest = new ConcurrentLinkedQueue<>();
+	private final AtomicBoolean wakeupPending = new AtomicBoolean(false);
+	private final ByteBuffer readBuffer = ByteBuffer.allocateDirect(1024);
 	private volatile boolean serverSocketActive = true;
+	private volatile Thread selectorThread;
 	private ServerSocketChannel serverSocketChannel;
 	private Selector selector;
 
@@ -118,6 +123,8 @@ public class NIOSocketService extends AbstractService {
 			selector = Selector.open();
 			serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
 
+			selectorThread = Thread.currentThread();
+
 			// accept and read loop
 			while (serverSocketActive && selector.isOpen()) {
 				// process pending write interests
@@ -133,6 +140,7 @@ public class NIOSocketService extends AbstractService {
 				}
 
 				try {
+					wakeupPending.set(false);
 					if (selector.select(20) == 0) {
 						continue;
 					}
@@ -191,10 +199,10 @@ public class NIOSocketService extends AbstractService {
 	 */
 	private void handleReadOp(SelectionKey selectionKey) {
 		SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
-		ByteBuffer byteBuffer = ByteBuffer.allocate(1024);
 		int read = 0;
 		try {
-			read = socketChannel.read(byteBuffer);
+			readBuffer.clear();
+			read = socketChannel.read(readBuffer);
 			if (read == -1) {
 				// if connection is closed by the client
 				if (nioClients.containsKey(socketChannel)) {
@@ -209,6 +217,7 @@ public class NIOSocketService extends AbstractService {
 				socketChannel.close();
 				return;
 			}
+			readBuffer.flip();
 		} catch (IOException e) {
 			// connection reset
 			if (nioClients.containsKey(socketChannel)) {
@@ -229,11 +238,11 @@ public class NIOSocketService extends AbstractService {
 			return;
 		}
 
+		String inputLine = StandardCharsets.UTF_8.decode(readBuffer).toString();
 		NIOSocketClient client = nioClients.get(socketChannel);
 		if (client == null) {
 			// do the client init based on read
-			String inputLine = new String(byteBuffer.array(), 0, read, StandardCharsets.UTF_8);
-			StringBuffer sb = nioClientInputBuffer.computeIfAbsent(socketChannel, s -> new StringBuffer())
+			StringBuilder sb = nioClientInputBuffer.computeIfAbsent(socketChannel, s -> new StringBuilder())
 			        .append(inputLine);
 			if (sb.length() > MAX_PRE_AUTH_BUFFER) {
 				nioClientInputBuffer.remove(socketChannel);
@@ -262,7 +271,7 @@ public class NIOSocketService extends AbstractService {
 
 			// check input line for exceptional values that cannot be handled safely
 			// do some filtering for SSH clients connecting, invalid client names, and other abuse
-			String clientHandle = inputLine.replace(";", "").replace("(JSON)", "").trim().replaceFirst(":.*", "");
+			String clientHandle = Channel.parseChannelName(inputLine.replace(";", "").replace("(JSON)", "").trim());
 			if (inputLine.length() == 0 || inputLine.length() > 200 || !inputLine.matches("\\p{ASCII}+$")
 			        || inputLine.contains("OpenSSH") || inputLine.contains("libssh")
 			        || inputLine.matches(".*\\s.*") || !Server.isValidClientName(clientHandle)) {
@@ -285,11 +294,12 @@ public class NIOSocketService extends AbstractService {
 
 			// if ok, register NIOSocketClient
 			NIOSocketClient newClient = new NIOSocketClient(inputLine, presence, selectionKey);
-			// register for NIO
-			nioClients.put(socketChannel, newClient);
 
 			// register on internal protocol
 			if (register(newClient)) {
+				// register for NIO only on successful registration
+				nioClients.put(socketChannel, newClient);
+
 				// say hi
 				newClient.sayHi();
 
@@ -297,20 +307,53 @@ public class NIOSocketService extends AbstractService {
 				if (!newClient.isPrivate()) {
 					OOCSIServer.logConnection(newClient.getName(), "OOCSI", "client connected", new Date());
 				}
+
+				// process any remaining complete lines already buffered during handshake
+				int lineStart = 0;
+				int nextNl = sb.indexOf("\n", lineStart);
+				while (nextNl > -1) {
+					String pendingLine = sb.substring(lineStart, nextNl + 1).trim();
+					lineStart = nextNl + 1;
+					newClient.processNIOInput(pendingLine);
+					if (!newClient.isConnected()) {
+						try {
+							socketChannel.close();
+						} catch (IOException ignored) {
+						}
+						return;
+					}
+					nextNl = sb.indexOf("\n", lineStart);
+				}
+				if (lineStart > 0) {
+					sb.delete(0, lineStart);
+					if (sb.capacity() > 8192 && sb.length() < 1024) {
+						sb.trimToSize();
+					}
+				}
 			} else {
+				String errMsg;
 				if (newClient.getName().contains(" ")) {
-					newClient.send("error (name cannot contain spaces: " + newClient.getName() + ")");
+					errMsg = "error (name cannot contain spaces: " + newClient.getName() + ")";
 				} else if (newClient.isPrivate()) {
-					newClient.send("error (password wrong for name: " + newClient.getName() + ")");
+					errMsg = "error (password wrong for name: " + newClient.getName() + ")";
 				} else {
-					newClient.send("error (name already registered: " + newClient.getName() + ")");
+					errMsg = "error (name already registered: " + newClient.getName() + ")";
+				}
+				try {
+					socketChannel.write(ByteBuffer.wrap((errMsg + "\n").getBytes(StandardCharsets.UTF_8)));
+				} catch (IOException ignored) {
 				}
 				server.removeClient(newClient);
+				nioClients.remove(socketChannel);
+				nioClientInputBuffer.remove(socketChannel);
+				try {
+					socketChannel.close();
+				} catch (IOException ignored) {
+				}
 			}
 		} else {
-			// do the client init based on read
-			String inputLine = new String(byteBuffer.array(), 0, read, StandardCharsets.UTF_8);
-			StringBuffer sb = nioClientInputBuffer.computeIfAbsent(socketChannel, s -> new StringBuffer())
+			// do the client process based on read
+			StringBuilder sb = nioClientInputBuffer.computeIfAbsent(socketChannel, s -> new StringBuilder())
 			        .append(inputLine);
 
 			if (sb.length() > MAX_BUFFER_SIZE) {
@@ -324,12 +367,13 @@ public class NIOSocketService extends AbstractService {
 				return;
 			}
 
-			// find first newline
-			int nlIndex = sb.indexOf("\n");
+			// find newlines using line cursor
+			int lineStart = 0;
+			int nlIndex = sb.indexOf("\n", lineStart);
 			while (nlIndex > -1) {
-				// if found, remove this part from the buffer, but keeps the rest of the buffer for further use
-				inputLine = sb.substring(0, nlIndex + 1).trim();
-				sb.delete(0, nlIndex + 1);
+				// if found, extract line without copying buffer each time
+				inputLine = sb.substring(lineStart, nlIndex + 1).trim();
+				lineStart = nlIndex + 1;
 
 				// send data to client
 				client.processNIOInput(inputLine);
@@ -344,10 +388,23 @@ public class NIOSocketService extends AbstractService {
 					} catch (IOException e) {
 						// e.printStackTrace();
 					}
+					return;
 				}
 
 				// find next newline
-				nlIndex = sb.indexOf("\n");
+				nlIndex = sb.indexOf("\n", lineStart);
+			}
+
+			if (lineStart > 0) {
+				sb.delete(0, lineStart);
+				// Cap and reset backing capacity if it grew large
+				if (sb.capacity() > 8192) {
+					if (sb.length() == 0) {
+						nioClientInputBuffer.put(socketChannel, new StringBuilder());
+					} else {
+						nioClientInputBuffer.put(socketChannel, new StringBuilder(sb));
+					}
+				}
 			}
 		}
 	}
@@ -441,7 +498,25 @@ public class NIOSocketService extends AbstractService {
 	 *
 	 */
 	class NIOSocketClient extends Client {
-		private final ObjectMapper JSON_OBJECT_MAPPER;
+		private static final ObjectMapper JSON_OBJECT_MAPPER = JsonMapper.builder()
+		        .configure(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY, true)
+		        .configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true).build();
+
+		private static final String LEGACY_UPGRADE_NOTICE = serializeOOCSIOutputStatic();
+
+		private static String serializeOOCSIOutputStatic() {
+			final ByteArrayOutputStream baos = new ByteArrayOutputStream(1024);
+			try {
+				final ObjectOutputStream oos = new ObjectOutputStream(baos);
+				Map<String, Object> oocsiData = new HashMap<String, Object>();
+				oocsiData.put("error", "Your OOCSI client version is too old, please update.");
+				oos.writeObject(oocsiData);
+				final byte[] rawData = baos.toByteArray();
+				return new String(Base64.getEncoder().encode(rawData));
+			} catch (IOException e) {
+				return "";
+			}
+		}
 
 		private final ClientType type;
 		private final SelectionKey selectionKey;
@@ -462,10 +537,6 @@ public class NIOSocketService extends AbstractService {
 			} else {
 				this.type = ClientType.OOCSI;
 			}
-
-			// configure and build object mapper
-			JSON_OBJECT_MAPPER = JsonMapper.builder().configure(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY, true)
-			        .configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true).build();
 		}
 
 		@Override
@@ -577,7 +648,7 @@ public class NIOSocketService extends AbstractService {
 				string += ';';
 			}
 
-			ByteBuffer b = ByteBuffer.wrap((string + "\n").getBytes(StandardCharsets.UTF_8).clone());
+			ByteBuffer b = ByteBuffer.wrap((string + "\n").getBytes(StandardCharsets.UTF_8));
 			if (b != null) {
 				pendingData.offer(b);
 			}
@@ -586,7 +657,9 @@ public class NIOSocketService extends AbstractService {
 			if (selectionKey.isValid() && selectionKey.channel() instanceof SocketChannel) {
 				pendingWriteInterest.offer((SocketChannel) selectionKey.channel());
 				if (selector != null) {
-					selector.wakeup();
+					if (wakeupPending.compareAndSet(false, true)) {
+						selector.wakeup();
+					}
 				}
 			}
 
@@ -602,9 +675,7 @@ public class NIOSocketService extends AbstractService {
 		 */
 		@Deprecated
 		private String serializeJava(Map<String, Object> data) {
-			Map<String, Object> oocsiData = new HashMap<String, Object>();
-			oocsiData.put("error", "Your OOCSI client version is too old, please update.");
-			return serializeOOCSIOutput(oocsiData);
+			return LEGACY_UPGRADE_NOTICE;
 		}
 
 		/**
@@ -662,10 +733,7 @@ public class NIOSocketService extends AbstractService {
 		/**
 		 * serialize data for JSON clients
 		 * 
-		 * @param data
-		 * @param recipient
-		 * @param timestamp
-		 * @param sender
+		 * @param message
 		 * @return
 		 */
 		private String serializeJSON(Map<String, Object> data, String recipient, long timestamp, String sender) {

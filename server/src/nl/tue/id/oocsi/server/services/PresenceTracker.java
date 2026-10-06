@@ -1,6 +1,8 @@
 package nl.tue.id.oocsi.server.services;
 
 import java.util.Collections;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
@@ -48,8 +50,12 @@ public class PresenceTracker implements ChangeListener {
 	 * @param subscriber
 	 */
 	public void unsubscribe(String trackedChannelStr, Channel subscriber) {
-		if (presenceTracking.containsKey(trackedChannelStr)) {
-			presenceTracking.get(trackedChannelStr).removeChannel(subscriber);
+		Channel tracker = presenceTracking.get(trackedChannelStr);
+		if (tracker != null) {
+			tracker.removeChannel(subscriber);
+			if (tracker.isEmpty()) {
+				presenceTracking.remove(trackedChannelStr, tracker);
+			}
 		}
 	}
 
@@ -59,8 +65,13 @@ public class PresenceTracker implements ChangeListener {
 	 * @param subscriber
 	 */
 	public void remove(Channel subscriber) {
-		for (Channel c : presenceTracking.values()) {
+		for (Iterator<Map.Entry<String, Channel>> it = presenceTracking.entrySet().iterator(); it.hasNext();) {
+			Map.Entry<String, Channel> entry = it.next();
+			Channel c = entry.getValue();
 			c.removeChannel(subscriber, true);
+			if (c.isEmpty()) {
+				it.remove();
+			}
 		}
 	}
 
@@ -101,8 +112,12 @@ public class PresenceTracker implements ChangeListener {
 
 	@Override
 	public synchronized void refresh() {
+		presenceTracking.entrySet().removeIf(e -> e.getValue().isEmpty());
 		presenceTracking.entrySet().stream().forEach(e -> {
 			Channel tracker = e.getValue();
+			if (tracker.isEmpty()) {
+				return;
+			}
 			String trackedChannelStr = e.getKey();
 			Channel trackedChannel = server.getChannel(trackedChannelStr);
 
