@@ -52,6 +52,19 @@ public class Message implements Serializable {
 	 */
 	public Date validUntil;
 
+	private transient volatile String webJsonForm;
+	private transient volatile String socketJsonForm;
+
+	public String getWebJsonForm(java.util.function.Supplier<String> compute) {
+		String j = webJsonForm;
+		return j != null ? j : (webJsonForm = compute.get());
+	}
+
+	public String getSocketJsonForm(java.util.function.Supplier<String> compute) {
+		String j = socketJsonForm;
+		return j != null ? j : (socketJsonForm = compute.get());
+	}
+
 	/**
 	 * create message from sender and recipient
 	 * 
@@ -112,6 +125,8 @@ public class Message implements Serializable {
 	 */
 	public Message addData(String key, Object value) {
 		this.data.put(key, value);
+		this.webJsonForm = null;
+		this.socketJsonForm = null;
 		return this;
 	}
 

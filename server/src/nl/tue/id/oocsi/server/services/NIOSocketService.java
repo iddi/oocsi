@@ -618,8 +618,7 @@ public class NIOSocketService extends AbstractService {
 				send("send " + message.getRecipient() + " " + serializeJava(message.data) + " "
 				        + message.getTimestamp().getTime() + " " + message.getSender());
 			} else if (type == ClientType.JSON) {
-				send(serializeJSON(message.data, message.getRecipient(), message.getTimestamp().getTime(),
-				        message.getSender()));
+				send(serializeJSON(message));
 			} else if (type == ClientType.PD) {
 				send(message.getRecipient() + " timestamp=" + message.getTimestamp().getTime() + " sender="
 				        + message.getSender() + " " + serializePD(message.data));
@@ -655,10 +654,17 @@ public class NIOSocketService extends AbstractService {
 
 			// signal send interest
 			if (selectionKey.isValid() && selectionKey.channel() instanceof SocketChannel) {
-				pendingWriteInterest.offer((SocketChannel) selectionKey.channel());
-				if (selector != null) {
-					if (wakeupPending.compareAndSet(false, true)) {
-						selector.wakeup();
+				if (Thread.currentThread() == selectorThread) {
+					try {
+						selectionKey.interestOpsOr(SelectionKey.OP_WRITE);
+					} catch (CancelledKeyException ignored) {
+					}
+				} else {
+					pendingWriteInterest.offer((SocketChannel) selectionKey.channel());
+					if (selector != null) {
+						if (wakeupPending.compareAndSet(false, true)) {
+							selector.wakeup();
+						}
 					}
 				}
 			}
@@ -736,21 +742,23 @@ public class NIOSocketService extends AbstractService {
 		 * @param message
 		 * @return
 		 */
-		private String serializeJSON(Map<String, Object> data, String recipient, long timestamp, String sender) {
-			ObjectNode je = JSON_OBJECT_MAPPER.valueToTree(data);
+		private String serializeJSON(Message message) {
+			return message.getSocketJsonForm(() -> {
+				ObjectNode je = JSON_OBJECT_MAPPER.valueToTree(message.data);
 
-			// add OOCSI properties
-			je.put("recipient", recipient);
-			je.put("timestamp", timestamp);
-			je.put("sender", sender);
+				// add OOCSI properties
+				je.put("recipient", message.getRecipient());
+				je.put("timestamp", message.getTimestamp().getTime());
+				je.put("sender", message.getSender());
 
-			// serialize
-			try {
-				return JSON_OBJECT_MAPPER.writeValueAsString(je);
-			} catch (JsonProcessingException e) {
-				// fall back to normal toString
-				return je.toString();
-			}
+				// serialize
+				try {
+					return JSON_OBJECT_MAPPER.writeValueAsString(je);
+				} catch (JsonProcessingException e) {
+					// fall back to normal toString
+					return je.toString();
+				}
+			});
 		}
 	}
 

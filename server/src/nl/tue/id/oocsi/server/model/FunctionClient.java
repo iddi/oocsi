@@ -30,8 +30,8 @@ public class FunctionClient extends Client {
 	private Client delegate;
 
 	// reference: https://github.com/uklimaschewski/EvalEx
-	private List<String> filterExpression = new LinkedList<>();
-	private List<Map.Entry<String, String>> transformExpression = new LinkedList<>();
+	private List<PreparedExpression> filterExpressions = new LinkedList<>();
+	private List<PreparedTransform> transformExpressions = new LinkedList<>();
 
 	private final ExpressionConfiguration configuration;
 
@@ -46,31 +46,11 @@ public class FunctionClient extends Client {
 		this.functionString = functionString;
 		this.delegate = delegateClient;
 
-		configuration = initFunctions(functionString);
+		this.configuration = initConfiguration();
+		initExpressions(functionString);
 	}
 
-	private ExpressionConfiguration initFunctions(String functionString) {
-		final Pattern filterPattern = Pattern.compile("filter\\((.*)\\)");
-		final Pattern transformPattern = Pattern.compile("transform\\(([^,]+),(.*)\\)");
-
-		// functions are separated by ';'
-		String[] functions = functionString.split(";");
-		for (String fct : functions) {
-			Matcher filterMatcher = filterPattern.matcher(fct);
-			if (filterMatcher.find()) {
-				// init filter expression
-				filterExpression.add(filterMatcher.group(1));
-				continue;
-			}
-
-			Matcher transformMatcher = transformPattern.matcher(fct);
-			if (transformMatcher.find()) {
-				// init transform expression
-				transformExpression.add(Map.entry(transformMatcher.group(1), transformMatcher.group(2)));
-				continue;
-			}
-		}
-
+	private ExpressionConfiguration initConfiguration() {
 		FunctionDictionaryIfc delegateDict = ExpressionConfiguration.defaultConfiguration().getFunctionDictionary();
 		FunctionDictionaryIfc safeDict = new FunctionDictionaryIfc() {
 			private final Set<String> blockedFunctions = Set.of("FACT", "STR_MATCHES", "STR_FORMAT", "DT_DATE_NEW", "DT_DURATION_NEW");
@@ -108,14 +88,37 @@ public class FunctionClient extends Client {
 		        .build();
 	}
 
+	private void initExpressions(String functionString) {
+		final Pattern filterPattern = Pattern.compile("filter\\((.*)\\)");
+		final Pattern transformPattern = Pattern.compile("transform\\(([^,]+),(.*)\\)");
+
+		// functions are separated by ';'
+		String[] functions = functionString.split(";");
+		for (String fct : functions) {
+			Matcher filterMatcher = filterPattern.matcher(fct);
+			if (filterMatcher.find()) {
+				// init filter expression
+				filterExpressions.add(new PreparedExpression(filterMatcher.group(1), configuration));
+				continue;
+			}
+
+			Matcher transformMatcher = transformPattern.matcher(fct);
+			if (transformMatcher.find()) {
+				// init transform expression
+				transformExpressions.add(new PreparedTransform(transformMatcher.group(1), transformMatcher.group(2), configuration));
+				continue;
+			}
+		}
+	}
+
 	@Override
 	public synchronized boolean send(Message message) {
 
 		// filtering checks
-		for (String expression : filterExpression) {
+		for (PreparedExpression pe : filterExpressions) {
 			// apply expression
 			try {
-				final Expression e = loadExpression(expression, message, true);
+				final Expression e = pe.instantiate(message, true);
 				EvaluationValue result = e.evaluate();
 				if (!result.getBooleanValue()) {
 					return false;
@@ -128,13 +131,11 @@ public class FunctionClient extends Client {
 
 		// transformation
 		Message transformedMessage = message.cloneForRecipient(message.getRecipient() + ("[" + functionString + "]"));
-		for (Map.Entry<String, String> entry : transformExpression) {
+		for (PreparedTransform pt : transformExpressions) {
 			try {
-				String key = entry.getKey();
-				String expression = entry.getValue();
-				Expression e = loadExpression(expression, message, false);
+				Expression e = pt.expression.instantiate(message, false);
 				EvaluationValue result = e.evaluate();
-				transformedMessage.addData(key, result.getNumberValue().floatValue());
+				transformedMessage.addData(pt.key, result.getNumberValue().floatValue());
 			} catch (Exception ex) {
 				ex.printStackTrace();
 			}
@@ -151,28 +152,54 @@ public class FunctionClient extends Client {
 		return true;
 	}
 
-	/**
-	 * create an expression based on <code>message</code> parameters and a String <code>expression</code>
-	 * 
-	 * @param expression
-	 * @param message
-	 * @param abortOnMissing
-	 * @return
-	 * @throws ParseException
-	 */
-	private Expression loadExpression(final String expression, Message message, boolean abortOnMissing)
-	        throws ParseException {
-		final Expression e = new Expression(expression, configuration);
-		Set<String> vars = e.getUsedVariables();
-		for (String key : vars) {
-			Object value = message.data.get(key);
-			if (value != null) {
-				e.and(key, BigDecimal.valueOf(Float.parseFloat(value.toString())));
-			} else if (!abortOnMissing) {
-				e.and(key, BigDecimal.valueOf(0));
+	private static class PreparedExpression {
+		final Expression template;
+		final Set<String> usedVariables;
+		final ParseException parseException;
+
+		PreparedExpression(String exprString, ExpressionConfiguration config) {
+			Expression t = null;
+			Set<String> vars = Set.of();
+			ParseException pe = null;
+			try {
+				t = new Expression(exprString, config);
+				t.validate();
+				vars = t.getUsedVariables();
+			} catch (ParseException e) {
+				pe = e;
+			} catch (Exception e) {
+				pe = new ParseException(0, 0, exprString, e.getMessage());
 			}
+			this.template = t;
+			this.usedVariables = vars;
+			this.parseException = pe;
 		}
-		return e;
+
+		Expression instantiate(Message message, boolean abortOnMissing) throws ParseException {
+			if (parseException != null) {
+				throw parseException;
+			}
+			Expression e = template.copy();
+			for (String key : usedVariables) {
+				Object value = message.data.get(key);
+				if (value != null) {
+					e.and(key, BigDecimal.valueOf(Float.parseFloat(value.toString())));
+				} else if (!abortOnMissing) {
+					e.and(key, BigDecimal.ZERO);
+				}
+			}
+			return e;
+		}
+	}
+
+	private static class PreparedTransform {
+		final String key;
+		final PreparedExpression expression;
+
+		PreparedTransform(String key, String exprString, ExpressionConfiguration config) {
+			this.key = key;
+			this.expression = new PreparedExpression(exprString, config);
+		}
 	}
 
 	@Override
@@ -209,8 +236,9 @@ public class FunctionClient extends Client {
 	@FunctionParameter(name = "windowLength")
 	abstract class WindowFunction extends AbstractFunction {
 
-		private Queue<BigDecimal> queue = new ConcurrentLinkedQueue<BigDecimal>();
+		protected Queue<BigDecimal> queue = new ConcurrentLinkedQueue<BigDecimal>();
 		protected int queueLength = -1;
+		protected double runningSum = 0.0;
 
 		@Override
 		public synchronized EvaluationValue evaluate(Expression expression, Token functionToken,
@@ -226,11 +254,16 @@ public class FunctionClient extends Client {
 
 			// make space
 			while (queue.size() >= queueLength) {
-				queue.poll();
+				BigDecimal polled = queue.poll();
+				if (polled != null) {
+					runningSum -= polled.doubleValue();
+				}
 			}
 
 			// insert element
-			queue.offer(value.getNumberValue());
+			BigDecimal num = value.getNumberValue();
+			queue.offer(num);
+			runningSum += num.doubleValue();
 
 			return evalQueue(queue);
 		}
@@ -246,11 +279,7 @@ public class FunctionClient extends Client {
 
 		@Override
 		public synchronized EvaluationValue evalQueue(Queue<BigDecimal> queue) {
-			BigDecimal result = new BigDecimal(0);
-			for (BigDecimal number : queue) {
-				result = result.add(number);
-			}
-			return EvaluationValue.numberValue(result);
+			return EvaluationValue.numberValue(BigDecimal.valueOf(runningSum));
 		}
 	}
 
@@ -260,21 +289,7 @@ public class FunctionClient extends Client {
 
 		@Override
 		public synchronized EvaluationValue evalQueue(Queue<BigDecimal> queue) {
-			return EvaluationValue.numberValue(new BigDecimal(mean(queue)));
-		}
-
-		/**
-		 * calculate the mean of all values in queue
-		 * 
-		 * @param queue
-		 * @return
-		 */
-		private double mean(Queue<BigDecimal> queue) {
-			double result = 0;
-			for (BigDecimal number : queue) {
-				result += number.doubleValue() / queueLength;
-			}
-			return result;
+			return EvaluationValue.numberValue(BigDecimal.valueOf(runningSum / queueLength));
 		}
 	}
 
@@ -285,25 +300,11 @@ public class FunctionClient extends Client {
 		@Override
 		public synchronized EvaluationValue evalQueue(Queue<BigDecimal> queue) {
 			double result = 0;
-			double mean = mean(queue);
+			double mean = runningSum / queueLength;
 			for (BigDecimal number : queue) {
 				result += Math.pow(number.doubleValue() - mean, 2);
 			}
-			return EvaluationValue.numberValue(new BigDecimal(Math.sqrt(result / queueLength)));
-		}
-
-		/**
-		 * calculate the mean of all values in queue
-		 * 
-		 * @param queue
-		 * @return
-		 */
-		private double mean(Queue<BigDecimal> queue) {
-			double result = 0;
-			for (BigDecimal number : queue) {
-				result += number.doubleValue() / queueLength;
-			}
-			return result;
+			return EvaluationValue.numberValue(BigDecimal.valueOf(Math.sqrt(result / queueLength)));
 		}
 	}
 
@@ -313,7 +314,7 @@ public class FunctionClient extends Client {
 
 		@Override
 		public synchronized EvaluationValue evalQueue(Queue<BigDecimal> queue) {
-			return EvaluationValue.numberValue(queue.stream().min((a, b) -> a.compareTo(b)).orElse(new BigDecimal(0)));
+			return EvaluationValue.numberValue(queue.stream().min((a, b) -> a.compareTo(b)).orElse(BigDecimal.ZERO));
 		}
 	}
 
@@ -323,7 +324,7 @@ public class FunctionClient extends Client {
 
 		@Override
 		public synchronized EvaluationValue evalQueue(Queue<BigDecimal> queue) {
-			return EvaluationValue.numberValue(queue.stream().max((a, b) -> a.compareTo(b)).orElse(new BigDecimal(0)));
+			return EvaluationValue.numberValue(queue.stream().max((a, b) -> a.compareTo(b)).orElse(BigDecimal.ZERO));
 		}
 	}
 
