@@ -2,6 +2,7 @@ package nl.tue.id.oocsi.server.model;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
@@ -27,11 +28,29 @@ public class Channel implements IChannel {
 	private final long creation = System.currentTimeMillis();
 
 	protected String token;
+	private final String name;
+	private final boolean priv;
 	protected volatile Message retainedMessage;
+
+	/**
+	 * parse base channel name from token (everything before the first ':')
+	 * 
+	 * @param token
+	 * @return base channel name, or empty string if token is null
+	 */
+	public static String parseChannelName(String token) {
+		if (token == null) {
+			return "";
+		}
+		int i = token.indexOf(':');
+		return i < 0 ? token : token.substring(0, i);
+	}
 
 	public Channel(String token, ChangeListener changeListener) {
 		this.token = token;
 		this.presence = changeListener;
+		this.name = parseChannelName(token);
+		this.priv = token != null && (token.contains(":") || token.contains("/?"));
 	}
 
 	/**
@@ -42,7 +61,7 @@ public class Channel implements IChannel {
 	 */
 	@Override
 	public String getName() {
-		return token.replaceFirst(":.*", "");
+		return name;
 	}
 
 	/*
@@ -52,7 +71,7 @@ public class Channel implements IChannel {
 	 */
 	@Override
 	public String toString() {
-		return token.replaceFirst(":.*", "");
+		return name;
 	}
 
 	/**
@@ -62,7 +81,16 @@ public class Channel implements IChannel {
 	 */
 	@Override
 	public boolean isPrivate() {
-		return token.contains(":") || token.contains("/?");
+		return priv;
+	}
+
+	/**
+	 * check whether this channel has no subchannels
+	 * 
+	 * @return
+	 */
+	public boolean isEmpty() {
+		return subChannels.isEmpty();
 	}
 
 	/**
@@ -119,27 +147,34 @@ public class Channel implements IChannel {
 		}
 
 		// keep track of successful sends
-		AtomicBoolean sendSuccessful = new AtomicBoolean(false);
-		List<String> scs = subChannels.values().stream().filter(subChannel -> {
+		boolean sendSuccessful = false;
+		List<String> scs = null;
+		String sender = message.getSender();
+
+		for (Channel subChannel : subChannels.values()) {
 			// no echo in channels; use ECHO channel for that
-			return !message.getSender().equals(subChannel.getName());
-		}).map(subChannel -> {
-			// send event
-			if (subChannel.send(message)) {
-				sendSuccessful.compareAndExchange(false, true);
-				return subChannel;
-			} else {
-				return null;
+			if (sender.equals(subChannel.getName())) {
+				continue;
 			}
-		}).filter(sc -> sc != null && !sc.isPrivate()).map(sc -> sc.getName()).collect(Collectors.toList());
+
+			if (subChannel.send(message)) {
+				sendSuccessful = true;
+				if (!subChannel.isPrivate()) {
+					if (scs == null) {
+						scs = new ArrayList<>(8);
+					}
+					scs.add(subChannel.getName());
+				}
+			}
+		}
 
 		// log message to all subChannels in one go
-		if (!scs.isEmpty()) {
-			OOCSIServer.logEvent(message.getSender(), message.getRecipient(), scs, message.data,
+		if (scs != null) {
+			OOCSIServer.logEvent(sender, message.getRecipient(), scs, message.data,
 			        message.getTimestamp());
 		}
 
-		return sendSuccessful.getPlain();
+		return sendSuccessful;
 	}
 
 	/**
@@ -149,7 +184,7 @@ public class Channel implements IChannel {
 	 * @return
 	 */
 	public boolean removeSubChannel(String channelName) {
-		return subChannels.remove(channelName.replaceFirst(":.*", "")) != null;
+		return subChannels.remove(parseChannelName(channelName)) != null;
 	}
 
 	/**
@@ -159,7 +194,7 @@ public class Channel implements IChannel {
 	 * @return
 	 */
 	public Channel getChannel(String channelName) {
-		Channel channel = subChannels.get(channelName.replaceFirst(":.*", ""));
+		Channel channel = subChannels.get(parseChannelName(channelName));
 		return channel != null && channel.accept(channelName) ? channel : null;
 	}
 
@@ -170,7 +205,7 @@ public class Channel implements IChannel {
 	 * @return
 	 */
 	public static boolean isPrivate(String channelName) {
-		return !channelName.equals(channelName.replaceFirst(":.*", ""));
+		return channelName != null && (channelName.contains(":") || channelName.contains("/?"));
 	}
 
 	/**

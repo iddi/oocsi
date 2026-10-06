@@ -60,7 +60,7 @@ public class Server extends Channel {
 		if (channelName == null || channelName.isEmpty() || channelName.length() > 200) {
 			return false;
 		}
-		String baseName = channelName.replaceFirst(":.*", "").trim();
+		String baseName = Channel.parseChannelName(channelName).trim();
 		if (baseName.isEmpty()) {
 			return false;
 		}
@@ -228,13 +228,7 @@ public class Server extends Channel {
 	 * @return
 	 */
 	public String getClientList() {
-		String result = "";
-		for (Iterator<String> keys = clients.keySet().iterator(); keys.hasNext();) {
-			String key = keys.next();
-			result += key + (keys.hasNext() ? "," : "");
-		}
-
-		return result;
+		return String.join(",", clients.keySet());
 	}
 
 	/**
