@@ -142,8 +142,8 @@ public class FunctionClient extends Client {
 		// send message with a function client specific recipient
 		delegate.send(transformedMessage);
 
-		// log this if recipient is this client exactly
-		if (message.getRecipient().equals(getName())) {
+		// log this if recipient is this client exactly and not private
+		if (!isPrivate() && message.getRecipient().equals(getName())) {
 			OOCSIServer.logEvent(message.getSender(), "", message.getRecipient(), message.data, message.getTimestamp());
 		}
 

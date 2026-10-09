@@ -170,8 +170,8 @@ public class Channel implements IChannel {
 		}
 
 		// log message to all subChannels in one go
-		if (scs != null) {
-			OOCSIServer.logEvent(sender, message.getRecipient(), scs, message.data, message.getTimestamp());
+		if (!isPrivate() && scs != null) {
+			OOCSIServer.logEvent(sender, getName(), scs, message.data, message.getTimestamp());
 		}
 
 		return sendSuccessful;
@@ -240,7 +240,7 @@ public class Channel implements IChannel {
 			subChannels.put(newChannel.getName(), newChannel);
 
 			// update presence information only for public clients
-			if (!newChannel.isPrivate()) {
+			if (!isPrivate() && !newChannel.isPrivate()) {
 				if (newChannel instanceof Client) {
 					// signal to presence tracker that a client "channel" is created
 					presence.created(newChannel);
@@ -281,7 +281,7 @@ public class Channel implements IChannel {
 		if (subChannels.remove(channel.getName()) != null) {
 
 			// update presence information once for public clients
-			if (!channel.isPrivate()) {
+			if (!isPrivate() && !channel.isPrivate()) {
 				// signal to presence tracker that a subchannel "channel" leaves "this" channel
 				presence.leave(this, channel);
 				OOCSIServer.logConnection(getName(), channel.getName(), "removed channel", new Date());
@@ -314,7 +314,7 @@ public class Channel implements IChannel {
 			if (!(subChannel instanceof Client) && subChannel.subChannels.size() == 0
 					&& (subChannel.retainedMessage == null || !subChannel.retainedMessage.isValid())) {
 				// update presence information once for public clients
-				if (!subChannel.isPrivate()) {
+				if (!isPrivate() && !subChannel.isPrivate()) {
 					// signal to presence tracker that a subchannel "channel" leaves "this" channel
 					presence.leave(this, subChannel);
 					subChannels.remove(subChannel.getName());

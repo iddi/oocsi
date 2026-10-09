@@ -625,8 +625,8 @@ public class NIOSocketService extends AbstractService {
 				return false;
 			}
 
-			// log this if recipient is this client exactly
-			if (message.getRecipient().equals(getName())) {
+			// log this if recipient is this client exactly and not private
+			if (!isPrivate() && message.getRecipient().equals(getName())) {
 				OOCSIServer.logEvent(message.getSender(), "", message.getRecipient(), message.data,
 						message.getTimestamp());
 			}

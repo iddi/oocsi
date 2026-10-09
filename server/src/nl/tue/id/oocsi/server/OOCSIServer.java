@@ -350,6 +350,9 @@ public class OOCSIServer extends Server {
 			recipients.remove(OOCSI_CONNECTIONS);
 		}
 
+		// exclude private recipients from public events
+		recipients = recipients.stream().filter(r -> !Channel.isPrivate(r)).collect(Collectors.toList());
+
 		if (SERVER.equals(sender) || OOCSI_EVENTS.equals(sender) || recipients.isEmpty()) {
 			return;
 		}
@@ -358,11 +361,18 @@ public class OOCSIServer extends Server {
 		messageCount.incrementAndGet();
 		messageTotal.incrementAndGet();
 
+		// drop private channel/sender events from public OOCSI_events logging
+		if (Channel.isPrivate(channel) || Channel.isPrivate(sender)) {
+			return;
+		}
+
+		String cleanChannel = Channel.parseChannelName(channel);
+
 		if (INSTANCE != null && INSTANCE.isLogging) {
-			if (channel.length() == 0) {
+			if (cleanChannel.length() == 0) {
 				log(OOCSI_EVENTS + " " + sender + " --> " + recipients);
 			} else {
-				log(OOCSI_EVENTS + " " + sender + " --( " + channel + " )--> " + recipients);
+				log(OOCSI_EVENTS + " " + sender + " --( " + cleanChannel + " )--> " + recipients);
 			}
 
 			Channel logChannel = INSTANCE.getChannel(OOCSI_EVENTS);
@@ -378,7 +388,7 @@ public class OOCSIServer extends Server {
 
 				Message message = new Message(SERVER, OOCSI_EVENTS, timestamp, eventStats);
 				message.addData("PUB", sender);
-				message.addData("CHANNEL", channel);
+				message.addData("CHANNEL", cleanChannel);
 				message.addData("SUB", recipients);
 				logChannel.send(message);
 			}
@@ -396,14 +406,21 @@ public class OOCSIServer extends Server {
 			return;
 		}
 
+		if (Channel.isPrivate(channel) || Channel.isPrivate(client)) {
+			return;
+		}
+
+		String cleanChannel = Channel.parseChannelName(channel);
+		String cleanClient = Channel.parseChannelName(client);
+
 		if (INSTANCE != null && INSTANCE.isLogging) {
-			log(OOCSI_CONNECTIONS + " " + client + "->" + channel + " (" + operation + ")");
+			log(OOCSI_CONNECTIONS + " " + cleanClient + "->" + cleanChannel + " (" + operation + ")");
 
 			Channel logChannel = INSTANCE.getChannel(OOCSI_CONNECTIONS);
 			if (logChannel != null) {
 				Message message = new Message(SERVER, OOCSI_CONNECTIONS, timestamp);
-				message.addData("CLIENT", client);
-				message.addData("CHANNEL", channel);
+				message.addData("CLIENT", cleanClient);
+				message.addData("CHANNEL", cleanChannel);
 				message.addData("OP", operation);
 				logChannel.send(message);
 			}

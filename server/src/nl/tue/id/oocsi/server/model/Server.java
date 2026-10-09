@@ -444,7 +444,9 @@ public class Server extends Channel {
 				c.addChannel(subscriber);
 			}
 			subCount.incrementAndGet();
-			OOCSIServer.logConnection(subscriber.getName(), channelName, "subscribed", new Date());
+			if (!c.isPrivate() && !subscriber.isPrivate()) {
+				OOCSIServer.logConnection(subscriber.getName(), channelName, "subscribed", new Date());
+			}
 		}
 	}
 
@@ -495,7 +497,9 @@ public class Server extends Channel {
 				count.decrementAndGet();
 			}
 			closeEmptyChannels();
-			OOCSIServer.logConnection(subscriber.getName(), channelName, "unsubscribed", new Date());
+			if (!c.isPrivate() && !subscriber.isPrivate()) {
+				OOCSIServer.logConnection(subscriber.getName(), channelName, "unsubscribed", new Date());
+			}
 		}
 	}
 
